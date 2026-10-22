@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Activity, ActivityType, WeeklyStats, DailyActivity } from '@/data/mock-fitness-data';
+import { GpsCoordinate } from '@/utils/geo';
 
 export interface CreateActivityInput {
   title: string;
@@ -16,6 +17,8 @@ export interface CreateActivityInput {
   cadenceOrSteps?: string;
   location?: string;
   gearName?: string;
+  polylinePreview?: string;
+  routePoints?: GpsCoordinate[];
 }
 
 export const activityService = {
@@ -81,6 +84,8 @@ export const activityService = {
         hasKudoed: false,
         commentsCount: 0,
         gearName: item.gear_name || undefined,
+        polylinePreview: item.polyline_preview || undefined,
+        createdAtIso: item.created_at,
       };
     });
   },
@@ -106,6 +111,7 @@ export const activityService = {
       cadence_or_steps: input.cadenceOrSteps || null,
       location: input.location || 'GPS Tracked Activity',
       gear_name: input.gearName || null,
+      polyline_preview: input.polylinePreview || null,
     };
 
     const { data, error } = await supabase
@@ -117,6 +123,33 @@ export const activityService = {
     if (error) {
       console.error('Error inserting activity to Supabase:', error.message);
       throw error;
+    }
+
+    // Persist ordered GPS coordinates to activity_points table if route was recorded
+    if (input.routePoints && input.routePoints.length > 0) {
+      try {
+        const pointsPayload = input.routePoints.map((pt, idx) => ({
+          activity_id: data.id,
+          user_id: userId,
+          point_order: idx,
+          latitude: pt.latitude,
+          longitude: pt.longitude,
+          altitude: pt.altitude ?? null,
+          accuracy: pt.accuracy ?? null,
+          speed: pt.speed ?? null,
+          recorded_at: new Date(pt.timestamp).toISOString(),
+        }));
+
+        const { error: pointsError } = await supabase
+          .from('activity_points')
+          .insert(pointsPayload);
+
+        if (pointsError) {
+          console.warn('Note: Could not save detailed activity_points to Supabase:', pointsError.message);
+        }
+      } catch (ptsErr: any) {
+        console.warn('Failed to insert activity_points batch:', ptsErr.message);
+      }
     }
 
     return {
@@ -144,7 +177,34 @@ export const activityService = {
       hasKudoed: false,
       commentsCount: 0,
       gearName: data.gear_name || undefined,
+      polylinePreview: data.polyline_preview || undefined,
+      createdAtIso: data.created_at,
     };
+  },
+
+  async fetchActivityRoutePoints(activityId: string): Promise<GpsCoordinate[]> {
+    if (!isSupabaseConfigured()) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('activity_points')
+      .select('*')
+      .eq('activity_id', activityId)
+      .order('point_order', { ascending: true });
+
+    if (error || !data) {
+      return [];
+    }
+
+    return data.map((pt) => ({
+      latitude: Number(pt.latitude),
+      longitude: Number(pt.longitude),
+      altitude: pt.altitude !== null ? Number(pt.altitude) : undefined,
+      accuracy: pt.accuracy !== null ? Number(pt.accuracy) : undefined,
+      speed: pt.speed !== null ? Number(pt.speed) : undefined,
+      timestamp: new Date(pt.recorded_at).getTime(),
+    }));
   },
 
   calculateWeeklyStats(activities: Activity[], goalKm: number = 50.0): WeeklyStats {
@@ -165,15 +225,34 @@ export const activityService = {
     const activeTimeFormatted = `${hrs}h ${mins}m`;
 
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const fullDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const todayIndex = (new Date().getDay() + 6) % 7; // Monday = 0
 
+    // Accumulate distance and active minutes per day of the week
+    const dayBuckets: Array<{ distanceKm: number; activeMinutes: number; type?: ActivityType }> =
+      dayNames.map(() => ({ distanceKm: 0, activeMinutes: 0 }));
+
+    for (const act of activities) {
+      const actDate = act.createdAtIso ? new Date(act.createdAtIso) : new Date();
+      const dayIdx = (actDate.getDay() + 6) % 7;
+
+      const parts = act.durationFormatted.split(':').map(Number);
+      let durationMins = 30;
+      if (parts.length === 3) durationMins = parts[0] * 60 + parts[1];
+      else if (parts.length === 2) durationMins = parts[0];
+
+      dayBuckets[dayIdx].distanceKm += act.distanceKm;
+      dayBuckets[dayIdx].activeMinutes += durationMins;
+      if (!dayBuckets[dayIdx].type) dayBuckets[dayIdx].type = act.type;
+    }
+
     const dailyActivities: DailyActivity[] = dayNames.map((short, idx) => ({
-      dayName: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][idx],
+      dayName: fullDayNames[idx],
       dayShort: short,
       dateStr: '',
-      distanceKm: idx === todayIndex && activities.length > 0 ? Number((totalDistance / Math.max(1, activities.length)).toFixed(1)) : 0,
-      activeMinutes: idx === todayIndex ? 45 : 0,
-      type: activities[0]?.type,
+      distanceKm: Number(dayBuckets[idx].distanceKm.toFixed(1)),
+      activeMinutes: dayBuckets[idx].activeMinutes,
+      type: dayBuckets[idx].type,
       isToday: idx === todayIndex,
     }));
 

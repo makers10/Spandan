@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -18,15 +18,48 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { ActivityType } from '@/data/mock-fitness-data';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
+import {
+  GpsCoordinate,
+  calculateTrackDistanceKm,
+  formatDuration,
+  calculatePace,
+  calculateSpeed,
+  calculateMovingTimeSeconds,
+  generateSvgPathFromCoordinates,
+} from '@/utils/geo';
+import { locationService, LocationPermissionState } from '@/services/location-service';
+
+type RecordingState = 'idle' | 'recording' | 'paused';
+type GpsStatus = 'idle' | 'checking' | 'acquiring' | 'locked' | 'paused' | 'denied' | 'error' | 'unsupported';
 
 export default function RecordScreen() {
   const insets = useSafeAreaInsets();
   const { user, isDemoMode, isConfigured } = useAuth();
 
+  // Sport selector
   const [selectedSport, setSelectedSport] = useState<ActivityType | 'hike'>('run');
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [seconds, setSeconds] = useState(0);
+
+  // Tracking state
+  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle');
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [gpsErrorMsg, setGpsErrorMsg] = useState<string | null>(null);
+
+  // Real GPS coordinate points recorded during active session
+  const [routePoints, setRoutePoints] = useState<GpsCoordinate[]>([]);
+  const routePointsRef = useRef<GpsCoordinate[]>([]);
+  const unsubscribeGpsRef = useRef<(() => void) | null>(null);
+
+  // Time & Distance telemetry
+  const [startTimeMs, setStartTimeMs] = useState<number | null>(null);
+  const [pausedDurationMs, setPausedDurationMs] = useState<number>(0);
+  const [pauseStartMs, setPauseStartMs] = useState<number | null>(null);
+  const [movingSeconds, setMovingSeconds] = useState<number>(0);
+  const [distanceKm, setDistanceKm] = useState<number>(0);
+  const [elevationGainM, setElevationGainM] = useState<number>(0);
+  const [currentPaceOrSpeed, setCurrentPaceOrSpeed] = useState<string>('--:--');
+
+  // Settings
   const [autoPause, setAutoPause] = useState(true);
   const [audioCues, setAudioCues] = useState(true);
 
@@ -34,87 +67,334 @@ export default function RecordScreen() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [activityTitle, setActivityTitle] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDuplicateSaveLocked, setIsDuplicateSaveLocked] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
   const isLiveUser = Boolean(user && !isDemoMode && isConfigured);
 
-  // Timer simulation when user presses Start
+  // Check hardware and permission state on initial mount
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (isRecording && !isPaused) {
-      interval = setInterval(() => {
-        setSeconds((prev) => prev + 1);
+    let isMounted = true;
+
+    async function initialCheck() {
+      if (!locationService.isSupported()) {
+        if (isMounted) {
+          setGpsStatus('unsupported');
+          setGpsErrorMsg('GPS location sensor is not supported in this browser or device environment.');
+        }
+        return;
+      }
+
+      setGpsStatus('checking');
+      const perm = await locationService.checkPermission();
+      if (isMounted) {
+        if (perm.granted) {
+          setGpsStatus('idle');
+        } else if (perm.status === 'denied') {
+          setGpsStatus('denied');
+          setGpsErrorMsg('Location permission is denied. Enable location in device settings to record real GPS routes.');
+        } else {
+          setGpsStatus('idle');
+        }
+      }
+    }
+
+    initialCheck();
+
+    return () => {
+      isMounted = false;
+      if (unsubscribeGpsRef.current) {
+        unsubscribeGpsRef.current();
+        unsubscribeGpsRef.current = null;
+      }
+    };
+  }, []);
+
+  // Moving timer ticker (recalculates every 1 second during recording)
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval>;
+
+    if (recordingState === 'recording' && startTimeMs) {
+      timer = setInterval(() => {
+        const now = Date.now();
+        const movingSec = calculateMovingTimeSeconds(
+          startTimeMs,
+          now,
+          pausedDurationMs,
+          false,
+          null
+        );
+        setMovingSeconds(movingSec);
+
+        // Update live pace or speed based on current track distance and moving time
+        const currentDistance = calculateTrackDistanceKm(routePointsRef.current);
+        setDistanceKm(currentDistance);
+
+        if (selectedSport === 'ride') {
+          setCurrentPaceOrSpeed(calculateSpeed(currentDistance, movingSec));
+        } else {
+          setCurrentPaceOrSpeed(calculatePace(currentDistance, movingSec));
+        }
       }, 1000);
     }
-    return () => clearInterval(interval);
-  }, [isRecording, isPaused]);
 
-  const formatTimer = (totalSec: number) => {
-    const hrs = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-    return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+    return () => clearInterval(timer);
+  }, [recordingState, startTimeMs, pausedDurationMs, selectedSport]);
+
+  // Handle incoming GPS location fixes
+  const handleLocationFix = useCallback(
+    (fix: GpsCoordinate) => {
+      setGpsStatus('locked');
+      if (fix.accuracy !== null && fix.accuracy !== undefined) {
+        setGpsAccuracy(Math.round(fix.accuracy));
+      }
+
+      // Only accumulate track points when actively recording (not paused or idle)
+      if (recordingState === 'recording') {
+        const currentPoints = routePointsRef.current;
+        const prevPoint = currentPoints.length > 0 ? currentPoints[currentPoints.length - 1] : null;
+
+        // Calculate elevation gain if altitude is provided
+        if (
+          prevPoint &&
+          prevPoint.altitude !== null &&
+          prevPoint.altitude !== undefined &&
+          fix.altitude !== null &&
+          fix.altitude !== undefined
+        ) {
+          const deltaAlt = fix.altitude - prevPoint.altitude;
+          if (deltaAlt > 0.8 && deltaAlt < 100) {
+            setElevationGainM((prev) => Math.round(prev + deltaAlt));
+          }
+        }
+
+        const updated = [...currentPoints, fix];
+        routePointsRef.current = updated;
+        setRoutePoints(updated);
+
+        const newDist = calculateTrackDistanceKm(updated);
+        setDistanceKm(newDist);
+      }
+    },
+    [recordingState]
+  );
+
+  // Handle GPS errors from sensor
+  const handleLocationError = useCallback((err: string) => {
+    console.warn('GPS location tracking error:', err);
+    if (err.toLowerCase().includes('denied')) {
+      setGpsStatus('denied');
+      setGpsErrorMsg('Location permission was denied. Please allow location access to continue.');
+    } else {
+      setGpsStatus('error');
+      setGpsErrorMsg(err);
+    }
+  }, []);
+
+  // Request permission explicitly
+  const handleRequestPermission = async () => {
+    setGpsErrorMsg(null);
+    setGpsStatus('checking');
+    const perm = await locationService.requestPermission();
+    if (perm.granted) {
+      setGpsStatus('idle');
+      setGpsErrorMsg(null);
+    } else {
+      setGpsStatus('denied');
+      setGpsErrorMsg('Location permission was denied. Please check your browser or device settings.');
+    }
   };
 
-  const handleStart = () => {
-    setIsRecording(true);
-    setIsPaused(false);
+  // Start activity tracking
+  const handleStart = async () => {
+    setGpsErrorMsg(null);
     setSaveStatus(null);
+
+    if (!locationService.isSupported()) {
+      setGpsStatus('unsupported');
+      setGpsErrorMsg('GPS location tracking is not supported on this device/browser.');
+      return;
+    }
+
+    // Check permission before initiating tracking
+    const permState = await locationService.checkPermission();
+    if (!permState.granted) {
+      const reqState = await locationService.requestPermission();
+      if (!reqState.granted) {
+        setGpsStatus('denied');
+        setGpsErrorMsg('Location permission is required to track your route. Please grant location access.');
+        return;
+      }
+    }
+
+    // Reset session metrics
+    routePointsRef.current = [];
+    setRoutePoints([]);
+    setDistanceKm(0);
+    setElevationGainM(0);
+    setMovingSeconds(0);
+    setPausedDurationMs(0);
+    setPauseStartMs(null);
+
+    const now = Date.now();
+    setStartTimeMs(now);
+    setRecordingState('recording');
+    setGpsStatus('acquiring');
+
+    // Subscribe to hardware GPS stream
+    try {
+      if (unsubscribeGpsRef.current) {
+        unsubscribeGpsRef.current();
+      }
+      const unsubscribe = await locationService.startTracking(handleLocationFix, handleLocationError);
+      unsubscribeGpsRef.current = unsubscribe;
+    } catch (err: any) {
+      setGpsStatus('error');
+      setGpsErrorMsg(`Could not start GPS tracking: ${err.message}`);
+    }
   };
 
+  // Pause tracking
   const handlePause = () => {
-    setIsPaused((prev) => !prev);
+    if (recordingState === 'recording') {
+      setRecordingState('paused');
+      setPauseStartMs(Date.now());
+      setGpsStatus('paused');
+    }
   };
 
+  // Resume tracking
+  const handleResume = () => {
+    if (recordingState === 'paused') {
+      const now = Date.now();
+      const extraPaused = pauseStartMs ? now - pauseStartMs : 0;
+      setPausedDurationMs((prev) => prev + extraPaused);
+      setPauseStartMs(null);
+      setRecordingState('recording');
+      setGpsStatus('locked');
+    }
+  };
+
+  // Stop / Finish activity
   const handleStop = () => {
-    setIsPaused(true);
-    const timeOfDay = new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening';
-    const sportName = selectedSport === 'run' ? 'Run' : selectedSport === 'ride' ? 'Ride' : selectedSport === 'walk' ? 'Walk' : 'Hike';
+    // Teardown GPS subscription
+    if (unsubscribeGpsRef.current) {
+      unsubscribeGpsRef.current();
+      unsubscribeGpsRef.current = null;
+    }
+
+    const now = Date.now();
+    let finalPaused = pausedDurationMs;
+    if (pauseStartMs) {
+      finalPaused += now - pauseStartMs;
+      setPausedDurationMs(finalPaused);
+    }
+
+    if (startTimeMs) {
+      const finalSec = calculateMovingTimeSeconds(startTimeMs, now, finalPaused, false, null);
+      setMovingSeconds(finalSec);
+    }
+
+    const finalDistance = calculateTrackDistanceKm(routePointsRef.current);
+    setDistanceKm(finalDistance);
+
+    setRecordingState('idle');
+    setGpsStatus('idle');
+
+    // Suggest default title
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
+    const sportName =
+      selectedSport === 'run'
+        ? 'Run'
+        : selectedSport === 'ride'
+        ? 'Ride'
+        : selectedSport === 'walk'
+        ? 'Walk'
+        : 'Hike';
     setActivityTitle(`${timeOfDay} ${sportName}`);
+
+    setIsDuplicateSaveLocked(false);
     setShowSaveModal(true);
   };
 
+  // Confirm save
   const handleConfirmSave = async () => {
+    if (isSaving || isDuplicateSaveLocked) {
+      return; // Prevent duplicate rapid clicks
+    }
+
     setIsSaving(true);
+    setIsDuplicateSaveLocked(true);
+
     try {
-      const distance = Number((seconds * 0.003).toFixed(2));
-      const formattedDuration = formatTimer(seconds);
-      const paceVal = selectedSport === 'ride' ? '24.5' : '5:20';
+      const pts = routePointsRef.current;
+      const finalDistance = calculateTrackDistanceKm(pts);
+      const formattedDuration = formatDuration(movingSeconds);
+      const paceVal =
+        selectedSport === 'ride'
+          ? calculateSpeed(finalDistance, movingSeconds)
+          : calculatePace(finalDistance, movingSeconds);
+      const speedOrPaceLabel = selectedSport === 'ride' ? 'Avg Speed' : 'Avg Pace';
+      const polylineSvg = generateSvgPathFromCoordinates(pts, 320, 80, 8);
 
       if (isLiveUser && user) {
         await activityService.createActivity(user.id, {
           title: activityTitle.trim() || `${selectedSport.toUpperCase()} Session`,
           type: selectedSport === 'hike' ? 'walk' : selectedSport,
-          distanceKm: distance,
-          durationSeconds: seconds,
+          distanceKm: finalDistance,
+          durationSeconds: movingSeconds,
           durationFormatted: formattedDuration,
           paceOrSpeedFormatted: paceVal,
-          elevationMeters: Math.floor(seconds * 0.1),
-          calories: Math.max(10, Math.round(distance * 65)),
+          paceOrSpeedLabel: speedOrPaceLabel,
+          elevationMeters: elevationGainM,
+          calories: Math.max(10, Math.round(finalDistance * 65)),
+          location: pts.length > 0 ? 'Outdoor GPS Session' : 'Manual Entry',
+          polylinePreview: polylineSvg,
+          routePoints: pts,
         });
-        setSaveStatus('✅ Activity saved to Supabase PostgreSQL database!');
+        setSaveStatus(
+          `✅ Saved ${finalDistance} km (${pts.length} GPS points) to Supabase PostgreSQL database!`
+        );
       } else {
-        setSaveStatus('ℹ️ Demo Mode: Workout completed locally. Sign in to save real data to Supabase.');
+        setSaveStatus(
+          `ℹ️ Demo Mode: Real GPS workout completed locally (${finalDistance} km, ${pts.length} points). Sign in to persist your activities to Supabase.`
+        );
       }
 
       setShowSaveModal(false);
-      setIsRecording(false);
-      setIsPaused(false);
-      setSeconds(0);
+      setRecordingState('idle');
+      routePointsRef.current = [];
+      setRoutePoints([]);
+      setDistanceKm(0);
+      setMovingSeconds(0);
+      setElevationGainM(0);
     } catch (err: any) {
+      console.error('Error saving activity:', err);
       setSaveStatus(`❌ Failed to save: ${err.message}`);
+      setIsDuplicateSaveLocked(false); // allow retry on error
     } finally {
       setIsSaving(false);
     }
   };
 
+  // Discard recorded workout
   const handleDiscard = () => {
+    if (unsubscribeGpsRef.current) {
+      unsubscribeGpsRef.current();
+      unsubscribeGpsRef.current = null;
+    }
     setShowSaveModal(false);
-    setIsRecording(false);
-    setIsPaused(false);
-    setSeconds(0);
+    setRecordingState('idle');
+    setGpsStatus('idle');
+    routePointsRef.current = [];
+    setRoutePoints([]);
+    setDistanceKm(0);
+    setMovingSeconds(0);
+    setElevationGainM(0);
     setSaveStatus(null);
+    setGpsErrorMsg(null);
+    setIsDuplicateSaveLocked(false);
   };
 
   const sportColor = {
@@ -126,6 +406,61 @@ export default function RecordScreen() {
 
   const bottomPadding = (insets.bottom || 16) + BottomTabInset + Spacing.four;
 
+  // GPS Badge styling
+  const renderGpsBadge = () => {
+    if (gpsStatus === 'denied') {
+      return (
+        <Pressable onPress={handleRequestPermission} style={[styles.gpsStatusBadge, styles.gpsDeniedBadge]}>
+          <View style={[styles.gpsDot, { backgroundColor: '#EF4444' }]} />
+          <Text style={[styles.gpsStatusText, { color: '#EF4444' }]}>GPS DENIED (TAP TO FIX)</Text>
+        </Pressable>
+      );
+    }
+    if (gpsStatus === 'unsupported') {
+      return (
+        <View style={[styles.gpsStatusBadge, styles.gpsDeniedBadge]}>
+          <View style={[styles.gpsDot, { backgroundColor: '#F59E0B' }]} />
+          <Text style={[styles.gpsStatusText, { color: '#F59E0B' }]}>GPS UNSUPPORTED</Text>
+        </View>
+      );
+    }
+    if (gpsStatus === 'acquiring') {
+      return (
+        <View style={[styles.gpsStatusBadge, styles.gpsAcquiringBadge]}>
+          <ActivityIndicator size="small" color="#F59E0B" />
+          <Text style={[styles.gpsStatusText, { color: '#F59E0B' }]}>SEARCHING SATELLITES...</Text>
+        </View>
+      );
+    }
+    if (gpsStatus === 'locked') {
+      return (
+        <View style={styles.gpsStatusBadge}>
+          <View style={styles.gpsDot} />
+          <Text style={styles.gpsStatusText}>
+            GPS LOCKED {gpsAccuracy !== null ? `(±${gpsAccuracy}m)` : ''}
+          </Text>
+        </View>
+      );
+    }
+    if (gpsStatus === 'paused') {
+      return (
+        <View style={[styles.gpsStatusBadge, styles.gpsPausedBadge]}>
+          <View style={[styles.gpsDot, { backgroundColor: '#F59E0B' }]} />
+          <Text style={[styles.gpsStatusText, { color: '#F59E0B' }]}>GPS PAUSED</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={[styles.gpsStatusBadge, styles.gpsIdleBadge]}>
+        <View style={[styles.gpsDot, { backgroundColor: '#64748B' }]} />
+        <Text style={[styles.gpsStatusText, { color: '#94A3B8' }]}>GPS STANDBY</Text>
+      </View>
+    );
+  };
+
+  const isRecordingActive = recordingState === 'recording';
+  const isRecordingPaused = recordingState === 'paused';
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -136,16 +471,26 @@ export default function RecordScreen() {
           {/* Header */}
           <View style={styles.headerBar}>
             <SpandanLogo size="medium" />
-            <View style={styles.gpsStatusBadge}>
-              <View style={styles.gpsDot} />
-              <Text style={styles.gpsStatusText}>GPS READY (3m)</Text>
-            </View>
+            {renderGpsBadge()}
           </View>
 
           {/* Feedback/Save Status Banner */}
           {saveStatus && (
             <View style={styles.saveStatusBanner}>
               <Text style={styles.saveStatusText}>{saveStatus}</Text>
+            </View>
+          )}
+
+          {/* GPS Error or Permission Alert Banner */}
+          {gpsErrorMsg && (
+            <View style={styles.gpsErrorBanner}>
+              <Text style={styles.gpsErrorTitle}>⚠️ Location Notice</Text>
+              <Text style={styles.gpsErrorText}>{gpsErrorMsg}</Text>
+              {gpsStatus === 'denied' && (
+                <Pressable onPress={handleRequestPermission} style={styles.permissionActionBtn}>
+                  <Text style={styles.permissionActionBtnText}>Grant Location Permission</Text>
+                </Pressable>
+              )}
             </View>
           )}
 
@@ -161,10 +506,11 @@ export default function RecordScreen() {
               return (
                 <Pressable
                   key={sport.type}
-                  onPress={() => !isRecording && setSelectedSport(sport.type)}
+                  onPress={() => recordingState === 'idle' && setSelectedSport(sport.type)}
                   style={[
                     styles.sportBtn,
                     isSelected && { backgroundColor: sportColor, borderColor: sportColor },
+                    recordingState !== 'idle' && !isSelected && { opacity: 0.5 },
                   ]}>
                   <Text style={styles.sportIcon}>{sport.icon}</Text>
                   <Text style={[styles.sportLabel, isSelected && styles.sportLabelSelected]}>
@@ -179,9 +525,9 @@ export default function RecordScreen() {
           <View style={styles.hudContainer}>
             {/* Main Timer Display */}
             <View style={styles.timerBox}>
-              <Text style={styles.hudLabel}>ELAPSED TIME</Text>
-              <Text style={styles.timerValue}>{formatTimer(seconds)}</Text>
-              {isPaused && <Text style={styles.pausedBadge}>PAUSED</Text>}
+              <Text style={styles.hudLabel}>ELAPSED MOVING TIME</Text>
+              <Text style={styles.timerValue}>{formatDuration(movingSeconds)}</Text>
+              {isRecordingPaused && <Text style={styles.pausedBadge}>PAUSED</Text>}
             </View>
 
             {/* Split Metrics Grid */}
@@ -189,9 +535,7 @@ export default function RecordScreen() {
               <View style={styles.hudCol}>
                 <Text style={styles.hudLabel}>DISTANCE</Text>
                 <View style={styles.hudValRow}>
-                  <Text style={styles.hudVal}>
-                    {isRecording ? (seconds * 0.003).toFixed(2) : '0.00'}
-                  </Text>
+                  <Text style={styles.hudVal}>{distanceKm.toFixed(2)}</Text>
                   <Text style={styles.hudUnit}>km</Text>
                 </View>
               </View>
@@ -201,9 +545,7 @@ export default function RecordScreen() {
                   {selectedSport === 'ride' ? 'SPEED' : 'PACE'}
                 </Text>
                 <View style={styles.hudValRow}>
-                  <Text style={styles.hudVal}>
-                    {isRecording ? (selectedSport === 'ride' ? '24.5' : '5:20') : '--:--'}
-                  </Text>
+                  <Text style={styles.hudVal}>{currentPaceOrSpeed}</Text>
                   <Text style={styles.hudUnit}>
                     {selectedSport === 'ride' ? 'km/h' : '/km'}
                   </Text>
@@ -211,20 +553,48 @@ export default function RecordScreen() {
               </View>
 
               <View style={styles.hudCol}>
-                <Text style={styles.hudLabel}>ELEVATION</Text>
+                <Text style={styles.hudLabel}>ELEV GAIN</Text>
                 <View style={styles.hudValRow}>
-                  <Text style={styles.hudVal}>
-                    {isRecording ? Math.floor(seconds * 0.1) : '0'}
-                  </Text>
+                  <Text style={styles.hudVal}>{elevationGainM}</Text>
                   <Text style={styles.hudUnit}>m</Text>
                 </View>
               </View>
             </View>
+
+            {/* Live Telemetry Status Bar */}
+            <View style={styles.telemetryBar}>
+              <Text style={styles.telemetryText}>
+                {recordingState !== 'idle'
+                  ? `📡 ${routePoints.length} GPS Points • Live Tracking`
+                  : 'Ready to track with device GPS'}
+              </Text>
+            </View>
           </View>
+
+          {/* Route Preview Card when points are recorded */}
+          {routePoints.length >= 2 && (
+            <View style={styles.routePreviewCard}>
+              <View style={styles.routePreviewHeader}>
+                <Text style={styles.routePreviewTitle}>📍 RECORDED ROUTE TRACK</Text>
+                <Text style={styles.routePreviewSubtitle}>
+                  {routePoints.length} ordered GPS fixes
+                </Text>
+              </View>
+              <View style={styles.routeTrackVisual}>
+                <Text style={styles.routeTrackCoords}>
+                  Start: {routePoints[0].latitude.toFixed(4)}, {routePoints[0].longitude.toFixed(4)}
+                </Text>
+                <Text style={styles.routeTrackCoords}>
+                  Latest: {routePoints[routePoints.length - 1].latitude.toFixed(4)},{' '}
+                  {routePoints[routePoints.length - 1].longitude.toFixed(4)}
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* Recording Controls */}
           <View style={styles.controlsSection}>
-            {!isRecording ? (
+            {recordingState === 'idle' ? (
               <Pressable
                 onPress={handleStart}
                 style={({ pressed }) => [
@@ -236,11 +606,19 @@ export default function RecordScreen() {
               </Pressable>
             ) : (
               <View style={styles.activeControlsRow}>
-                <Pressable
-                  onPress={handlePause}
-                  style={({ pressed }) => [styles.pauseBtn, pressed && styles.pressed]}>
-                  <Text style={styles.pauseBtnText}>{isPaused ? 'RESUME' : 'PAUSE'}</Text>
-                </Pressable>
+                {isRecordingActive ? (
+                  <Pressable
+                    onPress={handlePause}
+                    style={({ pressed }) => [styles.pauseBtn, pressed && styles.pressed]}>
+                    <Text style={styles.pauseBtnText}>PAUSE</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    onPress={handleResume}
+                    style={({ pressed }) => [styles.resumeBtn, pressed && styles.pressed]}>
+                    <Text style={styles.resumeBtnText}>RESUME</Text>
+                  </Pressable>
+                )}
 
                 <Pressable
                   onPress={handleStop}
@@ -258,8 +636,8 @@ export default function RecordScreen() {
             </Text>
             <Text style={styles.authNoticeText}>
               {isLiveUser
-                ? `Logged in as ${user?.email}. Finished sessions will be saved directly into your Supabase activities table.`
-                : 'You are currently in Demo Mode. Finished activities are calculated for review but will not persist to PostgreSQL until you sign in.'}
+                ? `Logged in as ${user?.email}. Finished sessions will be saved directly into your Supabase activities and activity_points tables with ordered GPS coordinates.`
+                : 'You are currently in Demo Mode. Finished activities calculate real device GPS telemetry, but will not persist to PostgreSQL until you sign in.'}
             </Text>
           </View>
 
@@ -296,8 +674,16 @@ export default function RecordScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Save Completed Workout</Text>
             <Text style={styles.modalSub}>
-              {formatTimer(seconds)} • {(seconds * 0.003).toFixed(2)} km
+              {formatDuration(movingSeconds)} • {distanceKm.toFixed(2)} km • {elevationGainM}m Elev
             </Text>
+
+            {distanceKm === 0 && (
+              <View style={styles.emptyTrackWarning}>
+                <Text style={styles.emptyTrackWarningText}>
+                  ⚠️ 0.00 km recorded. If you just tested stationary recording, this session will save without distance.
+                </Text>
+              </View>
+            )}
 
             <View style={styles.modalInputGroup}>
               <Text style={styles.modalInputLabel}>ACTIVITY TITLE</Text>
@@ -311,19 +697,22 @@ export default function RecordScreen() {
             </View>
 
             <View style={styles.modalActions}>
-              <Pressable onPress={handleDiscard} style={styles.discardBtn}>
+              <Pressable
+                onPress={handleDiscard}
+                disabled={isSaving}
+                style={[styles.discardBtn, isSaving && styles.btnDisabled]}>
                 <Text style={styles.discardBtnText}>Discard</Text>
               </Pressable>
 
               <Pressable
                 onPress={handleConfirmSave}
-                disabled={isSaving}
-                style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]}>
+                disabled={isSaving || isDuplicateSaveLocked}
+                style={[styles.saveBtn, (isSaving || isDuplicateSaveLocked) && styles.saveBtnDisabled]}>
                 {isSaving ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <Text style={styles.saveBtnText}>
-                    {isLiveUser ? 'Save to Supabase' : 'Save Demo'}
+                    {isLiveUser ? 'Save to Supabase' : 'Complete Demo'}
                   </Text>
                 )}
               </Pressable>
@@ -364,11 +753,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(34, 197, 94, 0.15)',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(34, 197, 94, 0.3)',
     gap: 6,
+  },
+  gpsIdleBadge: {
+    backgroundColor: 'rgba(100, 116, 139, 0.15)',
+    borderColor: 'rgba(100, 116, 139, 0.3)',
+  },
+  gpsAcquiringBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  gpsPausedBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  gpsDeniedBadge: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   gpsDot: {
     width: 6,
@@ -394,6 +799,37 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  gpsErrorBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    gap: 6,
+  },
+  gpsErrorTitle: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  gpsErrorText: {
+    color: '#F87171',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  permissionActionBtn: {
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  permissionActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
   sportSelector: {
     flexDirection: 'row',
@@ -433,7 +869,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#243354',
     alignItems: 'center',
-    gap: 20,
+    gap: 16,
   },
   timerBox: {
     alignItems: 'center',
@@ -486,6 +922,53 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
+  telemetryBar: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#1C263E',
+    width: '100%',
+    alignItems: 'center',
+  },
+  telemetryText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  routePreviewCard: {
+    backgroundColor: '#131B2E',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#243354',
+    gap: 8,
+  },
+  routePreviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  routePreviewTitle: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  routePreviewSubtitle: {
+    color: '#FF6B00',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  routeTrackVisual: {
+    backgroundColor: '#0B111E',
+    borderRadius: 8,
+    padding: 10,
+    gap: 4,
+  },
+  routeTrackCoords: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+  },
   controlsSection: {
     marginVertical: 4,
   },
@@ -518,6 +1001,18 @@ const styles = StyleSheet.create({
   },
   pauseBtnText: {
     color: '#0B111E',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  resumeBtn: {
+    flex: 1,
+    backgroundColor: '#22C55E',
+    borderRadius: 24,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  resumeBtnText: {
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -631,6 +1126,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
+  emptyTrackWarning: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  emptyTrackWarningText: {
+    color: '#F59E0B',
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
   modalInputGroup: {
     gap: 6,
   },
@@ -677,6 +1185,9 @@ const styles = StyleSheet.create({
   },
   saveBtnDisabled: {
     opacity: 0.6,
+  },
+  btnDisabled: {
+    opacity: 0.5,
   },
   saveBtnText: {
     color: '#FFFFFF',

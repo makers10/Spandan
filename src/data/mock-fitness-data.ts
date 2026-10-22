@@ -41,6 +41,7 @@ export interface Activity {
   commentsCount: number;
   gearName?: string;
   polylinePreview?: string;
+  createdAtIso?: string;
 }
 
 export interface DailyActivity {
