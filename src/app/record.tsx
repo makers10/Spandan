@@ -15,7 +15,7 @@ import { router } from 'expo-router';
 
 import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { ActivityType } from '@/data/mock-fitness-data';
+import { ActivityType, ActivityVisibility } from '@/data/mock-fitness-data';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import {
@@ -38,6 +38,7 @@ export default function RecordScreen() {
 
   // Sport selector
   const [selectedSport, setSelectedSport] = useState<ActivityType | 'hike'>('run');
+  const [activityVisibility, setActivityVisibility] = useState<ActivityVisibility>('public');
 
   // Tracking state
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
@@ -248,6 +249,10 @@ export default function RecordScreen() {
       }
       const unsubscribe = await locationService.startTracking(handleLocationFix, handleLocationError);
       unsubscribeGpsRef.current = unsubscribe;
+
+      if (locationService.isBackgroundSupported()) {
+        locationService.startBackgroundTracking(handleLocationFix, handleLocationError).catch(() => {});
+      }
     } catch (err: any) {
       setGpsStatus('error');
       setGpsErrorMsg(`Could not start GPS tracking: ${err.message}`);
@@ -281,6 +286,9 @@ export default function RecordScreen() {
     if (unsubscribeGpsRef.current) {
       unsubscribeGpsRef.current();
       unsubscribeGpsRef.current = null;
+    }
+    if (locationService.isBackgroundSupported()) {
+      locationService.stopBackgroundTracking().catch(() => {});
     }
 
     const now = Date.now();
@@ -351,6 +359,7 @@ export default function RecordScreen() {
           calories: Math.max(10, Math.round(finalDistance * 65)),
           location: pts.length > 0 ? 'Outdoor GPS Session' : 'Manual Entry',
           polylinePreview: polylineSvg,
+          visibility: activityVisibility,
           routePoints: pts,
         });
         setSaveStatus(
@@ -664,6 +673,14 @@ export default function RecordScreen() {
                 <Text style={styles.toggleText}>{audioCues ? 'ON' : 'OFF'}</Text>
               </View>
             </Pressable>
+            {Platform.OS === 'web' && (
+              <View style={styles.webNoticeCard}>
+                <Text style={styles.webNoticeTitle}>🌐 Web Browser GPS Notice</Text>
+                <Text style={styles.webNoticeText}>
+                  Web browsers suspend location tracking when this browser tab is inactive or mobile screens lock. To record runs with your screen locked, use Spandan on Android with native foreground service background tracking.
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -694,6 +711,29 @@ export default function RecordScreen() {
                 placeholder="Give your workout a name"
                 placeholderTextColor="#64748B"
               />
+            </View>
+
+            <View style={styles.modalInputGroup}>
+              <Text style={styles.modalInputLabel}>VISIBILITY</Text>
+              <View style={styles.visibilityRow}>
+                {(['public', 'followers', 'private'] as ActivityVisibility[]).map((v) => (
+                  <Pressable
+                    key={v}
+                    onPress={() => setActivityVisibility(v)}
+                    style={[
+                      styles.visBtn,
+                      activityVisibility === v && styles.visBtnActive,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.visBtnText,
+                        activityVisibility === v && styles.visBtnTextActive,
+                      ]}>
+                      {v === 'public' ? '🌐 Public' : v === 'followers' ? '👥 Followers' : '🔒 Private'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
 
             <View style={styles.modalActions}>
@@ -1193,6 +1233,50 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  visibilityRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  visBtn: {
+    flex: 1,
+    backgroundColor: '#0B111E',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#243354',
+  },
+  visBtnActive: {
+    backgroundColor: '#1C263E',
+    borderColor: '#FF6B00',
+  },
+  visBtnText: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  visBtnTextActive: {
+    color: '#FFFFFF',
+  },
+  webNoticeCard: {
+    backgroundColor: 'rgba(36, 51, 84, 0.4)',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#243354',
+    gap: 4,
+    marginTop: 4,
+  },
+  webNoticeTitle: {
+    color: '#F59E0B',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  webNoticeText: {
+    color: '#94A3B8',
+    fontSize: 11,
+    lineHeight: 16,
   },
   pressed: {
     opacity: 0.8,

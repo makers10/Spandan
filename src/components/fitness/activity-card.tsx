@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { Activity } from '@/data/mock-fitness-data';
 
 interface ActivityCardProps {
@@ -16,6 +17,13 @@ export function ActivityCard({ activity, onKudosToggle }: ActivityCardProps) {
     setHasKudoed(nextState);
     setKudosCount((prev) => (nextState ? prev + 1 : prev - 1));
     onKudosToggle?.(activity.id, nextState);
+  };
+
+  const handleCardPress = () => {
+    router.push({
+      pathname: '/activity/[id]',
+      params: { id: activity.id },
+    } as any);
   };
 
   const sportMeta = {
@@ -44,9 +52,10 @@ export function ActivityCard({ activity, onKudosToggle }: ActivityCardProps) {
 
   return (
     <View style={styles.card}>
-      {/* Top Athlete Header */}
-      <View style={styles.athleteRow}>
-        <View style={styles.avatar}>
+      <Pressable onPress={handleCardPress} style={({ pressed }) => [pressed && styles.pressed]}>
+        {/* Top Athlete Header */}
+        <View style={styles.athleteRow}>
+          <View style={styles.avatar}>
           <Text style={styles.avatarText}>{activity.athlete.avatar}</Text>
         </View>
 
@@ -145,30 +154,31 @@ export function ActivityCard({ activity, onKudosToggle }: ActivityCardProps) {
           <View style={[styles.routePath, { borderColor: sportMeta.color }]} />
           <View style={[styles.routeElevationFill, { backgroundColor: `${sportMeta.color}15` }]} />
         </View>
-        <Text style={styles.gpsTag}>GPS TRACK RECORDED</Text>
+        <Text style={styles.gpsTag}>VIEW ROUTE & SPLITS →</Text>
       </View>
+    </Pressable>
 
-      {/* Action Footer: Kudos & Comments */}
-      <View style={styles.footer}>
-        <Pressable
-          onPress={handleKudosPress}
-          style={({ pressed }) => [
-            styles.kudosButton,
-            hasKudoed && styles.kudosButtonActive,
-            pressed && styles.pressed,
-          ]}>
-          <Text style={styles.kudosIcon}>{hasKudoed ? '🧡' : '🤍'}</Text>
-          <Text style={[styles.kudosCountText, hasKudoed && styles.kudosCountTextActive]}>
-            {kudosCount} {kudosCount === 1 ? 'Kudos' : 'Kudos'}
-          </Text>
-        </Pressable>
+    {/* Action Footer: Kudos & Comments */}
+    <View style={styles.footer}>
+      <Pressable
+        onPress={handleKudosPress}
+        style={({ pressed }) => [
+          styles.kudosButton,
+          hasKudoed && styles.kudosButtonActive,
+          pressed && styles.pressed,
+        ]}>
+        <Text style={styles.kudosIcon}>{hasKudoed ? '🧡' : '🤍'}</Text>
+        <Text style={[styles.kudosCountText, hasKudoed && styles.kudosCountTextActive]}>
+          {kudosCount} {kudosCount === 1 ? 'Kudo' : 'Kudos'}
+        </Text>
+      </Pressable>
 
-        <View style={styles.commentsGroup}>
-          <Text style={styles.commentsIcon}>💬</Text>
-          <Text style={styles.commentsText}>{activity.commentsCount} comments</Text>
-        </View>
-      </View>
+      <Pressable onPress={handleCardPress} style={styles.commentsGroup}>
+        <Text style={styles.commentsIcon}>💬</Text>
+        <Text style={styles.commentsText}>{activity.commentsCount} comments</Text>
+      </Pressable>
     </View>
+  </View>
   );
 }
 

@@ -19,6 +19,7 @@
     "expo-status-bar": "~58.0.4",
     "expo-symbols": "~58.0.4",
     "expo-system-ui": "~58.0.6",
+    "expo-task-manager": "~58.0.12",
     "expo-web-browser": "~58.0.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -32,6 +33,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~58.0.4",
     "typescript": "~6.0.3"
   },
   "scripts": {

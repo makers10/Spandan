@@ -209,3 +209,175 @@ export function generateSvgPathFromCoordinates(
 
   return `M ${svgCoords.join(' L ')}`;
 }
+
+export interface ElevationStats {
+  gainMeters: number;
+  lossMeters: number;
+  minAltitudeM: number;
+  maxAltitudeM: number;
+}
+
+/**
+ * Calculates elevation gain, loss, and min/max altitudes from GPS track coordinates.
+ */
+export function calculateElevationStats(points: GpsCoordinate[]): ElevationStats {
+  const valid = (points || []).filter(
+    (p) => isValidCoordinate(p) && p.altitude !== null && p.altitude !== undefined
+  );
+
+  if (valid.length === 0) {
+    return { gainMeters: 0, lossMeters: 0, minAltitudeM: 0, maxAltitudeM: 0 };
+  }
+
+  let minAlt = valid[0].altitude!;
+  let maxAlt = valid[0].altitude!;
+  let gain = 0;
+  let loss = 0;
+
+  for (let i = 1; i < valid.length; i++) {
+    const prev = valid[i - 1].altitude!;
+    const curr = valid[i].altitude!;
+
+    if (curr < minAlt) minAlt = curr;
+    if (curr > maxAlt) maxAlt = curr;
+
+    const diff = curr - prev;
+    if (diff > 0.8 && diff < 80) {
+      gain += diff;
+    } else if (diff < -0.8 && diff > -80) {
+      loss += Math.abs(diff);
+    }
+  }
+
+  return {
+    gainMeters: Math.round(gain),
+    lossMeters: Math.round(loss),
+    minAltitudeM: Math.round(minAlt),
+    maxAltitudeM: Math.round(maxAlt),
+  };
+}
+
+/**
+ * Calculates 1-kilometer splits from GPS coordinates or prorates from overall activity metrics.
+ */
+export function calculateKilometerSplits(
+  points: GpsCoordinate[],
+  sportType: 'run' | 'ride' | 'walk' = 'run',
+  fallbackDistanceKm: number = 0,
+  fallbackDurationSec: number = 0
+): Array<{
+  splitNumber: number;
+  distanceKm: number;
+  durationSeconds: number;
+  paceFormatted: string;
+  speedFormatted?: string;
+  elevationDeltaM: number;
+}> {
+  const valid = (points || []).filter(isValidCoordinate);
+
+  // If we have actual GPS track points with at least 1 km traveled
+  if (valid.length >= 2) {
+    const splits: Array<{
+      splitNumber: number;
+      distanceKm: number;
+      durationSeconds: number;
+      paceFormatted: string;
+      speedFormatted?: string;
+      elevationDeltaM: number;
+    }> = [];
+
+    let currentSplitDist = 0;
+    let splitStartTime = valid[0].timestamp;
+    let splitStartAlt = valid[0].altitude || 0;
+    let splitIndex = 1;
+
+    for (let i = 1; i < valid.length; i++) {
+      const stepDist = haversineDistanceKm(valid[i - 1], valid[i]);
+      currentSplitDist += stepDist;
+
+      if (currentSplitDist >= 1.0) {
+        const splitDurationSec = Math.max(1, Math.round((valid[i].timestamp - splitStartTime) / 1000));
+        const elevDelta = Math.round((valid[i].altitude || 0) - splitStartAlt);
+
+        splits.push({
+          splitNumber: splitIndex,
+          distanceKm: 1.0,
+          durationSeconds: splitDurationSec,
+          paceFormatted: calculatePace(1.0, splitDurationSec),
+          speedFormatted: calculateSpeed(1.0, splitDurationSec),
+          elevationDeltaM: elevDelta,
+        });
+
+        splitIndex++;
+        currentSplitDist = 0;
+        splitStartTime = valid[i].timestamp;
+        splitStartAlt = valid[i].altitude || 0;
+      }
+    }
+
+    // Remaining fractional split (e.g. 0.42 km at the end)
+    if (currentSplitDist >= 0.05) {
+      const lastPoint = valid[valid.length - 1];
+      const remainingSec = Math.max(1, Math.round((lastPoint.timestamp - splitStartTime) / 1000));
+      const remainingElev = Math.round((lastPoint.altitude || 0) - splitStartAlt);
+
+      splits.push({
+        splitNumber: splitIndex,
+        distanceKm: Number(currentSplitDist.toFixed(2)),
+        durationSeconds: remainingSec,
+        paceFormatted: calculatePace(currentSplitDist, remainingSec),
+        speedFormatted: calculateSpeed(currentSplitDist, remainingSec),
+        elevationDeltaM: remainingElev,
+      });
+    }
+
+    if (splits.length > 0) {
+      return splits;
+    }
+  }
+
+  // Fallback: Calculate splits from total distance and duration
+  if (fallbackDistanceKm > 0 && fallbackDurationSec > 0) {
+    const totalKm = fallbackDistanceKm;
+    const fullKmCount = Math.floor(totalKm);
+    const remainder = Number((totalKm - fullKmCount).toFixed(2));
+    const avgSecPerKm = fallbackDurationSec / totalKm;
+
+    const splits: Array<{
+      splitNumber: number;
+      distanceKm: number;
+      durationSeconds: number;
+      paceFormatted: string;
+      speedFormatted?: string;
+      elevationDeltaM: number;
+    }> = [];
+
+    for (let k = 1; k <= fullKmCount; k++) {
+      const splitSec = Math.round(avgSecPerKm);
+      splits.push({
+        splitNumber: k,
+        distanceKm: 1.0,
+        durationSeconds: splitSec,
+        paceFormatted: calculatePace(1.0, splitSec),
+        speedFormatted: calculateSpeed(1.0, splitSec),
+        elevationDeltaM: 0,
+      });
+    }
+
+    if (remainder >= 0.05) {
+      const remSec = Math.round(avgSecPerKm * remainder);
+      splits.push({
+        splitNumber: fullKmCount + 1,
+        distanceKm: remainder,
+        durationSeconds: remSec,
+        paceFormatted: calculatePace(remainder, remSec),
+        speedFormatted: calculateSpeed(remainder, remSec),
+        elevationDeltaM: 0,
+      });
+    }
+
+    return splits;
+  }
+
+  return [];
+}

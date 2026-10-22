@@ -20,7 +20,10 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
       ]
     },
     "web": {
@@ -41,7 +44,9 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Spandan to access your location to track your runs, rides, and walks.",
-          "locationWhenInUsePermission": "Allow Spandan to access your location while tracking your workouts."
+          "locationWhenInUsePermission": "Allow Spandan to access your location while tracking your workouts.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ]
     ],

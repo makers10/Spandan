@@ -10,6 +10,7 @@ export interface UserProfile {
   bio: string | null;
   city: string | null;
   weekly_distance_goal_km: number;
+  unit_preference?: 'metric' | 'imperial';
 }
 
 export const authService = {

@@ -1,5 +1,11 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { Activity, ActivityType, WeeklyStats, DailyActivity } from '@/data/mock-fitness-data';
+import {
+  Activity,
+  ActivityType,
+  ActivityVisibility,
+  WeeklyStats,
+  DailyActivity,
+} from '@/data/mock-fitness-data';
 import { GpsCoordinate } from '@/utils/geo';
 
 export interface CreateActivityInput {
@@ -18,10 +24,60 @@ export interface CreateActivityInput {
   location?: string;
   gearName?: string;
   polylinePreview?: string;
+  visibility?: ActivityVisibility;
   routePoints?: GpsCoordinate[];
 }
 
+function mapDatabaseRowToActivity(item: any, fallbackAthleteName: string = 'Athlete'): Activity {
+  const createdAt = new Date(item.created_at);
+  const now = new Date();
+  const diffHours = Math.max(1, Math.round((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)));
+  const timeAgo = diffHours < 24 ? `${diffHours}h ago` : `${Math.floor(diffHours / 24)}d ago`;
+
+  const athleteName = item.profiles?.full_name || fallbackAthleteName;
+  const avatar = item.profiles?.avatar_text || athleteName.substring(0, 2).toUpperCase();
+
+  return {
+    id: item.id,
+    userId: item.user_id,
+    title: item.title,
+    type: item.type as ActivityType,
+    athlete: {
+      name: athleteName,
+      avatar,
+      badge: 'ACTIVE',
+    },
+    date: createdAt.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    }),
+    timeAgo,
+    location: item.location || 'Outdoor Track',
+    distanceKm: Number(item.distance_km),
+    durationFormatted: item.duration_formatted,
+    durationSeconds: Number(item.duration_seconds || 0),
+    paceOrSpeedFormatted: item.pace_or_speed_formatted,
+    paceOrSpeedLabel: item.pace_or_speed_label || 'Avg Pace',
+    elevationMeters: Number(item.elevation_meters || 0),
+    calories: Number(item.calories || 0),
+    avgHeartRate: item.avg_heart_rate ? Number(item.avg_heart_rate) : undefined,
+    maxHeartRate: item.max_heart_rate ? Number(item.max_heart_rate) : undefined,
+    cadenceOrSteps: item.cadence_or_steps || undefined,
+    kudosCount: 0,
+    hasKudoed: false,
+    commentsCount: 0,
+    gearName: item.gear_name || undefined,
+    polylinePreview: item.polyline_preview || undefined,
+    visibility: (item.visibility as ActivityVisibility) || 'public',
+    createdAtIso: item.created_at,
+  };
+}
+
 export const activityService = {
+  /**
+   * Fetches an athlete's personal activities, ordered by creation date descending.
+   */
   async fetchUserActivities(
     userId: string,
     filterType?: ActivityType,
@@ -33,7 +89,7 @@ export const activityService = {
 
     let query = supabase
       .from('activities')
-      .select('*')
+      .select('*, profiles(full_name, avatar_text)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -48,48 +104,62 @@ export const activityService = {
     }
 
     if (!data) return [];
-
-    return data.map((item) => {
-      const createdAt = new Date(item.created_at);
-      const now = new Date();
-      const diffHours = Math.max(1, Math.round((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)));
-      const timeAgo = diffHours < 24 ? `${diffHours}h ago` : `${Math.floor(diffHours / 24)}d ago`;
-
-      return {
-        id: item.id,
-        title: item.title,
-        type: item.type as ActivityType,
-        athlete: {
-          name: athleteName,
-          avatar: athleteName.substring(0, 2).toUpperCase(),
-          badge: 'ACTIVE',
-        },
-        date: createdAt.toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-        }),
-        timeAgo,
-        location: item.location || 'Outdoor Track',
-        distanceKm: Number(item.distance_km),
-        durationFormatted: item.duration_formatted,
-        paceOrSpeedFormatted: item.pace_or_speed_formatted,
-        paceOrSpeedLabel: item.pace_or_speed_label || 'Avg Pace',
-        elevationMeters: Number(item.elevation_meters || 0),
-        calories: Number(item.calories || 0),
-        avgHeartRate: item.avg_heart_rate ? Number(item.avg_heart_rate) : undefined,
-        maxHeartRate: item.max_heart_rate ? Number(item.max_heart_rate) : undefined,
-        cadenceOrSteps: item.cadence_or_steps || undefined,
-        kudosCount: 0,
-        hasKudoed: false,
-        commentsCount: 0,
-        gearName: item.gear_name || undefined,
-        polylinePreview: item.polyline_preview || undefined,
-        createdAtIso: item.created_at,
-      };
-    });
+    return data.map((item) => mapDatabaseRowToActivity(item, athleteName));
   },
 
+  /**
+   * Fetches a single activity by ID with its creator profile.
+   */
+  async fetchActivityById(activityId: string): Promise<Activity | null> {
+    if (!isSupabaseConfigured()) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('activities')
+      .select('*, profiles(full_name, avatar_text)')
+      .eq('id', activityId)
+      .single();
+
+    if (error || !data) {
+      console.warn('Error fetching activity by ID:', error?.message);
+      return null;
+    }
+
+    return mapDatabaseRowToActivity(data);
+  },
+
+  /**
+   * Fetches social feed: activities created by followed athletes plus public activities.
+   */
+  async fetchSocialFeed(currentUserId?: string, filterType?: ActivityType): Promise<Activity[]> {
+    if (!isSupabaseConfigured()) {
+      return [];
+    }
+
+    let query = supabase
+      .from('activities')
+      .select('*, profiles(full_name, avatar_text)')
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (filterType) {
+      query = query.eq('type', filterType);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.warn('Error fetching social feed:', error.message);
+      return [];
+    }
+
+    if (!data) return [];
+    return data.map((item) => mapDatabaseRowToActivity(item));
+  },
+
+  /**
+   * Creates an activity and optionally batch-inserts ordered GPS route points.
+   */
   async createActivity(userId: string, input: CreateActivityInput): Promise<Activity> {
     if (!isSupabaseConfigured()) {
       throw new Error('Supabase is not configured. Activity cannot be persisted to database.');
@@ -112,12 +182,13 @@ export const activityService = {
       location: input.location || 'GPS Tracked Activity',
       gear_name: input.gearName || null,
       polyline_preview: input.polylinePreview || null,
+      visibility: input.visibility || 'public',
     };
 
     const { data, error } = await supabase
       .from('activities')
       .insert(payload)
-      .select()
+      .select('*, profiles(full_name, avatar_text)')
       .single();
 
     if (error) {
@@ -152,36 +223,73 @@ export const activityService = {
       }
     }
 
-    return {
-      id: data.id,
-      title: data.title,
-      type: data.type as ActivityType,
-      athlete: {
-        name: 'You',
-        avatar: 'ME',
-        badge: 'ACTIVE',
-      },
-      date: 'Just now',
-      timeAgo: 'Just now',
-      location: data.location,
-      distanceKm: Number(data.distance_km),
-      durationFormatted: data.duration_formatted,
-      paceOrSpeedFormatted: data.pace_or_speed_formatted,
-      paceOrSpeedLabel: data.pace_or_speed_label,
-      elevationMeters: Number(data.elevation_meters),
-      calories: Number(data.calories),
-      avgHeartRate: data.avg_heart_rate ? Number(data.avg_heart_rate) : undefined,
-      maxHeartRate: data.max_heart_rate ? Number(data.max_heart_rate) : undefined,
-      cadenceOrSteps: data.cadence_or_steps || undefined,
-      kudosCount: 0,
-      hasKudoed: false,
-      commentsCount: 0,
-      gearName: data.gear_name || undefined,
-      polylinePreview: data.polyline_preview || undefined,
-      createdAtIso: data.created_at,
-    };
+    return mapDatabaseRowToActivity(data, 'You');
   },
 
+  /**
+   * Updates an existing activity (ownership enforced by RLS).
+   */
+  async updateActivity(
+    userId: string,
+    activityId: string,
+    updates: {
+      title?: string;
+      type?: ActivityType;
+      visibility?: ActivityVisibility;
+      gearName?: string;
+    }
+  ): Promise<Activity> {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase is not configured.');
+    }
+
+    const payload: any = {};
+    if (updates.title !== undefined) payload.title = updates.title;
+    if (updates.type !== undefined) payload.type = updates.type;
+    if (updates.visibility !== undefined) payload.visibility = updates.visibility;
+    if (updates.gearName !== undefined) payload.gear_name = updates.gearName;
+
+    const { data, error } = await supabase
+      .from('activities')
+      .update(payload)
+      .eq('id', activityId)
+      .eq('user_id', userId)
+      .select('*, profiles(full_name, avatar_text)')
+      .single();
+
+    if (error) {
+      console.error('Error updating activity in Supabase:', error.message);
+      throw error;
+    }
+
+    return mapDatabaseRowToActivity(data);
+  },
+
+  /**
+   * Deletes an activity and its cascade dependencies (ownership enforced by RLS).
+   */
+  async deleteActivity(userId: string, activityId: string): Promise<boolean> {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase is not configured.');
+    }
+
+    const { error } = await supabase
+      .from('activities')
+      .delete()
+      .eq('id', activityId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error deleting activity from Supabase:', error.message);
+      throw error;
+    }
+
+    return true;
+  },
+
+  /**
+   * Fetches ordered GPS route coordinates for an activity.
+   */
   async fetchActivityRoutePoints(activityId: string): Promise<GpsCoordinate[]> {
     if (!isSupabaseConfigured()) {
       return [];
@@ -207,12 +315,14 @@ export const activityService = {
     }));
   },
 
+  /**
+   * Computes weekly training volume and day-of-week distribution.
+   */
   calculateWeeklyStats(activities: Activity[], goalKm: number = 50.0): WeeklyStats {
     const totalDistance = activities.reduce((sum, a) => sum + a.distanceKm, 0);
     const totalElev = activities.reduce((sum, a) => sum + a.elevationMeters, 0);
     const totalCalories = activities.reduce((sum, a) => sum + a.calories, 0);
 
-    // Approximate active minutes
     const totalMinutes = activities.reduce((sum, a) => {
       const parts = a.durationFormatted.split(':').map(Number);
       if (parts.length === 3) return sum + parts[0] * 60 + parts[1];
@@ -228,7 +338,6 @@ export const activityService = {
     const fullDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const todayIndex = (new Date().getDay() + 6) % 7; // Monday = 0
 
-    // Accumulate distance and active minutes per day of the week
     const dayBuckets: Array<{ distanceKm: number; activeMinutes: number; type?: ActivityType }> =
       dayNames.map(() => ({ distanceKm: 0, activeMinutes: 0 }));
 

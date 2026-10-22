@@ -62,8 +62,9 @@ runTest('RLS policy rules enforce CRUD ownership checks (auth.uid() = user_id)',
 
   // SELECT policy
   assert.ok(
-    schema.includes('create policy "Users can view own activities"') &&
-    schema.includes('using (auth.uid() = user_id)'),
+    (schema.includes('create policy "Users can view authorized activities"') ||
+     schema.includes('create policy "Users can view own activities"')) &&
+    schema.includes('auth.uid() = user_id'),
     'Activities select policy must enforce auth.uid() = user_id'
   );
 

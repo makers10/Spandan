@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -13,6 +15,11 @@ import { router } from 'expo-router';
 
 import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Activity, getMockActivities } from '@/data/mock-fitness-data';
+import { ActivityCard } from '@/components/fitness/activity-card';
+import { useAuth } from '@/context/auth-context';
+import { activityService } from '@/services/activity-service';
+import { socialService } from '@/services/social-service';
 
 interface SegmentItem {
   id: string;
@@ -23,6 +30,16 @@ interface SegmentItem {
   type: 'run' | 'ride';
   komTime: string;
   komHolder: string;
+}
+
+interface CommunityAthlete {
+  id: string;
+  name: string;
+  handle: string;
+  city: string;
+  avatarText: string;
+  bio?: string;
+  isFollowing?: boolean;
 }
 
 const POPULAR_SEGMENTS: SegmentItem[] = [
@@ -60,8 +77,136 @@ const POPULAR_SEGMENTS: SegmentItem[] = [
 
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
+  const { user, isDemoMode, isConfigured } = useAuth();
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTab, setSelectedTab] = useState<'segments' | 'challenges' | 'clubs'>('segments');
+  const [selectedTab, setSelectedTab] = useState<'feed' | 'athletes' | 'segments'>('feed');
+
+  // Community Feed State
+  const [feedActivities, setFeedActivities] = useState<Activity[]>([]);
+  const [isFeedLoading, setIsFeedLoading] = useState(false);
+
+  // Athletes Directory State
+  const [athletes, setAthletes] = useState<CommunityAthlete[]>([]);
+  const [isAthletesLoading, setIsAthletesLoading] = useState(false);
+  const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
+
+  const isLiveUser = Boolean(user && !isDemoMode && isConfigured);
+
+  // Load Community Feed
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadFeed() {
+      if (selectedTab !== 'feed') return;
+      setIsFeedLoading(true);
+
+      try {
+        if (isLiveUser) {
+          const acts = await activityService.fetchSocialFeed(user?.id);
+          if (isMounted) setFeedActivities(acts);
+        } else {
+          const mocks = getMockActivities();
+          if (isMounted) setFeedActivities(mocks);
+        }
+      } catch (err: any) {
+        console.warn('Error loading social feed:', err.message);
+      } finally {
+        if (isMounted) setIsFeedLoading(false);
+      }
+    }
+
+    loadFeed();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedTab, isLiveUser, user]);
+
+  // Load Athletes Directory
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAthletes() {
+      if (selectedTab !== 'athletes') return;
+      setIsAthletesLoading(true);
+
+      try {
+        const list = await socialService.searchAthletes(searchQuery, user?.id);
+        if (isMounted) {
+          setAthletes(list);
+
+          // Check follow status for each athlete
+          if (isLiveUser && user) {
+            const map: Record<string, boolean> = {};
+            await Promise.all(
+              list.map(async (ath) => {
+                const isFollowed = await socialService.isFollowingAthlete(user.id, ath.id);
+                map[ath.id] = isFollowed;
+              })
+            );
+            if (isMounted) setFollowingMap(map);
+          }
+        }
+      } catch (err: any) {
+        console.warn('Error loading athletes:', err.message);
+      } finally {
+        if (isMounted) setIsAthletesLoading(false);
+      }
+    }
+
+    loadAthletes();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedTab, searchQuery, isLiveUser, user]);
+
+  // Toggle Follow
+  const handleToggleFollow = async (athleteId: string) => {
+    if (!isLiveUser || !user) {
+      Alert.alert('Demo Mode', 'Sign in to follow athletes and customize your feed.');
+      return;
+    }
+
+    const currentlyFollowing = Boolean(followingMap[athleteId]);
+    const nextState = !currentlyFollowing;
+
+    setFollowingMap((prev) => ({ ...prev, [athleteId]: nextState }));
+
+    try {
+      if (nextState) {
+        await socialService.followAthlete(user.id, athleteId);
+      } else {
+        await socialService.unfollowAthlete(user.id, athleteId);
+      }
+    } catch (err: any) {
+      // Revert on failure
+      setFollowingMap((prev) => ({ ...prev, [athleteId]: currentlyFollowing }));
+      Alert.alert('Error', err.message || 'Could not update follow status.');
+    }
+  };
+
+  // Block Athlete
+  const handleBlockAthlete = async (athleteId: string, athleteName: string) => {
+    if (!isLiveUser || !user) return;
+
+    Alert.alert(
+      'Block Athlete',
+      `Are you sure you want to block ${athleteName}? They will no longer be able to see your public activities or interact with you.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            await socialService.blockUser(user.id, athleteId);
+            setAthletes((prev) => prev.filter((a) => a.id !== athleteId));
+          },
+        },
+      ]
+    );
+  };
 
   const bottomPadding = (insets.bottom || 16) + BottomTabInset + Spacing.four;
 
@@ -83,7 +228,13 @@ export default function ExploreScreen() {
             <Text style={styles.searchIcon}>🔍</Text>
             <TextInput
               style={styles.searchInput}
-              placeholder="Search segments, routes, clubs..."
+              placeholder={
+                selectedTab === 'athletes'
+                  ? 'Search athletes by name...'
+                  : selectedTab === 'feed'
+                  ? 'Search community workouts...'
+                  : 'Search segments, routes, climbs...'
+              }
               placeholderTextColor="#64748B"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -93,83 +244,176 @@ export default function ExploreScreen() {
           {/* Section Navigation Tabs */}
           <View style={styles.tabBar}>
             <Pressable
+              onPress={() => setSelectedTab('feed')}
+              style={[styles.tabItem, selectedTab === 'feed' && styles.tabItemActive]}>
+              <Text style={[styles.tabText, selectedTab === 'feed' && styles.tabTextActive]}>
+                Community Feed
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setSelectedTab('athletes')}
+              style={[styles.tabItem, selectedTab === 'athletes' && styles.tabItemActive]}>
+              <Text style={[styles.tabText, selectedTab === 'athletes' && styles.tabTextActive]}>
+                Athletes
+              </Text>
+            </Pressable>
+
+            <Pressable
               onPress={() => setSelectedTab('segments')}
               style={[styles.tabItem, selectedTab === 'segments' && styles.tabItemActive]}>
               <Text style={[styles.tabText, selectedTab === 'segments' && styles.tabTextActive]}>
                 Segments
               </Text>
             </Pressable>
-            <Pressable
-              onPress={() => setSelectedTab('challenges')}
-              style={[styles.tabItem, selectedTab === 'challenges' && styles.tabItemActive]}>
-              <Text style={[styles.tabText, selectedTab === 'challenges' && styles.tabTextActive]}>
-                Challenges
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setSelectedTab('clubs')}
-              style={[styles.tabItem, selectedTab === 'clubs' && styles.tabItemActive]}>
-              <Text style={[styles.tabText, selectedTab === 'clubs' && styles.tabTextActive]}>
-                Clubs
-              </Text>
-            </Pressable>
           </View>
 
-          {/* Featured Challenge Banner */}
-          <View style={styles.challengeCard}>
-            <View style={styles.challengeBadge}>
-              <Text style={styles.challengeBadgeText}>OCTOBER CHALLENGE</Text>
-            </View>
-            <Text style={styles.challengeTitle}>Spandan 100K Cycling Odyssey</Text>
-            <Text style={styles.challengeDesc}>
-              Ride 100 km this month and earn the official Spandan Autumn Finisher digital badge.
-            </Text>
-            <View style={styles.challengeFooter}>
-              <Text style={styles.challengeStats}>👥 1,842 Athletes Joined</Text>
-              <Pressable style={styles.joinBtn}>
-                <Text style={styles.joinBtnText}>Join Challenge</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Segments List */}
-          <View style={styles.sectionHeadingRow}>
-            <Text style={styles.sectionHeading}>Popular Segments Near You</Text>
-            <Text style={styles.sectionBadge}>📍 Within 25 km</Text>
-          </View>
-
-          <View style={styles.segmentList}>
-            {POPULAR_SEGMENTS.map((seg) => (
-              <View key={seg.id} style={styles.segmentCard}>
-                <View style={styles.segTopRow}>
-                  <View style={styles.segBadgeRow}>
-                    <View
-                      style={[
-                        styles.segTypeTag,
-                        { backgroundColor: seg.type === 'run' ? '#FF6B00' : '#00D2D3' },
-                      ]}>
-                      <Text style={styles.segTypeTagText}>
-                        {seg.type === 'run' ? '🏃 RUN' : '🚴 RIDE'}
-                      </Text>
-                    </View>
-                    <Text style={styles.segDistance}>{seg.distanceKm} km</Text>
-                    <Text style={styles.segElev}>+{seg.elevationM} m</Text>
-                  </View>
-                  <Text style={styles.komBadge}>👑 {seg.komTime}</Text>
+          {/* TAB 1: COMMUNITY FEED */}
+          {selectedTab === 'feed' && (
+            <View style={styles.feedSection}>
+              {isFeedLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#FF6B00" />
+                  <Text style={styles.loadingText}>Fetching community pulse...</Text>
                 </View>
+              ) : feedActivities.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyIcon}>🏃</Text>
+                  <Text style={styles.emptyTitle}>No Activities in Feed Yet</Text>
+                  <Text style={styles.emptySub}>
+                    Be the first to record an activity or follow other athletes to populate your stream!
+                  </Text>
+                </View>
+              ) : (
+                feedActivities.map((act) => (
+                  <ActivityCard key={act.id} activity={act} />
+                ))
+              )}
+            </View>
+          )}
 
-                <Text style={styles.segName}>{seg.name}</Text>
-                <Text style={styles.segLoc}>{seg.location}</Text>
+          {/* TAB 2: ATHLETES DIRECTORY */}
+          {selectedTab === 'athletes' && (
+            <View style={styles.athletesSection}>
+              {isAthletesLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#FF6B00" />
+                  <Text style={styles.loadingText}>Searching community directory...</Text>
+                </View>
+              ) : athletes.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyIcon}>👥</Text>
+                  <Text style={styles.emptyTitle}>No Athletes Found</Text>
+                  <Text style={styles.emptySub}>
+                    Try searching with another name or check your connection.
+                  </Text>
+                </View>
+              ) : (
+                athletes.map((ath) => {
+                  const isFollowed = Boolean(followingMap[ath.id]);
+                  return (
+                    <View key={ath.id} style={styles.athleteRowCard}>
+                      <View style={styles.athleteAvatar}>
+                        <Text style={styles.athleteAvatarText}>{ath.avatarText}</Text>
+                      </View>
 
-                <View style={styles.segFooter}>
-                  <Text style={styles.komHolderText}>CR / KOM: {seg.komHolder}</Text>
-                  <Pressable style={styles.viewRouteBtn}>
-                    <Text style={styles.viewRouteBtnText}>View Segment →</Text>
+                      <View style={styles.athleteTextGroup}>
+                        <Text style={styles.athleteRowName}>{ath.name}</Text>
+                        <Text style={styles.athleteRowHandle}>{ath.handle} • {ath.city}</Text>
+                        {ath.bio && <Text style={styles.athleteRowBio} numberOfLines={1}>{ath.bio}</Text>}
+                      </View>
+
+                      <View style={styles.athleteRowActions}>
+                        <Pressable
+                          onPress={() => handleToggleFollow(ath.id)}
+                          style={[
+                            styles.followBtn,
+                            isFollowed && styles.followBtnActive,
+                          ]}>
+                          <Text
+                            style={[
+                              styles.followBtnText,
+                              isFollowed && styles.followBtnTextActive,
+                            ]}>
+                            {isFollowed ? 'Following' : '+ Follow'}
+                          </Text>
+                        </Pressable>
+
+                        {isLiveUser && (
+                          <Pressable
+                            onPress={() => handleBlockAthlete(ath.id, ath.name)}
+                            style={styles.blockBtn}>
+                            <Text style={styles.blockBtnText}>🚫</Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+          )}
+
+          {/* TAB 3: POPULAR SEGMENTS */}
+          {selectedTab === 'segments' && (
+            <View style={styles.segmentsSection}>
+              {/* Featured Challenge Banner */}
+              <View style={styles.challengeCard}>
+                <View style={styles.challengeBadge}>
+                  <Text style={styles.challengeBadgeText}>OCTOBER CHALLENGE</Text>
+                </View>
+                <Text style={styles.challengeTitle}>Spandan 100K Cycling Odyssey</Text>
+                <Text style={styles.challengeDesc}>
+                  Ride 100 km this month and earn the official Spandan Autumn Finisher digital badge.
+                </Text>
+                <View style={styles.challengeFooter}>
+                  <Text style={styles.challengeStats}>👥 1,842 Athletes Joined</Text>
+                  <Pressable style={styles.joinBtn}>
+                    <Text style={styles.joinBtnText}>Join Challenge</Text>
                   </Pressable>
                 </View>
               </View>
-            ))}
-          </View>
+
+              {/* Segments List */}
+              <View style={styles.sectionHeadingRow}>
+                <Text style={styles.sectionHeading}>Popular Segments Near You</Text>
+                <Text style={styles.sectionBadge}>📍 Within 25 km</Text>
+              </View>
+
+              <View style={styles.segmentList}>
+                {POPULAR_SEGMENTS.map((seg) => (
+                  <View key={seg.id} style={styles.segmentCard}>
+                    <View style={styles.segTopRow}>
+                      <View style={styles.segBadgeRow}>
+                        <View
+                          style={[
+                            styles.segTypeTag,
+                            { backgroundColor: seg.type === 'run' ? '#FF6B00' : '#00D2D3' },
+                          ]}>
+                          <Text style={styles.segTypeTagText}>
+                            {seg.type === 'run' ? '🏃 RUN' : '🚴 RIDE'}
+                          </Text>
+                        </View>
+                        <Text style={styles.segDistance}>{seg.distanceKm} km</Text>
+                        <Text style={styles.segElev}>+{seg.elevationM} m</Text>
+                      </View>
+                      <Text style={styles.komBadge}>👑 {seg.komTime}</Text>
+                    </View>
+
+                    <Text style={styles.segName}>{seg.name}</Text>
+                    <Text style={styles.segLoc}>{seg.location}</Text>
+
+                    <View style={styles.segFooter}>
+                      <Text style={styles.komHolderText}>CR / KOM: {seg.komHolder}</Text>
+                      <Pressable style={styles.viewRouteBtn}>
+                        <Text style={styles.viewRouteBtnText}>View Segment →</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -202,21 +446,22 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#94A3B8',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#131B2E',
     borderRadius: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#243354',
-    gap: 10,
   },
   searchIcon: {
-    fontSize: 16,
+    fontSize: 14,
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
@@ -231,44 +476,159 @@ const styles = StyleSheet.create({
     padding: 4,
     borderWidth: 1,
     borderColor: '#243354',
+    gap: 4,
   },
   tabItem: {
     flex: 1,
     paddingVertical: 8,
-    alignItems: 'center',
     borderRadius: 8,
+    alignItems: 'center',
   },
   tabItemActive: {
     backgroundColor: '#1C263E',
   },
   tabText: {
     color: '#94A3B8',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   tabTextActive: {
     color: '#FF6B00',
+  },
+  feedSection: {
+    gap: 14,
+  },
+  athletesSection: {
+    gap: 10,
+  },
+  segmentsSection: {
+    gap: 16,
+  },
+  loadingContainer: {
+    padding: 30,
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingText: {
+    color: '#94A3B8',
+    fontSize: 13,
+  },
+  emptyContainer: {
+    backgroundColor: '#131B2E',
+    borderRadius: 14,
+    padding: 24,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#243354',
+  },
+  emptyIcon: {
+    fontSize: 32,
+  },
+  emptyTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  emptySub: {
+    color: '#64748B',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  athleteRowCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#131B2E',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#243354',
+    gap: 12,
+  },
+  athleteAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1C263E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FF6B00',
+  },
+  athleteAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  athleteTextGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  athleteRowName: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  athleteRowHandle: {
+    color: '#94A3B8',
+    fontSize: 11,
+  },
+  athleteRowBio: {
+    color: '#CBD5E1',
+    fontSize: 12,
+  },
+  athleteRowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  followBtn: {
+    backgroundColor: '#FF6B00',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  followBtnActive: {
+    backgroundColor: '#1C263E',
+    borderWidth: 1,
+    borderColor: '#243354',
+  },
+  followBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  followBtnTextActive: {
+    color: '#94A3B8',
+  },
+  blockBtn: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  blockBtnText: {
+    fontSize: 12,
   },
   challengeCard: {
     backgroundColor: '#131B2E',
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#FF6B00',
-    gap: 8,
+    borderColor: '#243354',
+    gap: 10,
   },
   challengeBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 107, 0, 0.2)',
+    backgroundColor: 'rgba(255, 107, 0, 0.15)',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 6,
+    alignSelf: 'flex-start',
   },
   challengeBadgeText: {
     color: '#FF6B00',
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontWeight: '900',
   },
   challengeTitle: {
     color: '#FFFFFF',
@@ -284,18 +644,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#1C263E',
   },
   challengeStats: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '600',
   },
   joinBtn: {
     backgroundColor: '#FF6B00',
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   joinBtnText: {
     color: '#FFFFFF',
@@ -306,16 +668,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 6,
   },
   sectionHeading: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
   },
   sectionBadge: {
-    color: '#64748B',
-    fontSize: 12,
+    color: '#94A3B8',
+    fontSize: 11,
     fontWeight: '600',
   },
   segmentList: {
@@ -327,7 +688,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#243354',
-    gap: 6,
+    gap: 8,
   },
   segTopRow: {
     flexDirection: 'row',
@@ -346,8 +707,8 @@ const styles = StyleSheet.create({
   },
   segTypeTagText: {
     color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '800',
+    fontSize: 10,
+    fontWeight: '900',
   },
   segDistance: {
     color: '#FFFFFF',
@@ -365,7 +726,7 @@ const styles = StyleSheet.create({
   },
   segName: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
   segLoc: {
@@ -376,21 +737,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 6,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#1C263E',
   },
   komHolderText: {
-    color: '#94A3B8',
-    fontSize: 12,
+    color: '#64748B',
+    fontSize: 11,
   },
   viewRouteBtn: {
-    paddingVertical: 2,
+    backgroundColor: '#1C263E',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   viewRouteBtnText: {
     color: '#FF6B00',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
 });

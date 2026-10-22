@@ -8,6 +8,7 @@
  */
 
 export type ActivityType = 'run' | 'ride' | 'walk';
+export type ActivityVisibility = 'public' | 'followers' | 'private';
 
 export interface ActivityMetric {
   label: string;
@@ -15,8 +16,29 @@ export interface ActivityMetric {
   unit?: string;
 }
 
+export interface ActivityComment {
+  id: string;
+  activityId: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  commentText: string;
+  createdAtIso: string;
+  timeAgo: string;
+}
+
+export interface ActivitySplit {
+  splitNumber: number;
+  distanceKm: number;
+  durationSeconds: number;
+  paceFormatted: string;
+  speedFormatted?: string;
+  elevationDeltaM: number;
+}
+
 export interface Activity {
   id: string;
+  userId?: string;
   title: string;
   type: ActivityType;
   athlete: {
@@ -29,6 +51,7 @@ export interface Activity {
   location: string;
   distanceKm: number;
   durationFormatted: string;
+  durationSeconds?: number;
   paceOrSpeedFormatted: string;
   paceOrSpeedLabel: string;
   elevationMeters: number;
@@ -41,6 +64,7 @@ export interface Activity {
   commentsCount: number;
   gearName?: string;
   polylinePreview?: string;
+  visibility?: ActivityVisibility;
   createdAtIso?: string;
 }
 
@@ -76,6 +100,10 @@ export interface AthleteProfile {
   city: string;
   avatarText: string;
   memberSince: string;
+  followersCount?: number;
+  followingCount?: number;
+  unitPreference?: 'metric' | 'imperial';
+  weeklyGoalKm?: number;
   stats: {
     totalActivities: number;
     totalDistanceKm: number;
