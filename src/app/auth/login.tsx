@@ -15,7 +15,7 @@ import { router } from 'expo-router';
 
 import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { useAuth } from '@/context/auth-context';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 
 export default function LoginScreen() {
   const { signIn, isConfigured, setDemoMode, error, clearError } = useAuth();
@@ -43,7 +43,7 @@ export default function LoginScreen() {
     try {
       await signIn(email.trim(), password);
       router.replace('/' as any);
-    } catch (err: any) {
+    } catch {
       // error is handled by AuthContext
     } finally {
       setLocalLoading(false);

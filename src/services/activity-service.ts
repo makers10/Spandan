@@ -338,7 +338,7 @@ export const activityService = {
     const fullDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const todayIndex = (new Date().getDay() + 6) % 7; // Monday = 0
 
-    const dayBuckets: Array<{ distanceKm: number; activeMinutes: number; type?: ActivityType }> =
+    const dayBuckets: { distanceKm: number; activeMinutes: number; type?: ActivityType }[] =
       dayNames.map(() => ({ distanceKm: 0, activeMinutes: 0 }));
 
     for (const act of activities) {

@@ -110,22 +110,22 @@ export interface AthleteProfile {
     totalHours: number;
     elevationTotalM: number;
   };
-  shoes: Array<{
+  shoes: {
     name: string;
     brand: string;
     distanceKm: number;
     maxKm: number;
-  }>;
-  bikes: Array<{
+  }[];
+  bikes: {
     name: string;
     type: string;
     distanceKm: number;
-  }>;
-  personalRecords: Array<{
+  }[];
+  personalRecords: {
     event: string;
     time: string;
     date: string;
-  }>;
+  }[];
 }
 
 // ==========================================

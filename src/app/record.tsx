@@ -11,7 +11,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 
 import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
@@ -27,7 +26,7 @@ import {
   calculateMovingTimeSeconds,
   generateSvgPathFromCoordinates,
 } from '@/utils/geo';
-import { locationService, LocationPermissionState } from '@/services/location-service';
+import { locationService } from '@/services/location-service';
 
 type RecordingState = 'idle' | 'recording' | 'paused';
 type GpsStatus = 'idle' | 'checking' | 'acquiring' | 'locked' | 'paused' | 'denied' | 'error' | 'unsupported';

@@ -16,7 +16,7 @@ interface FilterPillsProps {
 }
 
 export function FilterPills({ selected, onSelect, counts }: FilterPillsProps) {
-  const options: Array<{ label: string; value: FilterValue; count: number; icon: string }> = [
+  const options: { label: string; value: FilterValue; count: number; icon: string }[] = [
     { label: 'All', value: 'all', count: counts.all, icon: '⚡' },
     { label: 'Runs', value: 'run', count: counts.run, icon: '🏃' },
     { label: 'Rides', value: 'ride', count: counts.ride, icon: '🚴' },

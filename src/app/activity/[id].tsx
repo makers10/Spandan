@@ -30,7 +30,6 @@ import {
   GpsCoordinate,
   calculateElevationStats,
   calculateKilometerSplits,
-  generateSvgPathFromCoordinates,
 } from '@/utils/geo';
 
 export default function ActivityDetailScreen() {

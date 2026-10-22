@@ -62,7 +62,7 @@ export default function RegisterScreen() {
       } else {
         router.replace('/' as any);
       }
-    } catch (err: any) {
+    } catch {
       // handled by context error
     } finally {
       setLocalLoading(false);

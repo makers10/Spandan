@@ -257,6 +257,15 @@ export function calculateElevationStats(points: GpsCoordinate[]): ElevationStats
   };
 }
 
+export interface KilometerSplit {
+  splitNumber: number;
+  distanceKm: number;
+  durationSeconds: number;
+  paceFormatted: string;
+  speedFormatted?: string;
+  elevationDeltaM: number;
+}
+
 /**
  * Calculates 1-kilometer splits from GPS coordinates or prorates from overall activity metrics.
  */
@@ -265,26 +274,12 @@ export function calculateKilometerSplits(
   sportType: 'run' | 'ride' | 'walk' = 'run',
   fallbackDistanceKm: number = 0,
   fallbackDurationSec: number = 0
-): Array<{
-  splitNumber: number;
-  distanceKm: number;
-  durationSeconds: number;
-  paceFormatted: string;
-  speedFormatted?: string;
-  elevationDeltaM: number;
-}> {
+): KilometerSplit[] {
   const valid = (points || []).filter(isValidCoordinate);
 
   // If we have actual GPS track points with at least 1 km traveled
   if (valid.length >= 2) {
-    const splits: Array<{
-      splitNumber: number;
-      distanceKm: number;
-      durationSeconds: number;
-      paceFormatted: string;
-      speedFormatted?: string;
-      elevationDeltaM: number;
-    }> = [];
+    const splits: KilometerSplit[] = [];
 
     let currentSplitDist = 0;
     let splitStartTime = valid[0].timestamp;
@@ -343,14 +338,7 @@ export function calculateKilometerSplits(
     const remainder = Number((totalKm - fullKmCount).toFixed(2));
     const avgSecPerKm = fallbackDurationSec / totalKm;
 
-    const splits: Array<{
-      splitNumber: number;
-      distanceKm: number;
-      durationSeconds: number;
-      paceFormatted: string;
-      speedFormatted?: string;
-      elevationDeltaM: number;
-    }> = [];
+    const splits: KilometerSplit[] = [];
 
     for (let k = 1; k <= fullKmCount; k++) {
       const splitSec = Math.round(avgSecPerKm);

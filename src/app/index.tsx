@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Platform,
   Pressable,
@@ -45,31 +45,49 @@ export default function HomeScreen() {
   const isLiveUser = Boolean(user && !isDemoMode && isConfigured);
 
   // Fetch real activities if user is signed in with Supabase
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    let ignore = false;
+
+    if (isLiveUser && user) {
+      void (async () => {
+        await Promise.resolve();
+        if (ignore) return;
+        setIsLoading(true);
+        try {
+          const athleteName = profile?.full_name || user.email?.split('@')[0] || 'Athlete';
+          const fetched = await activityService.fetchUserActivities(user.id, undefined, athleteName);
+          if (!ignore) {
+            setLiveActivities(fetched);
+            const stats = activityService.calculateWeeklyStats(fetched, profile?.weekly_distance_goal_km || 50.0);
+            setLiveWeeklyStats(stats);
+          }
+        } catch (err: any) {
+          console.warn('Failed to load user activities from Supabase:', err.message);
+        } finally {
+          if (!ignore) {
+            setIsLoading(false);
+          }
+        }
+      })();
+    }
+
+    return () => {
+      ignore = true;
+    };
+  }, [isLiveUser, user, profile]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
     if (isLiveUser && user) {
       try {
-        setIsLoading(true);
         const athleteName = profile?.full_name || user.email?.split('@')[0] || 'Athlete';
         const fetched = await activityService.fetchUserActivities(user.id, undefined, athleteName);
         setLiveActivities(fetched);
         const stats = activityService.calculateWeeklyStats(fetched, profile?.weekly_distance_goal_km || 50.0);
         setLiveWeeklyStats(stats);
       } catch (err: any) {
-        console.warn('Failed to load user activities from Supabase:', err.message);
-      } finally {
-        setIsLoading(false);
+        console.warn('Failed to refresh user activities from Supabase:', err.message);
       }
-    }
-  }, [isLiveUser, user, profile]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    if (isLiveUser) {
-      await loadData();
     } else {
       await new Promise((r) => setTimeout(r, 800));
     }

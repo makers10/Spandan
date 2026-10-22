@@ -11,7 +11,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 
 import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
