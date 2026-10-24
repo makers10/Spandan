@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   tabSlot: {
     height: '100%',
-    backgroundColor: '#0B111E',
+    backgroundColor: '#F8FAF9',
   },
   tabListContainer: {
     position: 'sticky' as any,
@@ -119,9 +119,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0B111E',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#1E2C4F',
+    borderBottomColor: '#E2E8F0',
   },
   innerContainer: {
     paddingVertical: Spacing.one,
@@ -140,11 +140,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#131B2E',
+    backgroundColor: '#F1F5F9',
     padding: 4,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
   },
   pressableWrapper: {
     outlineStyle: 'none' as any,
@@ -157,13 +157,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabButtonViewActive: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
   },
   tabButtonViewInactive: {
     backgroundColor: 'transparent',
   },
   tabButtonText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -180,14 +180,14 @@ const styles = StyleSheet.create({
   userBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#131B2E',
+    backgroundColor: '#F1F5F9',
     paddingLeft: 8,
     paddingRight: 4,
     paddingVertical: 3,
     borderRadius: 16,
     gap: 6,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
   },
   liveDot: {
     width: 6,
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   signInBtn: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,

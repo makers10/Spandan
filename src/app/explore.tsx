@@ -361,9 +361,9 @@ export default function ExploreScreen() {
                 <View style={styles.challengeBadge}>
                   <Text style={styles.challengeBadgeText}>OCTOBER CHALLENGE</Text>
                 </View>
-                <Text style={styles.challengeTitle}>Spandan 100K Cycling Odyssey</Text>
+                <Text style={styles.challengeTitle}>100K Movement Odyssey</Text>
                 <Text style={styles.challengeDesc}>
-                  Ride 100 km this month and earn the official Spandan Autumn Finisher digital badge.
+                  Ride 100 km this month and earn the official Track your movement Finisher digital badge.
                 </Text>
                 <View style={styles.challengeFooter}>
                   <Text style={styles.challengeStats}>👥 1,842 Athletes Joined</Text>

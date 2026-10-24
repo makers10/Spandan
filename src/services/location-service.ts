@@ -298,7 +298,7 @@ export const locationService = {
         timeInterval: 1000,
         distanceInterval: 2,
         foregroundService: {
-          notificationTitle: 'Spandan Activity Tracker',
+          notificationTitle: 'Track your movement',
           notificationBody: 'Recording your GPS workout in the background',
           notificationColor: '#4FA99A',
         },

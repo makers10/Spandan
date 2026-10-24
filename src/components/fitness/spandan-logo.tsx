@@ -10,8 +10,8 @@ export function SpandanLogo({ size = 'medium', showTagline = false }: SpandanLog
   const isSmall = size === 'small';
   const isLarge = size === 'large';
 
-  const markSize = isSmall ? 28 : isLarge ? 48 : 36;
-  const textSize = isSmall ? 18 : isLarge ? 28 : 22;
+  const markSize = isSmall ? 26 : isLarge ? 42 : 32;
+  const textSize = isSmall ? 14 : isLarge ? 22 : 17;
 
   return (
     <View style={styles.container}>
@@ -27,11 +27,11 @@ export function SpandanLogo({ size = 'medium', showTagline = false }: SpandanLog
       </View>
       <View style={styles.textContainer}>
         <View style={styles.brandRow}>
-          <Text style={[styles.brandName, { fontSize: textSize }]}>SPANDAN</Text>
+          <Text style={[styles.brandName, { fontSize: textSize }]}>Track your movement</Text>
           <View style={styles.dot} />
         </View>
         {showTagline && (
-          <Text style={styles.tagline}>THE ATHLETIC PULSE</Text>
+          <Text style={styles.tagline}>PRECISION GPS & MOVEMENT TRACKER</Text>
         )}
       </View>
     </View>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   brandName: {
     color: '#0F172A',
     fontWeight: '900',
-    letterSpacing: 1.5,
+    letterSpacing: -0.3,
     fontFamily: 'sans-serif',
   },
   dot: {

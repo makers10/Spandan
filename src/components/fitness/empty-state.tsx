@@ -10,7 +10,7 @@ interface EmptyStateProps {
 
 export function EmptyState({
   title = 'No Workouts Yet',
-  message = 'Every milestone begins with a single step. Lace up your shoes or prep your ride, and let Spandan track your athletic pulse.',
+  message = 'Every milestone begins with a single step. Lace up your shoes or prep your ride, and let Track your movement record your journey.',
   onRecordPress,
   onResetFilter,
 }: EmptyStateProps) {

@@ -144,7 +144,7 @@ export default function ProfileScreen() {
     : mockProfile.avatarText;
 
   const displayBio = isLiveUser
-    ? profile?.bio || 'Spandan Athlete. Logging miles and finding the pulse.'
+    ? profile?.bio || 'Athlete on Track your movement. Logging miles and reaching milestones.'
     : mockProfile.tagline;
 
   const displayCity = isLiveUser ? profile?.city || 'India' : mockProfile.city;
@@ -377,7 +377,7 @@ export default function ProfileScreen() {
           {/* Sign Out Action at Bottom for Live Users */}
           {isLiveUser && (
             <Pressable onPress={handleSignOut} style={styles.signOutBottomBtn}>
-              <Text style={styles.signOutBottomBtnText}>Sign Out of Spandan</Text>
+              <Text style={styles.signOutBottomBtnText}>Sign Out of Track your movement</Text>
             </Pressable>
           )}
         </View>

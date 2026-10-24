@@ -141,7 +141,7 @@ export default function LoginScreen() {
             <View style={styles.registerRow}>
               <Text style={styles.registerPrompt}>New athlete?</Text>
               <Pressable onPress={() => router.push('/auth/register' as any)}>
-                <Text style={styles.registerLink}>Create Spandan account</Text>
+                <Text style={styles.registerLink}>Create account</Text>
               </Pressable>
             </View>
 

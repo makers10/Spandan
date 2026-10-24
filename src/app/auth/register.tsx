@@ -83,7 +83,7 @@ export default function RegisterScreen() {
             {/* Header branding */}
             <View style={styles.header}>
               <SpandanLogo size="large" showTagline />
-              <Text style={styles.title}>Join Spandan</Text>
+              <Text style={styles.title}>Join Track your movement</Text>
               <Text style={styles.subTitle}>
                 Create an athlete profile to log workouts, track personal records, and sync your training.
               </Text>
