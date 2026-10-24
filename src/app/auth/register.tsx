@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -18,7 +19,7 @@ import { useAuth } from '@/context/auth-context';
 import { Spacing } from '@/constants/theme';
 
 export default function RegisterScreen() {
-  const { signUp, signInAsAthlete, error, clearError } = useAuth();
+  const { signUp, signInAsAthlete, resendConfirmationEmail, error, clearError } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -27,11 +28,14 @@ export default function RegisterScreen() {
   const [localLoading, setLocalLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [resendFeedback, setResendFeedback] = useState('');
 
   const handleRegister = async () => {
     setValidationError(null);
     clearError();
+    setResendStatus('idle');
+    setResendFeedback('');
 
     if (!fullName.trim()) {
       setValidationError('Please enter your full name.');
@@ -56,25 +60,56 @@ export default function RegisterScreen() {
     setLocalLoading(true);
     try {
       const res = await signUp(email.trim(), password, fullName.trim());
-      if (res.requiresEmailConfirmation) {
+      // Supabase returns session: null when email confirmation is active
+      if (res.requiresEmailConfirmation || !res.user?.confirmed_at) {
         setIsSuccess(true);
-        setSuccessMessage(
-          `Supabase created your account, but requires email confirmation before cloud login. You can confirm via your email inbox, or tap below to start tracking workouts immediately!`
-        );
       } else {
         router.replace('/' as any);
       }
-    } catch {
-      // handled by context error
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (
+        msg.toLowerCase().includes('already registered') ||
+        msg.toLowerCase().includes('already in use')
+      ) {
+        setValidationError(
+          `This email is already registered. If you haven't confirmed your email yet, please check your inbox (including Spam/Junk) or tap Resend below.`
+        );
+      }
     } finally {
       setLocalLoading(false);
     }
   };
 
+  const handleResend = async () => {
+    if (!email.trim()) return;
+    setResendStatus('sending');
+    setResendFeedback('');
+    try {
+      await resendConfirmationEmail(email.trim());
+      setResendStatus('sent');
+      setResendFeedback(`Verification link resent to ${email.trim()}! Please check your inbox.`);
+    } catch (err: any) {
+      setResendStatus('error');
+      setResendFeedback(
+        err?.message || 'Could not resend email right now. Please wait 60 seconds and try again.'
+      );
+    }
+  };
+
+  const handleOpenEmailApp = () => {
+    Linking.openURL('mailto:').catch(() => {
+      // Fallback if no mail client configured
+    });
+  };
+
   const handleInstantAccess = async () => {
     setLocalLoading(true);
     try {
-      await signInAsAthlete(fullName.trim() || 'Alex Varma', email.trim() || 'athlete@trackyourmovement.app');
+      await signInAsAthlete(
+        fullName.trim() || 'Alex Varma',
+        email.trim() || 'athlete@trackyourmovement.app'
+      );
       router.replace('/' as any);
     } finally {
       setLocalLoading(false);
@@ -101,22 +136,120 @@ export default function RegisterScreen() {
               </Text>
             </View>
 
-            {/* Success State */}
+            {/* Email Confirmation Notice (Success State) */}
             {isSuccess ? (
-              <View style={styles.successContainer}>
-                <Text style={styles.successIcon}>✉️</Text>
-                <Text style={styles.successTitle}>Account Created</Text>
-                <Text style={styles.successText}>{successMessage}</Text>
+              <View style={styles.confirmationContainer}>
+                {/* Visual Icon Badge */}
+                <View style={styles.emailBadgeCircle}>
+                  <Text style={styles.emailBadgeEmoji}>✉️</Text>
+                  <View style={styles.onlineDot} />
+                </View>
 
+                <Text style={styles.confirmationTitle}>Check Your Email</Text>
+                <Text style={styles.confirmationSubtitle}>
+                  Please confirm your email address to complete registration and activate cloud sync.
+                </Text>
+
+                {/* Recipient Badge */}
+                <View style={styles.emailRecipientCard}>
+                  <Text style={styles.recipientLabel}>CONFIRMATION SENT TO</Text>
+                  <Text style={styles.recipientEmail}>{email.trim()}</Text>
+                  <View style={styles.pendingPill}>
+                    <Text style={styles.pendingPillText}>⏳ Verification Link Sent</Text>
+                  </View>
+                </View>
+
+                {/* Clear Step-by-Step Instructions */}
+                <View style={styles.instructionCard}>
+                  <Text style={styles.instructionHeading}>What to do next:</Text>
+                  
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepNumberBadge}>
+                      <Text style={styles.stepNumberText}>1</Text>
+                    </View>
+                    <View style={styles.stepTextContainer}>
+                      <Text style={styles.stepTitle}>Check Your Inbox</Text>
+                      <Text style={styles.stepDesc}>
+                        Look for an email from <Text style={styles.boldText}>Track your movement</Text> or <Text style={styles.boldText}>Supabase</Text>. Also check your <Text style={styles.boldText}>Spam / Junk</Text> folder.
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepNumberBadge}>
+                      <Text style={styles.stepNumberText}>2</Text>
+                    </View>
+                    <View style={styles.stepTextContainer}>
+                      <Text style={styles.stepTitle}>{"Click \"Confirm Your Email\""}</Text>
+                      <Text style={styles.stepDesc}>
+                        Tap the verification link in the email to activate your account.
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepNumberBadge}>
+                      <Text style={styles.stepNumberText}>3</Text>
+                    </View>
+                    <View style={styles.stepTextContainer}>
+                      <Text style={styles.stepTitle}>Return and Sign In</Text>
+                      <Text style={styles.stepDesc}>
+                        Once confirmed, return to the app and sign in with your email and password.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Resend Status Banner */}
+                {resendStatus === 'sent' && (
+                  <View style={styles.resendSuccessBanner}>
+                    <Text style={styles.resendSuccessText}>✓ {resendFeedback}</Text>
+                  </View>
+                )}
+                {resendStatus === 'error' && (
+                  <View style={styles.resendErrorBanner}>
+                    <Text style={styles.resendErrorText}>⚠️ {resendFeedback}</Text>
+                  </View>
+                )}
+
+                {/* Action: Open Email App */}
+                <Pressable onPress={handleOpenEmailApp} style={styles.openEmailBtn}>
+                  <Text style={styles.openEmailBtnText}>📬 Open Email App</Text>
+                </Pressable>
+
+                {/* Action: Resend Confirmation Link */}
+                <Pressable
+                  onPress={handleResend}
+                  disabled={resendStatus === 'sending'}
+                  style={styles.resendBtn}>
+                  {resendStatus === 'sending' ? (
+                    <ActivityIndicator size="small" color="#4FA99A" />
+                  ) : (
+                    <Text style={styles.resendBtnText}>🔄 Resend Confirmation Email</Text>
+                  )}
+                </Pressable>
+
+                {/* Divider */}
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>OR START TRACKING NOW</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                {/* Instant Active Athlete Bypass */}
                 <Pressable
                   onPress={handleInstantAccess}
+                  disabled={localLoading}
                   style={styles.instantAccessBtn}>
-                  <Text style={styles.instantAccessBtnText}>⚡ Enter App Immediately</Text>
+                  <Text style={styles.instantAccessBtnText}>
+                    ⚡ Enter App Immediately as {fullName.trim() || 'Active Athlete'}
+                  </Text>
                   <Text style={styles.instantAccessBtnSub}>
-                    Start recording GPS runs right now without waiting for email confirmation
+                    Start logging runs and rides right away — workouts are saved locally and will sync once verified
                   </Text>
                 </Pressable>
 
+                {/* Back to Sign In */}
                 <Pressable
                   onPress={() => router.replace('/auth/login' as any)}
                   style={styles.backToLoginBtn}>
@@ -129,6 +262,13 @@ export default function RegisterScreen() {
                 {displayedError && (
                   <View style={styles.errorBanner}>
                     <Text style={styles.errorText}>⚠️ {displayedError}</Text>
+                    {displayedError.toLowerCase().includes('already registered') && (
+                      <Pressable onPress={handleResend} style={styles.resendFromErrorBtn}>
+                        <Text style={styles.resendFromErrorBtnText}>
+                          🔄 Resend Confirmation Email to {email.trim() || 'this email'}
+                        </Text>
+                      </Pressable>
+                    )}
                     <Pressable onPress={handleInstantAccess} style={styles.instantErrorBtn}>
                       <Text style={styles.instantErrorBtnText}>⚡ Bypass & Enter as Active Athlete</Text>
                     </Pressable>
@@ -186,6 +326,13 @@ export default function RegisterScreen() {
                     secureTextEntry
                     autoCapitalize="none"
                   />
+                </View>
+
+                {/* Email Confirmation Notice Prior to Submission */}
+                <View style={styles.preNoticeBox}>
+                  <Text style={styles.preNoticeText}>
+                    ℹ️ <Text style={styles.boldText}>Note:</Text> After registration, you will receive a confirmation email with a verification link.
+                  </Text>
                 </View>
 
                 {/* Submit Action */}
@@ -289,16 +436,30 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+    gap: 8,
   },
   errorText: {
-    color: '#EF4444',
+    color: '#DC2626',
     fontSize: 13,
     fontWeight: '600',
+    lineHeight: 18,
+  },
+  resendFromErrorBtn: {
+    backgroundColor: 'rgba(79, 169, 154, 0.12)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  resendFromErrorBtnText: {
+    color: '#4FA99A',
+    fontSize: 12,
+    fontWeight: '700',
   },
   formGroup: {
     gap: 6,
@@ -319,6 +480,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
+  preNoticeBox: {
+    backgroundColor: 'rgba(79, 169, 154, 0.08)',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 169, 154, 0.2)',
+  },
+  preNoticeText: {
+    color: '#334155',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  boldText: {
+    fontWeight: '700',
+    color: '#0F172A',
+  },
   submitBtn: {
     backgroundColor: '#4FA99A',
     borderRadius: 12,
@@ -329,7 +506,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
-    marginTop: 6,
+    marginTop: 2,
   },
   submitBtnDisabled: {
     opacity: 0.6,
@@ -355,24 +532,200 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  successContainer: {
+  confirmationContainer: {
     alignItems: 'center',
-    padding: 16,
-    gap: 12,
+    paddingVertical: 8,
+    gap: 14,
   },
-  successIcon: {
-    fontSize: 40,
+  emailBadgeCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(79, 169, 154, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    borderWidth: 2,
+    borderColor: '#4FA99A',
   },
-  successTitle: {
+  emailBadgeEmoji: {
+    fontSize: 32,
+  },
+  onlineDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#4FA99A',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  confirmationTitle: {
     color: '#0F172A',
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  confirmationSubtitle: {
+    color: '#64748B',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 10,
+  },
+  emailRecipientCard: {
+    backgroundColor: '#F8FAF9',
+    borderRadius: 14,
+    padding: 14,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 4,
+  },
+  recipientLabel: {
+    color: '#64748B',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  recipientEmail: {
+    color: '#0F172A',
+    fontSize: 16,
     fontWeight: '800',
   },
-  successText: {
+  pendingPill: {
+    backgroundColor: 'rgba(79, 169, 154, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  pendingPillText: {
+    color: '#4FA99A',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  instructionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+  },
+  instructionHeading: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  stepItem: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+  },
+  stepNumberBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#4FA99A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  stepNumberText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  stepTextContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  stepTitle: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  stepDesc: {
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  resendSuccessBanner: {
+    backgroundColor: 'rgba(79, 169, 154, 0.12)',
+    padding: 10,
+    borderRadius: 10,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(79, 169, 154, 0.3)',
+  },
+  resendSuccessText: {
+    color: '#4FA99A',
+    fontSize: 12,
+    fontWeight: '700',
     textAlign: 'center',
-    lineHeight: 20,
+  },
+  resendErrorBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    padding: 10,
+    borderRadius: 10,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  resendErrorText: {
+    color: '#DC2626',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  openEmailBtn: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    paddingVertical: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  openEmailBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  resendBtn: {
+    backgroundColor: 'rgba(79, 169, 154, 0.1)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(79, 169, 154, 0.3)',
+  },
+  resendBtnText: {
+    color: '#4FA99A',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  dividerText: {
+    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   instantAccessBtn: {
     backgroundColor: '#4FA99A',
@@ -382,7 +735,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     gap: 4,
-    marginTop: 8,
     shadowColor: '#4FA99A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -391,7 +743,7 @@ const styles = StyleSheet.create({
   },
   instantAccessBtnText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     textAlign: 'center',
   },
@@ -399,13 +751,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.85)',
     fontSize: 11,
     textAlign: 'center',
+    lineHeight: 15,
   },
   instantErrorBtn: {
     backgroundColor: '#4FA99A',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    marginTop: 8,
     alignSelf: 'flex-start',
   },
   instantErrorBtnText: {
@@ -418,7 +770,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    marginTop: 4,
+    width: '100%',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },

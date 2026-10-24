@@ -22,7 +22,6 @@ export function AuthModal() {
     isAuthModalVisible,
     authModalMode,
     closeAuthModal,
-    openAuthModal,
     signIn,
     signUp,
     signInAsAthlete,
@@ -31,6 +30,7 @@ export function AuthModal() {
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(authModalMode || 'login');
+  const [prevMode, setPrevMode] = useState(authModalMode);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,12 +39,13 @@ export function AuthModal() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
-  // Sync active tab if context mode changes
-  React.useEffect(() => {
+  // Sync active tab if context mode changes during render
+  if (authModalMode !== prevMode) {
+    setPrevMode(authModalMode);
     if (authModalMode) {
       setActiveTab(authModalMode);
     }
-  }, [authModalMode]);
+  }
 
   const handleOneTapAthlete = async () => {
     setLoading(true);

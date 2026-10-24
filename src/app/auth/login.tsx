@@ -18,16 +18,19 @@ import { useAuth } from '@/context/auth-context';
 import { Spacing } from '@/constants/theme';
 
 export default function LoginScreen() {
-  const { signIn, signInAsAthlete, isConfigured, setDemoMode, error, clearError } = useAuth();
+  const { signIn, signInAsAthlete, resendConfirmationEmail, isConfigured, setDemoMode, error, clearError } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localLoading, setLocalLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendFeedback, setResendFeedback] = useState('');
 
   const handleLogin = async () => {
     setValidationError(null);
     clearError();
+    setResendFeedback('');
 
     if (!email.trim() || !password) {
       setValidationError('Please enter both email and password.');
@@ -47,6 +50,22 @@ export default function LoginScreen() {
       // error is handled by AuthContext
     } finally {
       setLocalLoading(false);
+    }
+  };
+
+  const handleResendConfirm = async () => {
+    if (!email.trim()) {
+      setValidationError('Please enter your email address to resend confirmation.');
+      return;
+    }
+    setResendLoading(true);
+    try {
+      await resendConfirmationEmail(email.trim());
+      setResendFeedback(`✓ Confirmation link resent to ${email.trim()}! Please check your inbox.`);
+    } catch (err: any) {
+      setResendFeedback(`⚠️ ${err?.message || 'Could not resend email right now.'}`);
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -106,7 +125,42 @@ export default function LoginScreen() {
             {/* Error Banner with Instant Bypass */}
             {displayedError && (
               <View style={styles.errorBanner}>
-                <Text style={styles.errorText}>⚠️ {displayedError}</Text>
+                {displayedError.toLowerCase().includes('email not confirmed') ? (
+                  <View style={{ gap: 6 }}>
+                    <Text style={[styles.errorText, { fontWeight: '800' }]}>
+                      ✉️ Email Confirmation Pending
+                    </Text>
+                    <Text style={[styles.errorText, { fontWeight: '400', fontSize: 12 }]}>
+                      Your account requires email confirmation. Please check your inbox (and Spam/Junk folder) at {email.trim() || 'your email'} and tap the verification link.
+                    </Text>
+                    {resendFeedback ? (
+                      <Text style={{ color: '#4FA99A', fontSize: 12, fontWeight: '700' }}>
+                        {resendFeedback}
+                      </Text>
+                    ) : (
+                      <Pressable
+                        onPress={handleResendConfirm}
+                        disabled={resendLoading}
+                        style={{
+                          backgroundColor: 'rgba(79, 169, 154, 0.15)',
+                          paddingVertical: 8,
+                          paddingHorizontal: 12,
+                          borderRadius: 8,
+                          alignSelf: 'flex-start',
+                        }}>
+                        {resendLoading ? (
+                          <ActivityIndicator size="small" color="#4FA99A" />
+                        ) : (
+                          <Text style={{ color: '#4FA99A', fontSize: 12, fontWeight: '700' }}>
+                            🔄 Resend Confirmation Email
+                          </Text>
+                        )}
+                      </Pressable>
+                    )}
+                  </View>
+                ) : (
+                  <Text style={styles.errorText}>⚠️ {displayedError}</Text>
+                )}
                 <Pressable
                   onPress={handleAthleteSignIn}
                   style={({ pressed }) => [styles.instantErrorBtn, pressed && styles.pressed]}>

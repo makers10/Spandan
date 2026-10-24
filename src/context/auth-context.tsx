@@ -22,6 +22,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   setDemoMode: (val: boolean) => void;
   refreshProfile: () => Promise<void>;
+  resendConfirmationEmail: (email: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -163,6 +164,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw err;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resendConfirmationEmail = async (email: string) => {
+    setError(null);
+    try {
+      await authService.resendConfirmationEmail(email);
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend confirmation email.');
+      throw err;
     }
   };
 
@@ -329,6 +340,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         setDemoMode: setIsDemoMode,
         refreshProfile,
+        resendConfirmationEmail,
         clearError,
       }}>
       {children}

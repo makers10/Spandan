@@ -34,6 +34,20 @@ export const authService = {
     return data;
   },
 
+  async resendConfirmationEmail(email: string) {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase is not configured.');
+    }
+
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+    });
+
+    if (error) throw error;
+    return data;
+  },
+
   async signIn(email: string, password: string) {
     if (!isSupabaseConfigured()) {
       throw new Error('Supabase is not configured. Please add your EXPO_PUBLIC_SUPABASE_ANON_KEY to .env or use Demo Mode.');

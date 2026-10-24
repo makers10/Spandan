@@ -17,6 +17,14 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+*.apk
+*.aab
+
+# Local setup and diagnostic scripts
+scripts/check-daemon.ps1
+scripts/download-*
+scripts/install-ndk.ps1
+scripts/setup-*
 
 # Metro
 .metro-health-check*
