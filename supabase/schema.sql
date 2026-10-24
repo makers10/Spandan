@@ -1,13 +1,22 @@
 -- ====================================================================
--- Spandan Fitness Tracking Database Schema
--- Supabase PostgreSQL with Strict Row Level Security (RLS)
--- Supports Activities, Route Points, Social Follows, Kudos, Comments & Privacy
+-- Spandan High-Performance Fitness & Social Tracking Schema
+-- Production Hybrid Architecture: PostgreSQL + JSONB + PostGIS (SRID 4326)
+--
+-- Replaces row-by-row 'activity_points' table bloat with:
+--   1. gps_telemetry JSONB: Raw compressed time-series sensor array
+--   2. route_path geometry(LineString, 4326): PostGIS spatial column
 -- ====================================================================
 
--- 1. Enable necessary extensions
+-- 1. Enable required PostgreSQL extensions
+create extension if not exists "postgis";
 create extension if not exists "pgcrypto";
 
--- 2. Create PROFILES table
+-- 2. Cleanly retire and drop deprecated high-bloat activity_points table if present
+drop table if exists public.activity_points cascade;
+
+-- ====================================================================
+-- ENTITY 1: PROFILES (Athlete Identity & Metric Goals)
+-- ====================================================================
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
@@ -16,13 +25,15 @@ create table if not exists public.profiles (
   avatar_text text,
   bio text default 'Spandan Athlete. Tracking the athletic pulse.',
   city text default 'Athlete City',
-  weekly_distance_goal_km numeric(6, 2) default 50.0,
+  weekly_distance_goal_km numeric(6, 2) default 50.0 check (weekly_distance_goal_km >= 0),
   unit_preference text default 'metric' check (unit_preference in ('metric', 'imperial')),
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null
 );
 
--- 3. Create ACTIVITIES table
+-- ====================================================================
+-- ENTITY 2: ACTIVITIES (Workouts with Hybrid JSONB + PostGIS Route)
+-- ====================================================================
 create table if not exists public.activities (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -42,24 +53,19 @@ create table if not exists public.activities (
   gear_name text,
   polyline_preview text,
   visibility text not null default 'public' check (visibility in ('public', 'followers', 'private')),
+  
+  -- HYBRID STORAGE LAYER:
+  -- A. Raw compressed time-series telemetry array: [{ lat, lng, alt, acc, spd, t }]
+  gps_telemetry jsonb not null default '[]'::jsonb,
+  -- B. Auto-computed PostGIS 2D LineString for geospatial analysis & proximity queries
+  route_path geometry(LineString, 4326),
+
   created_at timestamptz default now() not null
 );
 
--- 4. Create ACTIVITY_POINTS table (Ordered GPS route points)
-create table if not exists public.activity_points (
-  id uuid primary key default gen_random_uuid(),
-  activity_id uuid not null references public.activities(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  point_order integer not null check (point_order >= 0),
-  latitude double precision not null check (latitude between -90 and 90),
-  longitude double precision not null check (longitude between -180 and 180),
-  altitude double precision,
-  accuracy double precision,
-  speed double precision,
-  recorded_at timestamptz not null default now()
-);
-
--- 5. Create FOLLOWS table (Social Athlete Graph)
+-- ====================================================================
+-- ENTITY 3: FOLLOWS (Athlete Social Graph)
+-- ====================================================================
 create table if not exists public.follows (
   follower_id uuid not null references auth.users(id) on delete cascade,
   following_id uuid not null references auth.users(id) on delete cascade,
@@ -68,7 +74,9 @@ create table if not exists public.follows (
   check (follower_id != following_id)
 );
 
--- 6. Create ACTIVITY_KUDOS table
+-- ====================================================================
+-- ENTITY 4: ACTIVITY_KUDOS (Social Affirmations / Likes)
+-- ====================================================================
 create table if not exists public.activity_kudos (
   activity_id uuid not null references public.activities(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -76,7 +84,9 @@ create table if not exists public.activity_kudos (
   primary key (activity_id, user_id)
 );
 
--- 7. Create ACTIVITY_COMMENTS table
+-- ====================================================================
+-- ENTITY 5: ACTIVITY_COMMENTS (Interactive Workout Discussions)
+-- ====================================================================
 create table if not exists public.activity_comments (
   id uuid primary key default gen_random_uuid(),
   activity_id uuid not null references public.activities(id) on delete cascade,
@@ -85,7 +95,9 @@ create table if not exists public.activity_comments (
   created_at timestamptz not null default now()
 );
 
--- 8. Create USER_BLOCKS table (Privacy, Safety & Harassment Prevention)
+-- ====================================================================
+-- ENTITY 6: USER_BLOCKS (Athlete Privacy, Safety & Harassment Shield)
+-- ====================================================================
 create table if not exists public.user_blocks (
   blocker_id uuid not null references auth.users(id) on delete cascade,
   blocked_id uuid not null references auth.users(id) on delete cascade,
@@ -94,14 +106,99 @@ create table if not exists public.user_blocks (
   check (blocker_id != blocked_id)
 );
 
--- 9. Create Indexes for query performance
+-- ====================================================================
+-- AUTOMATED POSTGIS ROUTE GENERATION TRIGGER
+-- Derives geometry(LineString, 4326) directly from gps_telemetry JSONB
+-- ====================================================================
+
+create or replace function public.generate_route_path_from_telemetry()
+returns trigger as $$
+declare
+  point_count integer;
+  new_geom geometry;
+begin
+  -- If telemetry is empty or not a valid JSON array, clear route_path
+  if NEW.gps_telemetry is null or jsonb_typeof(NEW.gps_telemetry) <> 'array' then
+    NEW.route_path := null;
+    return NEW;
+  end if;
+
+  point_count := jsonb_array_length(NEW.gps_telemetry);
+
+  -- A valid 2D LineString requires at least 2 distinct coordinate points
+  if point_count < 2 then
+    NEW.route_path := null;
+    return NEW;
+  end if;
+
+  -- Build PostGIS LineString with SRID 4326 from JSONB elements
+  -- ST_MakePoint requires (longitude, latitude) -> Longitude is X, Latitude is Y
+  -- Flexibly parses both compressed keys ('lat', 'lng'/'lon') and full keys ('latitude', 'longitude')
+  select ST_SetSRID(ST_MakeLine(pts.geom), 4326)
+  into new_geom
+  from (
+    select ST_MakePoint(
+      coalesce(
+        (elem->>'lng')::double precision,
+        (elem->>'lon')::double precision,
+        (elem->>'longitude')::double precision
+      ),
+      coalesce(
+        (elem->>'lat')::double precision,
+        (elem->>'latitude')::double precision
+      )
+    ) as geom
+    from jsonb_array_elements(NEW.gps_telemetry) with ordinality as arr(elem, idx)
+    where (
+      (elem ? 'lat' or elem ? 'latitude') and
+      (elem ? 'lng' or elem ? 'lon' or elem ? 'longitude') and
+      coalesce((elem->>'lat'), (elem->>'latitude')) is not null and
+      coalesce((elem->>'lng'), (elem->>'lon'), (elem->>'longitude')) is not null and
+      coalesce((elem->>'lat'), (elem->>'latitude')) ~ '^-?[0-9]+(\.[0-9]+)?$' and
+      coalesce((elem->>'lng'), (elem->>'lon'), (elem->>'longitude')) ~ '^-?[0-9]+(\.[0-9]+)?$' and
+      coalesce((elem->>'lat')::double precision, (elem->>'latitude')::double precision) between -90 and 90 and
+      coalesce((elem->>'lng')::double precision, (elem->>'lon')::double precision, (elem->>'longitude')::double precision) between -180 and 180
+    )
+    order by idx
+  ) pts;
+
+  -- Validate geometry vertex count
+  if new_geom is not null and ST_NPoints(new_geom) >= 2 then
+    NEW.route_path := new_geom;
+  else
+    NEW.route_path := null;
+  end if;
+
+  return NEW;
+exception
+  when others then
+    -- Fail safe: preserve activity insert even if telemetry has corrupted coordinates
+    NEW.route_path := null;
+    return NEW;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_generate_route_path on public.activities;
+create trigger trg_generate_route_path
+  before insert or update of gps_telemetry on public.activities
+  for each row
+  execute function public.generate_route_path_from_telemetry();
+
+-- ====================================================================
+-- PERFORMANCE INDEXING (Spatial GiST, JSONB GIN, and Relational B-Trees)
+-- ====================================================================
+
+-- 1. Spatial GiST Index on PostGIS route_path (Ultra-fast spatial bounding, ST_DWithin & proximity queries)
+create index if not exists idx_activities_route_path on public.activities using gist (route_path);
+
+-- 2. GIN Index on gps_telemetry JSONB (Enables fast internal telemetry element matching)
+create index if not exists idx_activities_gps_telemetry on public.activities using gin (gps_telemetry);
+
+-- 3. Core Relational B-Tree Indexes
 create index if not exists idx_activities_user_id on public.activities(user_id);
 create index if not exists idx_activities_created_at on public.activities(created_at desc);
 create index if not exists idx_activities_type on public.activities(type);
 create index if not exists idx_activities_visibility on public.activities(visibility);
-
-create index if not exists idx_activity_points_activity_order on public.activity_points(activity_id, point_order asc);
-create index if not exists idx_activity_points_user on public.activity_points(user_id);
 
 create index if not exists idx_follows_follower on public.follows(follower_id);
 create index if not exists idx_follows_following on public.follows(following_id);
@@ -116,10 +213,8 @@ create index if not exists idx_activity_comments_user on public.activity_comment
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ====================================================================
 
--- Enable RLS on all tables
 alter table public.profiles enable row level security;
 alter table public.activities enable row level security;
-alter table public.activity_points enable row level security;
 alter table public.follows enable row level security;
 alter table public.activity_kudos enable row level security;
 alter table public.activity_comments enable row level security;
@@ -142,12 +237,12 @@ create policy "Users can update own profile"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
--- ACTIVITIES POLICIES (Honors Privacy: Public, Followers-Only, and Private)
+-- ACTIVITIES POLICIES (Enforces Public, Followers-Only, and Private with Block Safeguards)
 create policy "Users can view authorized activities"
   on public.activities
   for select
   using (
-    -- 1. Owner can always view their own activities
+    -- 1. Activity owner can always view own workouts
     auth.uid() = user_id
     or (
       -- 2. Public activities visible unless blocked
@@ -184,28 +279,6 @@ create policy "Users can update own activities"
 
 create policy "Users can delete own activities"
   on public.activities
-  for delete
-  using (auth.uid() = user_id);
-
--- ACTIVITY_POINTS POLICIES
-create policy "Users can view authorized activity points"
-  on public.activity_points
-  for select
-  using (
-    -- Inherit view authorization from parent activity
-    exists (
-      select 1 from public.activities
-      where activities.id = activity_points.activity_id
-    )
-  );
-
-create policy "Users can insert own activity points"
-  on public.activity_points
-  for insert
-  with check (auth.uid() = user_id);
-
-create policy "Users can delete own activity points"
-  on public.activity_points
   for delete
   using (auth.uid() = user_id);
 
@@ -299,7 +372,6 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- Trigger to execute on user signup in auth.users
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users

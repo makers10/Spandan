@@ -6,7 +6,40 @@ import {
   WeeklyStats,
   DailyActivity,
 } from '@/data/mock-fitness-data';
-import { GpsCoordinate } from '@/utils/geo';
+import {
+  GpsCoordinate,
+  MinifiedTelemetryPoint,
+  compressTelemetry,
+  decompressTelemetry,
+} from '@/utils/geo';
+
+/**
+ * Explicit column projection for feed, dashboard, and list views.
+ * Deliberately EXCLUDES the heavy `gps_telemetry` JSONB and `route_path` columns
+ * to guarantee instantaneous queries, fast rendering, and low bandwidth usage.
+ */
+export const ACTIVITY_FEED_COLUMNS = [
+  'id',
+  'user_id',
+  'title',
+  'type',
+  'distance_km',
+  'duration_formatted',
+  'duration_seconds',
+  'pace_or_speed_formatted',
+  'pace_or_speed_label',
+  'elevation_meters',
+  'calories',
+  'avg_heart_rate',
+  'max_heart_rate',
+  'cadence_or_steps',
+  'location',
+  'gear_name',
+  'polyline_preview',
+  'visibility',
+  'created_at',
+  'profiles:profiles(full_name, avatar_text)',
+].join(', ');
 
 export interface CreateActivityInput {
   title: string;
@@ -26,6 +59,7 @@ export interface CreateActivityInput {
   polylinePreview?: string;
   visibility?: ActivityVisibility;
   routePoints?: GpsCoordinate[];
+  gpsTelemetry?: MinifiedTelemetryPoint[];
 }
 
 function mapDatabaseRowToActivity(item: any, fallbackAthleteName: string = 'Athlete'): Activity {
@@ -63,7 +97,7 @@ function mapDatabaseRowToActivity(item: any, fallbackAthleteName: string = 'Athl
     calories: Number(item.calories || 0),
     avgHeartRate: item.avg_heart_rate ? Number(item.avg_heart_rate) : undefined,
     maxHeartRate: item.max_heart_rate ? Number(item.max_heart_rate) : undefined,
-    cadenceOrSteps: item.cadence_or_steps || undefined,
+    cadenceOrSteps: item.cadenceOrSteps || undefined,
     kudosCount: 0,
     hasKudoed: false,
     commentsCount: 0,
@@ -76,7 +110,8 @@ function mapDatabaseRowToActivity(item: any, fallbackAthleteName: string = 'Athl
 
 export const activityService = {
   /**
-   * Fetches an athlete's personal activities, ordered by creation date descending.
+   * Fetches an athlete's personal activities using lightweight column projection.
+   * Excludes `gps_telemetry` JSONB to optimize feed scrolling.
    */
   async fetchUserActivities(
     userId: string,
@@ -89,7 +124,7 @@ export const activityService = {
 
     let query = supabase
       .from('activities')
-      .select('*, profiles(full_name, avatar_text)')
+      .select(ACTIVITY_FEED_COLUMNS)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -108,7 +143,7 @@ export const activityService = {
   },
 
   /**
-   * Fetches a single activity by ID with its creator profile.
+   * Fetches a single activity metadata by ID (lightweight).
    */
   async fetchActivityById(activityId: string): Promise<Activity | null> {
     if (!isSupabaseConfigured()) {
@@ -117,7 +152,7 @@ export const activityService = {
 
     const { data, error } = await supabase
       .from('activities')
-      .select('*, profiles(full_name, avatar_text)')
+      .select(ACTIVITY_FEED_COLUMNS)
       .eq('id', activityId)
       .single();
 
@@ -130,7 +165,57 @@ export const activityService = {
   },
 
   /**
+   * Dedicated Deferred Query: Selectively fetches the full `gps_telemetry` JSONB data block
+   * for a specific activity on demand (e.g. when opening granular charts or spatial splits).
+   * Supports downsampling to avoid mobile UI thread lockup.
+   */
+  async fetchActivityTelemetry(
+    activityId: string,
+    options: { downsampleFactor?: number; maxPoints?: number } = {}
+  ): Promise<{ points: GpsCoordinate[]; isDownsampled: boolean; totalPoints: number }> {
+    if (!isSupabaseConfigured()) {
+      return { points: [], isDownsampled: false, totalPoints: 0 };
+    }
+
+    const { data, error } = await supabase
+      .from('activities')
+      .select('id, gps_telemetry')
+      .eq('id', activityId)
+      .single();
+
+    if (error || !data || !Array.isArray(data.gps_telemetry)) {
+      if (error) {
+        console.warn('Error fetching activity telemetry:', error.message);
+      }
+      return { points: [], isDownsampled: false, totalPoints: 0 };
+    }
+
+    const rawPoints = decompressTelemetry(data.gps_telemetry as MinifiedTelemetryPoint[]);
+    const totalPoints = rawPoints.length;
+
+    // Apply client-side decimation if requested or if point count is very high (> 2,000 points)
+    const factor = options.downsampleFactor || (options.maxPoints && totalPoints > options.maxPoints
+      ? Math.ceil(totalPoints / options.maxPoints)
+      : 1);
+
+    if (factor > 1) {
+      const downsampled: GpsCoordinate[] = [];
+      for (let i = 0; i < rawPoints.length; i += factor) {
+        downsampled.push(rawPoints[i]);
+      }
+      // Guarantee last point is included
+      if (downsampled[downsampled.length - 1] !== rawPoints[rawPoints.length - 1]) {
+        downsampled.push(rawPoints[rawPoints.length - 1]);
+      }
+      return { points: downsampled, isDownsampled: true, totalPoints };
+    }
+
+    return { points: rawPoints, isDownsampled: false, totalPoints };
+  },
+
+  /**
    * Fetches social feed: activities created by followed athletes plus public activities.
+   * Excludes `gps_telemetry` JSONB to keep memory footprint minimal.
    */
   async fetchSocialFeed(currentUserId?: string, filterType?: ActivityType): Promise<Activity[]> {
     if (!isSupabaseConfigured()) {
@@ -139,7 +224,7 @@ export const activityService = {
 
     let query = supabase
       .from('activities')
-      .select('*, profiles(full_name, avatar_text)')
+      .select(ACTIVITY_FEED_COLUMNS)
       .order('created_at', { ascending: false })
       .limit(30);
 
@@ -158,11 +243,23 @@ export const activityService = {
   },
 
   /**
-   * Creates an activity and optionally batch-inserts ordered GPS route points.
+   * Creates an activity with hybrid JSONB telemetry storage.
+   * The database-level PostgreSQL trigger automatically derives the PostGIS `route_path` geometry!
    */
   async createActivity(userId: string, input: CreateActivityInput): Promise<Activity> {
     if (!isSupabaseConfigured()) {
       throw new Error('Supabase is not configured. Activity cannot be persisted to database.');
+    }
+
+    // Minify telemetry points into compressed JSONB array
+    let telemetryPayload: MinifiedTelemetryPoint[] = [];
+    if (input.gpsTelemetry && input.gpsTelemetry.length > 0) {
+      telemetryPayload = input.gpsTelemetry;
+    } else if (input.routePoints && input.routePoints.length > 0) {
+      telemetryPayload = compressTelemetry(input.routePoints, {
+        coordinatePrecision: 6,
+        minDistanceMeters: 1.0,
+      });
     }
 
     const payload = {
@@ -183,44 +280,18 @@ export const activityService = {
       gear_name: input.gearName || null,
       polyline_preview: input.polylinePreview || null,
       visibility: input.visibility || 'public',
+      gps_telemetry: telemetryPayload, // Stored as single JSONB array
     };
 
     const { data, error } = await supabase
       .from('activities')
       .insert(payload)
-      .select('*, profiles(full_name, avatar_text)')
+      .select(ACTIVITY_FEED_COLUMNS)
       .single();
 
     if (error) {
       console.error('Error inserting activity to Supabase:', error.message);
       throw error;
-    }
-
-    // Persist ordered GPS coordinates to activity_points table if route was recorded
-    if (input.routePoints && input.routePoints.length > 0) {
-      try {
-        const pointsPayload = input.routePoints.map((pt, idx) => ({
-          activity_id: data.id,
-          user_id: userId,
-          point_order: idx,
-          latitude: pt.latitude,
-          longitude: pt.longitude,
-          altitude: pt.altitude ?? null,
-          accuracy: pt.accuracy ?? null,
-          speed: pt.speed ?? null,
-          recorded_at: new Date(pt.timestamp).toISOString(),
-        }));
-
-        const { error: pointsError } = await supabase
-          .from('activity_points')
-          .insert(pointsPayload);
-
-        if (pointsError) {
-          console.warn('Note: Could not save detailed activity_points to Supabase:', pointsError.message);
-        }
-      } catch (ptsErr: any) {
-        console.warn('Failed to insert activity_points batch:', ptsErr.message);
-      }
     }
 
     return mapDatabaseRowToActivity(data, 'You');

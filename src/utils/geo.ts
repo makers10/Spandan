@@ -369,3 +369,123 @@ export function calculateKilometerSplits(
 
   return [];
 }
+
+/**
+ * Compact, minified JSON representation of a single time-series GPS telemetry fix.
+ * Shortened keys drastically reduce storage size and payload bandwidth:
+ * - 'lat': Latitude (6 decimal places, ~0.11m precision)
+ * - 'lng': Longitude (6 decimal places, ~0.11m precision)
+ * - 'alt': Altitude in meters (optional, 1 decimal place)
+ * - 'acc': Horizontal accuracy radius in meters (optional, 1 decimal place)
+ * - 'spd': Speed in m/s (optional, 2 decimal places)
+ * - 't': Millisecond epoch timestamp
+ */
+export interface MinifiedTelemetryPoint {
+  lat: number;
+  lng: number;
+  alt?: number;
+  acc?: number;
+  spd?: number;
+  t: number;
+}
+
+export interface TelemetryCompressionOptions {
+  /**
+   * Decimal precision for coordinates. Default is 6 (~0.11m precision).
+   */
+  coordinatePrecision?: number;
+
+  /**
+   * Filter out redundant stationary jitter points where movement is less than this threshold in meters.
+   * Default is 0 (keep all valid points).
+   */
+  minDistanceMeters?: number;
+
+  /**
+   * Strip accuracy metadata to further reduce payload size when storage is critical.
+   * Default is false.
+   */
+  stripAccuracy?: boolean;
+}
+
+/**
+ * Compresses an array of raw GpsCoordinate objects into a minified, bandwidth-efficient
+ * JSON telemetry array suitable for PostgreSQL JSONB storage and network transfer.
+ */
+export function compressTelemetry(
+  coordinates: GpsCoordinate[],
+  options: TelemetryCompressionOptions = {}
+): MinifiedTelemetryPoint[] {
+  if (!Array.isArray(coordinates) || coordinates.length === 0) {
+    return [];
+  }
+
+  const precision = options.coordinatePrecision ?? 6;
+  const factor = Math.pow(10, precision);
+  const minDistanceKm = (options.minDistanceMeters ?? 0) / 1000;
+  const stripAccuracy = options.stripAccuracy ?? false;
+
+  const valid = coordinates.filter(isValidCoordinate);
+  if (valid.length === 0) return [];
+
+  const compressed: MinifiedTelemetryPoint[] = [];
+  let lastRecorded: GpsCoordinate | null = null;
+
+  for (let i = 0; i < valid.length; i++) {
+    const pt = valid[i];
+
+    // Optional stationary point filtering (always keep first and last points)
+    if (minDistanceKm > 0 && lastRecorded && i < valid.length - 1) {
+      const dist = haversineDistanceKm(lastRecorded, pt);
+      if (dist < minDistanceKm) {
+        continue; // Skip stationary jitter
+      }
+    }
+
+    const minPoint: MinifiedTelemetryPoint = {
+      lat: Math.round(pt.latitude * factor) / factor,
+      lng: Math.round(pt.longitude * factor) / factor,
+      t: Math.round(pt.timestamp),
+    };
+
+    if (typeof pt.altitude === 'number' && !isNaN(pt.altitude)) {
+      minPoint.alt = Math.round(pt.altitude * 10) / 10;
+    }
+
+    if (!stripAccuracy && typeof pt.accuracy === 'number' && !isNaN(pt.accuracy)) {
+      minPoint.acc = Math.round(pt.accuracy * 10) / 10;
+    }
+
+    if (typeof pt.speed === 'number' && !isNaN(pt.speed) && pt.speed >= 0) {
+      minPoint.spd = Math.round(pt.speed * 100) / 100;
+    }
+
+    compressed.push(minPoint);
+    lastRecorded = pt;
+  }
+
+  return compressed;
+}
+
+/**
+ * Hydrates minified telemetry points back into standard GpsCoordinate objects
+ * for consumption by charts, telemetry HUDs, and kilometer split calculations.
+ */
+export function decompressTelemetry(
+  telemetry: MinifiedTelemetryPoint[]
+): GpsCoordinate[] {
+  if (!Array.isArray(telemetry) || telemetry.length === 0) {
+    return [];
+  }
+
+  return telemetry
+    .filter((pt) => pt && typeof pt.lat === 'number' && typeof pt.lng === 'number')
+    .map((pt) => ({
+      latitude: pt.lat,
+      longitude: pt.lng,
+      altitude: pt.alt ?? null,
+      accuracy: pt.acc ?? null,
+      speed: pt.spd ?? null,
+      timestamp: pt.t || Date.now(),
+    }));
+}

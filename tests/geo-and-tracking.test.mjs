@@ -417,10 +417,16 @@ runTest('Database schema enforces social tables, visibility constraints, and gra
     schema.includes("visibility text not null default 'public' check (visibility in ('public', 'followers', 'private'))")
   );
 
+  // Verify hybrid JSONB telemetry & PostGIS LineString geometry
+  assert.ok(schema.includes('gps_telemetry jsonb'));
+  assert.ok(schema.includes('route_path geometry(LineString, 4326)'));
+  assert.ok(schema.includes('using gist (route_path)'));
+  assert.ok(schema.includes('using gin (gps_telemetry)'));
+  assert.ok(schema.includes('trg_generate_route_path'));
+
   // Verify RLS enablement on all tables
   assert.ok(schema.includes('alter table public.profiles enable row level security;'));
   assert.ok(schema.includes('alter table public.activities enable row level security;'));
-  assert.ok(schema.includes('alter table public.activity_points enable row level security;'));
   assert.ok(schema.includes('alter table public.follows enable row level security;'));
   assert.ok(schema.includes('alter table public.activity_kudos enable row level security;'));
   assert.ok(schema.includes('alter table public.activity_comments enable row level security;'));
@@ -428,7 +434,6 @@ runTest('Database schema enforces social tables, visibility constraints, and gra
 
   // Verify privacy-aware SELECT policy
   assert.ok(schema.includes('create policy "Users can view authorized activities"'));
-  assert.ok(schema.includes('create policy "Users can view authorized activity points"'));
   assert.ok(schema.includes('create policy "Users can follow others"'));
   assert.ok(schema.includes('create policy "Users can give kudos"'));
   assert.ok(schema.includes('create policy "Users can write comments"'));
