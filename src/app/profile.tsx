@@ -24,7 +24,7 @@ import { authService } from '@/services/auth-service';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, profile, isDemoMode, isConfigured, signOut, refreshProfile } = useAuth();
+  const { user, profile, isDemoMode, isConfigured, signOut, refreshProfile, openAuthModal } = useAuth();
 
   const [realStats, setRealStats] = useState<{
     totalActivities: number;
@@ -189,7 +189,7 @@ export default function ProfileScreen() {
                 </Pressable>
               ) : (
                 <Pressable
-                  onPress={() => router.push('/auth/login' as any)}
+                  onPress={() => openAuthModal('login')}
                   style={styles.signInHeaderBtn}>
                   <Text style={styles.signInHeaderText}>Sign In / Join</Text>
                 </Pressable>
@@ -207,7 +207,7 @@ export default function ProfileScreen() {
                 </Text>
               </View>
               <Pressable
-                onPress={() => router.push('/auth/login' as any)}
+                onPress={() => openAuthModal('login')}
                 style={styles.demoActionBtn}>
                 <Text style={styles.demoActionBtnText}>Sign In</Text>
               </Pressable>

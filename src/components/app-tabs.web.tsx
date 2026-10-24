@@ -61,7 +61,7 @@ export const TabButton = React.forwardRef<any, TabTriggerSlotProps>(function Tab
 });
 
 export function CustomTabList(props: TabListProps) {
-  const { user, profile, isDemoMode, isConfigured } = useAuth();
+  const { user, profile, isDemoMode, isConfigured, openAuthModal } = useAuth();
   const isLiveUser = Boolean(user && !isDemoMode);
 
   const avatar = isLiveUser
@@ -90,7 +90,7 @@ export function CustomTabList(props: TabListProps) {
             </Pressable>
           ) : (
             <Pressable
-              onPress={() => router.push('/auth/login' as any)}
+              onPress={() => openAuthModal('login')}
               style={styles.signInBtn}>
               <Text style={styles.signInBtnText}>Sign In</Text>
             </Pressable>

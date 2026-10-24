@@ -12,6 +12,10 @@ interface AuthContextType {
   isDemoMode: boolean;
   isLoading: boolean;
   error: string | null;
+  isAuthModalVisible: boolean;
+  authModalMode: 'login' | 'register';
+  openAuthModal: (mode?: 'login' | 'register') => void;
+  closeAuthModal: () => void;
   signIn: (email: string, pass: string) => Promise<void>;
   signUp: (email: string, pass: string, fullName: string) => Promise<{ user: User | null; requiresEmailConfirmation: boolean }>;
   signInAsAthlete: (fullName?: string, email?: string) => Promise<void>;
@@ -30,6 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isDemoMode, setIsDemoMode] = useState<boolean>(!isSupabaseConfigured());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthModalVisible, setIsAuthModalVisible] = useState<boolean>(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
 
   const isConfigured = isSupabaseConfigured();
 
@@ -294,6 +300,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = () => setError(null);
 
+  const openAuthModal = (mode: 'login' | 'register' = 'login') => {
+    setAuthModalMode(mode);
+    setIsAuthModalVisible(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalVisible(false);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -304,6 +319,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isDemoMode,
         isLoading,
         error,
+        isAuthModalVisible,
+        authModalMode,
+        openAuthModal,
+        closeAuthModal,
         signIn,
         signUp,
         signInAsAthlete,

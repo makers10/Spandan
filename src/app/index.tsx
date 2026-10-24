@@ -31,7 +31,7 @@ import {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { user, profile, isDemoMode, isConfigured } = useAuth();
+  const { user, profile, isDemoMode, isConfigured, openAuthModal } = useAuth();
 
   const [filter, setFilter] = useState<FilterValue>('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -162,7 +162,7 @@ export default function HomeScreen() {
                 </View>
               ) : (
                 <Pressable
-                  onPress={() => router.push('/auth/login' as any)}
+                  onPress={() => openAuthModal('login')}
                   style={styles.demoModeBadge}>
                   <Text style={styles.demoBadgeText}>Demo Mode • Sign In</Text>
                 </Pressable>
@@ -224,7 +224,7 @@ export default function HomeScreen() {
 
               {!isLiveUser && (
                 <Pressable
-                  onPress={() => router.push('/auth/login' as any)}
+                  onPress={() => openAuthModal('login')}
                   style={({ pressed }) => [styles.simBtnOrange, pressed && styles.pressed]}>
                   <Text style={styles.simBtnOrangeText}>🔐 Authenticate</Text>
                 </Pressable>
