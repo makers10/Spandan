@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     borderColor: '#243354',
   },
   editProfileHeaderText: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   signInHeaderBtn: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: '#4FA99A',
     gap: 12,
   },
   demoTextGroup: {
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   demoBannerTitle: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   demoActionBtn: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FF6B00',
+    borderColor: '#4FA99A',
   },
   avatarLargeText: {
     color: '#FFFFFF',
@@ -607,15 +607,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   proBadge: {
-    backgroundColor: 'rgba(255, 107, 0, 0.15)',
+    backgroundColor: 'rgba(79, 169, 154, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 107, 0, 0.3)',
+    borderColor: 'rgba(79, 169, 154, 0.3)',
   },
   proBadgeText: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   unitBtnActive: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
   },
   unitBtnText: {
     color: '#94A3B8',
@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   prTime: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
   },
   gearFill: {
     height: '100%',
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     borderRadius: 3,
   },
   gearRemainingText: {
@@ -903,7 +903,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     flex: 1.4,
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',

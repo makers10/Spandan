@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   todayLabel: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontWeight: '800',
   },
 });

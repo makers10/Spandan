@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FF6B00',
+    borderColor: '#4FA99A',
   },
   avatarText: {
     color: '#FFFFFF',
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   proBadge: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     borderRadius: 4,
     paddingHorizontal: 4,
     paddingVertical: 1,
@@ -392,9 +392,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   kudosButtonActive: {
-    backgroundColor: 'rgba(255, 107, 0, 0.2)',
+    backgroundColor: 'rgba(79, 169, 154, 0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 107, 0, 0.4)',
+    borderColor: 'rgba(79, 169, 154, 0.4)',
   },
   kudosIcon: {
     fontSize: 14,
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   kudosCountTextActive: {
-    color: '#FF6B00',
+    color: '#4FA99A',
   },
   commentsGroup: {
     flexDirection: 'row',

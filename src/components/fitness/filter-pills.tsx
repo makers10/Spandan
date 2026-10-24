@@ -70,8 +70,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   pillSelected: {
-    backgroundColor: '#FF6B00',
-    borderColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
+    borderColor: '#4FA99A',
   },
   pressed: {
     opacity: 0.8,

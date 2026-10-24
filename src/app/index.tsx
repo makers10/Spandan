@@ -490,8 +490,8 @@ const styles = StyleSheet.create({
     borderColor: '#243354',
   },
   simBtnActive: {
-    borderColor: '#FF6B00',
-    backgroundColor: 'rgba(255, 107, 0, 0.15)',
+    borderColor: '#4FA99A',
+    backgroundColor: 'rgba(79, 169, 154, 0.15)',
   },
   simBtnText: {
     color: '#94A3B8',
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   simBtnOrange: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 5,

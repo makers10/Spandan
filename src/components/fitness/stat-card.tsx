@@ -17,7 +17,7 @@ export function StatCard({
   unit,
   deltaText,
   isPositiveDelta = true,
-  accentColor = '#FF6B00',
+  accentColor = '#4FA99A',
   iconSymbol,
 }: StatCardProps) {
   return (

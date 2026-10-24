@@ -300,7 +300,7 @@ export const locationService = {
         foregroundService: {
           notificationTitle: 'Spandan Activity Tracker',
           notificationBody: 'Recording your GPS workout in the background',
-          notificationColor: '#FF6B00',
+          notificationColor: '#4FA99A',
         },
         pausesUpdatesAutomatically: false,
       });

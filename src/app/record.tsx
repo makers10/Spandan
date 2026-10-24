@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: '#4FA99A',
   },
   saveStatusText: {
     color: '#FFFFFF',
@@ -993,7 +993,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   routePreviewSubtitle: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1015,7 +1015,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: '#FF6B00',
+    shadowColor: '#4FA99A',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
@@ -1076,7 +1076,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   authNoticeTitle: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -1128,8 +1128,8 @@ const styles = StyleSheet.create({
     borderColor: '#243354',
   },
   togglePillActive: {
-    backgroundColor: '#FF6B00',
-    borderColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
+    borderColor: '#4FA99A',
   },
   toggleText: {
     color: '#FFFFFF',
@@ -1160,7 +1160,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalSub: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',
@@ -1217,7 +1217,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     flex: 1.4,
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -1248,7 +1248,7 @@ const styles = StyleSheet.create({
   },
   visBtnActive: {
     backgroundColor: '#1C263E',
-    borderColor: '#FF6B00',
+    borderColor: '#4FA99A',
   },
   visBtnText: {
     color: '#94A3B8',

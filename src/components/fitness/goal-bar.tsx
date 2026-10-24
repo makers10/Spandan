@@ -72,19 +72,19 @@ const styles = StyleSheet.create({
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 107, 0, 0.15)',
+    backgroundColor: 'rgba(79, 169, 154, 0.15)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 107, 0, 0.3)',
+    borderColor: 'rgba(79, 169, 154, 0.3)',
     gap: 4,
   },
   streakEmoji: {
     fontSize: 13,
   },
   streakText: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   progress: {
     height: '100%',
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     borderRadius: 4,
   },
   footer: {
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   percentText: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 12,
     fontWeight: '700',
   },

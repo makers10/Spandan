@@ -13,11 +13,11 @@ const SpandanDarkTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: '#FF6B00',
-    background: '#0B111E',
-    card: '#131B2E',
+    primary: '#4FA99A',
+    background: '#0B1514',
+    card: '#122220',
     text: '#FFFFFF',
-    border: '#243354',
+    border: '#1F3A36',
   },
 };
 
@@ -25,11 +25,11 @@ const SpandanLightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#FF6B00',
-    background: '#0B111E',
-    card: '#131B2E',
-    text: '#FFFFFF',
-    border: '#243354',
+    primary: '#4FA99A',
+    background: '#F7FAF9',
+    card: '#FFFFFF',
+    text: '#132A26',
+    border: '#E3ECE9',
   },
 };
 
