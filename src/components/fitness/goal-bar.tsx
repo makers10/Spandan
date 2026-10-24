@@ -44,11 +44,16 @@ export function GoalBar({ currentDistance, targetDistance, streakWeeks }: GoalBa
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#131B2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   header: {
     flexDirection: 'row',
@@ -60,12 +65,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
   },
   subTitle: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
     fontWeight: '500',
   },
@@ -90,7 +95,7 @@ const styles = StyleSheet.create({
   },
   track: {
     height: 8,
-    backgroundColor: '#1C263E',
+    backgroundColor: '#E2E8F0',
     borderRadius: 4,
     overflow: 'hidden',
     position: 'relative',
@@ -112,7 +117,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   remainingText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '500',
   },

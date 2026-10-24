@@ -422,7 +422,7 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0B111E',
+    backgroundColor: '#F8FAF9',
   },
   scrollView: {
     flex: 1,
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   headerTitle: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -452,11 +452,11 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#131B2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
   },
   searchIcon: {
     fontSize: 14,
@@ -464,17 +464,17 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 14,
     paddingVertical: 12,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#131B2E',
+    backgroundColor: '#F1F5F9',
     borderRadius: 12,
     padding: 4,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
     gap: 4,
   },
   tabItem: {
@@ -484,15 +484,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabItemActive: {
-    backgroundColor: '#1C263E',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   tabText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '700',
   },
   tabTextActive: {
-    color: '#FF6B00',
+    color: '#4FA99A',
   },
   feedSection: {
     gap: 14,
@@ -509,23 +514,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loadingText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
   },
   emptyContainer: {
-    backgroundColor: '#131B2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 24,
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
   },
   emptyIcon: {
     fontSize: 32,
   },
   emptyTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -538,25 +543,25 @@ const styles = StyleSheet.create({
   athleteRowCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#131B2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
     gap: 12,
   },
   athleteAvatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1C263E',
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FF6B00',
+    borderColor: '#4FA99A',
   },
   athleteAvatarText: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -565,16 +570,16 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   athleteRowName: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '800',
   },
   athleteRowHandle: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
   },
   athleteRowBio: {
-    color: '#CBD5E1',
+    color: '#475569',
     fontSize: 12,
   },
   athleteRowActions: {
@@ -583,15 +588,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   followBtn: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
   followBtnActive: {
-    backgroundColor: '#1C263E',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
   },
   followBtnText: {
     color: '#FFFFFF',
@@ -599,7 +604,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   followBtnTextActive: {
-    color: '#94A3B8',
+    color: '#64748B',
   },
   blockBtn: {
     padding: 6,
@@ -610,32 +615,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   challengeCard: {
-    backgroundColor: '#131B2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
     gap: 10,
   },
   challengeBadge: {
-    backgroundColor: 'rgba(255, 107, 0, 0.15)',
+    backgroundColor: 'rgba(79, 169, 154, 0.15)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     alignSelf: 'flex-start',
   },
   challengeBadgeText: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 10,
     fontWeight: '900',
   },
   challengeTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 18,
     fontWeight: '800',
   },
   challengeDesc: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
     lineHeight: 18,
   },
@@ -645,7 +650,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#1C263E',
+    borderTopColor: '#F1F5F9',
   },
   challengeStats: {
     color: '#64748B',
@@ -653,7 +658,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   joinBtn: {
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#4FA99A',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
@@ -669,12 +674,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionHeading: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 16,
     fontWeight: '800',
   },
   sectionBadge: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '600',
   },
@@ -682,11 +687,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   segmentCard: {
-    backgroundColor: '#131B2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
     gap: 8,
   },
   segTopRow: {
@@ -710,12 +715,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   segDistance: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '700',
   },
   segElev: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
   },
   komBadge: {
@@ -724,7 +729,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   segName: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
   },
@@ -738,20 +743,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#1C263E',
+    borderTopColor: '#F1F5F9',
   },
   komHolderText: {
     color: '#64748B',
     fontSize: 11,
   },
   viewRouteBtn: {
-    backgroundColor: '#1C263E',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
   },
   viewRouteBtnText: {
-    color: '#FF6B00',
+    color: '#4FA99A',
     fontSize: 11,
     fontWeight: '700',
   },

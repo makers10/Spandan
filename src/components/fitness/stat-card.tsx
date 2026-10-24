@@ -60,13 +60,18 @@ export function StatCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#131B2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
     flex: 1,
     minWidth: 140,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   topRow: {
     flexDirection: 'row',
@@ -75,7 +80,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   label: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8,
@@ -97,13 +102,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   value: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 26,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   unit: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
     fontWeight: '600',
   },

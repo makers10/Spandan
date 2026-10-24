@@ -34,13 +34,13 @@ const SpandanLightTheme = {
 };
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'light' ? SpandanLightTheme : SpandanDarkTheme;
+  // Use SpandanLightTheme as default for fresh Soft Teal & white/soft-grey aesthetic
+  const theme = SpandanLightTheme;
 
   return (
     <AuthProvider>
       <ThemeProvider value={theme}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <AnimatedSplashOverlay />
         <AppTabs />
       </ThemeProvider>

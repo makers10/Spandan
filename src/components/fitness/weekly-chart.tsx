@@ -13,7 +13,7 @@ export function WeeklyChart({ days }: WeeklyChartProps) {
     if (type === 'run') return '#FF6B00';
     if (type === 'ride') return '#00D2D3';
     if (type === 'walk') return '#10B981';
-    return isToday ? '#243354' : '#1C263E';
+    return isToday ? '#CBD5E1' : '#E2E8F0';
   };
 
   return (
@@ -74,11 +74,16 @@ export function WeeklyChart({ days }: WeeklyChartProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#131B2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   headerRow: {
     flexDirection: 'row',
@@ -87,7 +92,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
   },
@@ -106,7 +111,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   legendText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '600',
   },
@@ -127,7 +132,7 @@ const styles = StyleSheet.create({
   barTrack: {
     width: 14,
     height: 80,
-    backgroundColor: '#1C263E',
+    backgroundColor: '#F1F5F9',
     borderRadius: 4,
     overflow: 'hidden',
     justifyContent: 'flex-end',
@@ -136,7 +141,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   kmLabel: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 9,
     fontWeight: '700',
     marginTop: 2,

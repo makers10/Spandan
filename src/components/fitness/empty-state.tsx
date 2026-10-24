@@ -46,14 +46,19 @@ export function EmptyState({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#131B2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 28,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
     gap: 12,
     marginVertical: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   iconCircle: {
     width: 64,
@@ -70,13 +75,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   title: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 18,
     fontWeight: '800',
     textAlign: 'center',
   },
   message: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
@@ -106,15 +111,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   resetButton: {
-    backgroundColor: '#1C263E',
+    backgroundColor: '#F1F5F4',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#243354',
+    borderColor: '#E2E8F0',
   },
   resetButtonText: {
-    color: '#94A3B8',
+    color: '#475569',
     fontSize: 14,
     fontWeight: '600',
   },

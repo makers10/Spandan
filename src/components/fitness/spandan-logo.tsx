@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   brandName: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontWeight: '900',
     letterSpacing: 1.5,
     fontFamily: 'sans-serif',
