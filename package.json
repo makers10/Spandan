@@ -43,7 +43,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node tests/auth-and-activities.test.mjs && node tests/geo-and-tracking.test.mjs",
+    "test": "node tests/auth-and-activities.test.mjs && node tests/geo-and-tracking.test.mjs && node tests/features-and-privacy.test.mjs",
     "lint": "expo lint"
   },
   "private": true

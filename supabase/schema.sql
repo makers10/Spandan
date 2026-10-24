@@ -347,6 +347,123 @@ create policy "Users can unblock users"
   using (auth.uid() = blocker_id);
 
 -- ====================================================================
+-- ENTITY 7: CHALLENGES (Community & Private Fitness Challenges)
+-- ====================================================================
+create table if not exists public.challenges (
+  id uuid primary key default gen_random_uuid(),
+  creator_id uuid not null references auth.users(id) on delete cascade,
+  title text not null check (length(trim(title)) > 0 and length(title) <= 120),
+  description text,
+  sport_type text not null check (sport_type in ('run', 'ride', 'walk', 'all')),
+  target_distance_km numeric(8, 2) not null check (target_distance_km > 0),
+  start_date timestamptz not null,
+  end_date timestamptz not null check (end_date > start_date),
+  is_private boolean not null default false,
+  invite_code text unique,
+  created_at timestamptz default now() not null
+);
+
+-- ====================================================================
+-- ENTITY 8: CHALLENGE_PARTICIPANTS (Athlete Challenge Progress)
+-- ====================================================================
+create table if not exists public.challenge_participants (
+  challenge_id uuid not null references public.challenges(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  joined_at timestamptz default now() not null,
+  current_distance_km numeric(8, 2) not null default 0.0 check (current_distance_km >= 0),
+  completed boolean not null default false,
+  completed_at timestamptz,
+  primary key (challenge_id, user_id)
+);
+
+create index if not exists idx_challenges_creator on public.challenges(creator_id);
+create index if not exists idx_challenges_dates on public.challenges(start_date, end_date);
+create index if not exists idx_challenge_participants_user on public.challenge_participants(user_id);
+
+alter table public.challenges enable row level security;
+alter table public.challenge_participants enable row level security;
+
+-- CHALLENGES POLICIES
+create policy "Users can view authorized challenges"
+  on public.challenges
+  for select
+  using (
+    -- Public challenges are visible to non-blocked users
+    (not is_private and not exists (
+      select 1 from public.user_blocks
+      where blocker_id = challenges.creator_id and blocked_id = auth.uid()
+    ))
+    -- Private challenges only visible to creator or joined participants
+    or (creator_id = auth.uid())
+    or (is_private and exists (
+      select 1 from public.challenge_participants
+      where challenge_id = challenges.id and user_id = auth.uid()
+    ))
+  );
+
+create policy "Users can create challenges"
+  on public.challenges
+  for insert
+  with check (auth.uid() = creator_id);
+
+create policy "Creators can update challenges"
+  on public.challenges
+  for update
+  using (auth.uid() = creator_id)
+  with check (auth.uid() = creator_id);
+
+create policy "Creators can delete challenges"
+  on public.challenges
+  for delete
+  using (auth.uid() = creator_id);
+
+-- CHALLENGE_PARTICIPANTS POLICIES
+create policy "Users can view challenge participants on authorized challenges"
+  on public.challenge_participants
+  for select
+  using (
+    exists (
+      select 1 from public.challenges c
+      where c.id = challenge_participants.challenge_id
+      and (
+        not c.is_private
+        or c.creator_id = auth.uid()
+        or exists (
+          select 1 from public.challenge_participants cp
+          where cp.challenge_id = c.id and cp.user_id = auth.uid()
+        )
+      )
+    )
+  );
+
+create policy "Users can join challenges"
+  on public.challenge_participants
+  for insert
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.challenges c
+      where c.id = challenge_participants.challenge_id
+      and (
+        not c.is_private
+        or c.creator_id = auth.uid()
+        or c.invite_code is not null
+      )
+    )
+  );
+
+create policy "Users can update own challenge progress"
+  on public.challenge_participants
+  for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "Users can leave challenges"
+  on public.challenge_participants
+  for delete
+  using (auth.uid() = user_id);
+
+-- ====================================================================
 -- AUTOMATIC PROFILE CREATION TRIGGER
 -- ====================================================================
 
