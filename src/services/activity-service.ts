@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import {
   Activity,
@@ -113,104 +114,183 @@ export const activityService = {
    * Fetches an athlete's personal activities using lightweight column projection.
    * Excludes `gps_telemetry` JSONB to optimize feed scrolling.
    */
+  /**
+   * Fetches an athlete's personal activities using lightweight column projection.
+   * Excludes `gps_telemetry` JSONB to optimize feed scrolling.
+   * Gracefully merges local activities with remote Supabase data and falls back safely.
+   */
   async fetchUserActivities(
     userId: string,
     filterType?: ActivityType,
     athleteName: string = 'Athlete'
   ): Promise<Activity[]> {
-    if (!isSupabaseConfigured()) {
-      return [];
+    // 1. Read locally stored activities
+    let localActivities: Activity[] = [];
+    try {
+      const storageKey = `@track_local_activities_${userId}`;
+      const raw = await AsyncStorage.getItem(storageKey);
+      if (raw) {
+        localActivities = JSON.parse(raw);
+      }
+    } catch (err) {
+      console.warn('Error reading local activities cache:', err);
     }
 
-    let query = supabase
-      .from('activities')
-      .select(ACTIVITY_FEED_COLUMNS)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    // 2. Query Supabase if configured and user is not purely local
+    let remoteActivities: Activity[] = [];
+    if (isSupabaseConfigured() && !userId.startsWith('athlete-')) {
+      try {
+        let query = supabase
+          .from('activities')
+          .select(ACTIVITY_FEED_COLUMNS)
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (filterType) {
+          query = query.eq('type', filterType);
+        }
+
+        const { data, error } = await query;
+        if (!error && data) {
+          remoteActivities = data.map((item) => mapDatabaseRowToActivity(item, athleteName));
+        } else if (error) {
+          console.warn('Supabase activities fetch fallback to local cache:', error.message);
+        }
+      } catch (err: any) {
+        console.warn('Supabase activities query network error, using local data:', err.message);
+      }
+    }
+
+    // 3. Merge both sources without duplicate IDs
+    const activityMap = new Map<string, Activity>();
+    for (const act of localActivities) {
+      activityMap.set(act.id, act);
+    }
+    for (const act of remoteActivities) {
+      activityMap.set(act.id, act);
+    }
+
+    let merged = Array.from(activityMap.values());
+    merged.sort((a, b) => {
+      const timeA = new Date(a.createdAtIso || 0).getTime();
+      const timeB = new Date(b.createdAtIso || 0).getTime();
+      return timeB - timeA;
+    });
 
     if (filterType) {
-      query = query.eq('type', filterType);
+      merged = merged.filter((a) => a.type === filterType);
     }
 
-    const { data, error } = await query;
-    if (error) {
-      console.warn('Error fetching Supabase activities:', error.message);
-      throw error;
-    }
-
-    if (!data) return [];
-    return data.map((item) => mapDatabaseRowToActivity(item, athleteName));
+    return merged;
   },
 
   /**
    * Fetches a single activity metadata by ID (lightweight).
+   * Checks Supabase first, falls back to local AsyncStorage.
    */
   async fetchActivityById(activityId: string): Promise<Activity | null> {
-    if (!isSupabaseConfigured()) {
-      return null;
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('activities')
+          .select(ACTIVITY_FEED_COLUMNS)
+          .eq('id', activityId)
+          .single();
+
+        if (!error && data) {
+          return mapDatabaseRowToActivity(data);
+        }
+      } catch {
+        // continue to local fallback
+      }
     }
 
-    const { data, error } = await supabase
-      .from('activities')
-      .select(ACTIVITY_FEED_COLUMNS)
-      .eq('id', activityId)
-      .single();
-
-    if (error || !data) {
-      console.warn('Error fetching activity by ID:', error?.message);
-      return null;
+    // Fallback search across local athlete activity storage
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const actKeys = keys.filter((k) => k.startsWith('@track_local_activities_'));
+      for (const k of actKeys) {
+        const raw = await AsyncStorage.getItem(k);
+        if (raw) {
+          const list: Activity[] = JSON.parse(raw);
+          const found = list.find((a) => a.id === activityId);
+          if (found) return found;
+        }
+      }
+    } catch (err) {
+      console.warn('Error reading local activity by ID:', err);
     }
 
-    return mapDatabaseRowToActivity(data);
+    return null;
   },
 
   /**
    * Dedicated Deferred Query: Selectively fetches the full `gps_telemetry` JSONB data block
    * for a specific activity on demand (e.g. when opening granular charts or spatial splits).
-   * Supports downsampling to avoid mobile UI thread lockup.
+   * Supports downsampling to avoid mobile UI thread lockup, with local GPS coordinates fallback.
    */
   async fetchActivityTelemetry(
     activityId: string,
     options: { downsampleFactor?: number; maxPoints?: number } = {}
   ): Promise<{ points: GpsCoordinate[]; isDownsampled: boolean; totalPoints: number }> {
-    if (!isSupabaseConfigured()) {
-      return { points: [], isDownsampled: false, totalPoints: 0 };
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('activities')
+          .select('id, gps_telemetry')
+          .eq('id', activityId)
+          .single();
+
+        if (!error && data && Array.isArray(data.gps_telemetry) && data.gps_telemetry.length > 0) {
+          const rawPoints = decompressTelemetry(data.gps_telemetry as MinifiedTelemetryPoint[]);
+          const totalPoints = rawPoints.length;
+
+          const factor = options.downsampleFactor || (options.maxPoints && totalPoints > options.maxPoints
+            ? Math.ceil(totalPoints / options.maxPoints)
+            : 1);
+
+          if (factor > 1) {
+            const downsampled: GpsCoordinate[] = [];
+            for (let i = 0; i < rawPoints.length; i += factor) {
+              downsampled.push(rawPoints[i]);
+            }
+            if (downsampled[downsampled.length - 1] !== rawPoints[rawPoints.length - 1]) {
+              downsampled.push(rawPoints[rawPoints.length - 1]);
+            }
+            return { points: downsampled, isDownsampled: true, totalPoints };
+          }
+
+          return { points: rawPoints, isDownsampled: false, totalPoints };
+        }
+      } catch {
+        // continue to local fallback
+      }
     }
 
-    const { data, error } = await supabase
-      .from('activities')
-      .select('id, gps_telemetry')
-      .eq('id', activityId)
-      .single();
+    // Fallback: Check local telemetry points cached in AsyncStorage
+    try {
+      const raw = await AsyncStorage.getItem(`@track_local_telemetry_${activityId}`);
+      if (raw) {
+        const rawPoints: GpsCoordinate[] = JSON.parse(raw);
+        const totalPoints = rawPoints.length;
+        const factor = options.downsampleFactor || (options.maxPoints && totalPoints > options.maxPoints
+          ? Math.ceil(totalPoints / options.maxPoints)
+          : 1);
 
-    if (error || !data || !Array.isArray(data.gps_telemetry)) {
-      if (error) {
-        console.warn('Error fetching activity telemetry:', error.message);
+        if (factor > 1) {
+          const downsampled: GpsCoordinate[] = [];
+          for (let i = 0; i < rawPoints.length; i += factor) {
+            downsampled.push(rawPoints[i]);
+          }
+          return { points: downsampled, isDownsampled: true, totalPoints };
+        }
+        return { points: rawPoints, isDownsampled: false, totalPoints };
       }
-      return { points: [], isDownsampled: false, totalPoints: 0 };
+    } catch (err) {
+      console.warn('Error reading local telemetry:', err);
     }
 
-    const rawPoints = decompressTelemetry(data.gps_telemetry as MinifiedTelemetryPoint[]);
-    const totalPoints = rawPoints.length;
-
-    // Apply client-side decimation if requested or if point count is very high (> 2,000 points)
-    const factor = options.downsampleFactor || (options.maxPoints && totalPoints > options.maxPoints
-      ? Math.ceil(totalPoints / options.maxPoints)
-      : 1);
-
-    if (factor > 1) {
-      const downsampled: GpsCoordinate[] = [];
-      for (let i = 0; i < rawPoints.length; i += factor) {
-        downsampled.push(rawPoints[i]);
-      }
-      // Guarantee last point is included
-      if (downsampled[downsampled.length - 1] !== rawPoints[rawPoints.length - 1]) {
-        downsampled.push(rawPoints[rawPoints.length - 1]);
-      }
-      return { points: downsampled, isDownsampled: true, totalPoints };
-    }
-
-    return { points: rawPoints, isDownsampled: false, totalPoints };
+    return { points: [], isDownsampled: false, totalPoints: 0 };
   },
 
   /**
@@ -222,34 +302,39 @@ export const activityService = {
       return [];
     }
 
-    let query = supabase
-      .from('activities')
-      .select(ACTIVITY_FEED_COLUMNS)
-      .order('created_at', { ascending: false })
-      .limit(30);
+    try {
+      let query = supabase
+        .from('activities')
+        .select(ACTIVITY_FEED_COLUMNS)
+        .order('created_at', { ascending: false })
+        .limit(30);
 
-    if (filterType) {
-      query = query.eq('type', filterType);
-    }
+      if (filterType) {
+        query = query.eq('type', filterType);
+      }
 
-    const { data, error } = await query;
-    if (error) {
-      console.warn('Error fetching social feed:', error.message);
+      const { data, error } = await query;
+      if (error) {
+        console.warn('Error fetching social feed:', error.message);
+        return [];
+      }
+
+      if (!data) return [];
+      return data.map((item) => mapDatabaseRowToActivity(item));
+    } catch (err: any) {
+      console.warn('Error querying social feed:', err.message);
       return [];
     }
-
-    if (!data) return [];
-    return data.map((item) => mapDatabaseRowToActivity(item));
   },
 
   /**
    * Creates an activity with hybrid JSONB telemetry storage.
-   * The database-level PostgreSQL trigger automatically derives the PostGIS `route_path` geometry!
+   * Automatically persists locally to AsyncStorage so user workouts are never lost
+   * if the database table is unreachable or offline!
    */
   async createActivity(userId: string, input: CreateActivityInput): Promise<Activity> {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Activity cannot be persisted to database.');
-    }
+    const localId = `local-act-${Date.now()}`;
+    const nowIso = new Date().toISOString();
 
     // Minify telemetry points into compressed JSONB array
     let telemetryPayload: MinifiedTelemetryPoint[] = [];
@@ -283,18 +368,86 @@ export const activityService = {
       gps_telemetry: telemetryPayload, // Stored as single JSONB array
     };
 
-    const { data, error } = await supabase
-      .from('activities')
-      .insert(payload)
-      .select(ACTIVITY_FEED_COLUMNS)
-      .single();
+    let savedActivity: Activity | null = null;
 
-    if (error) {
-      console.error('Error inserting activity to Supabase:', error.message);
-      throw error;
+    // Attempt Supabase insert if configured and not local athlete ID
+    if (isSupabaseConfigured() && !userId.startsWith('athlete-')) {
+      try {
+        const { data, error } = await supabase
+          .from('activities')
+          .insert(payload)
+          .select(ACTIVITY_FEED_COLUMNS)
+          .single();
+
+        if (!error && data) {
+          savedActivity = mapDatabaseRowToActivity(data, 'You');
+        } else if (error) {
+          console.warn('Supabase activity insert fallback to local storage:', error.message);
+        }
+      } catch (err: any) {
+        console.warn('Supabase activity insert network error, saving locally:', err.message);
+      }
     }
 
-    return mapDatabaseRowToActivity(data, 'You');
+    // Fallback if Supabase was unconfigured, table missing, or user is local athlete
+    if (!savedActivity) {
+      savedActivity = {
+        id: localId,
+        userId,
+        title: input.title,
+        type: input.type,
+        athlete: {
+          name: 'You',
+          avatar: 'YOU',
+          badge: 'ACTIVE',
+        },
+        date: new Date().toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        }),
+        timeAgo: 'Just now',
+        location: input.location || 'Outdoor GPS Session',
+        distanceKm: Number(input.distanceKm),
+        durationFormatted: input.durationFormatted,
+        durationSeconds: Number(input.durationSeconds || 0),
+        paceOrSpeedFormatted: input.paceOrSpeedFormatted,
+        paceOrSpeedLabel: input.paceOrSpeedLabel || (input.type === 'ride' ? 'Avg Speed' : 'Avg Pace'),
+        elevationMeters: Number(input.elevationMeters || 0),
+        calories: Number(input.calories || 0),
+        avgHeartRate: input.avgHeartRate,
+        maxHeartRate: input.maxHeartRate,
+        cadenceOrSteps: input.cadenceOrSteps,
+        kudosCount: 0,
+        hasKudoed: false,
+        commentsCount: 0,
+        gearName: input.gearName,
+        polylinePreview: input.polylinePreview,
+        visibility: input.visibility || 'public',
+        createdAtIso: nowIso,
+      };
+    }
+
+    // Persist to local AsyncStorage activities collection for this user
+    try {
+      const storageKey = `@track_local_activities_${userId}`;
+      const raw = await AsyncStorage.getItem(storageKey);
+      const list: Activity[] = raw ? JSON.parse(raw) : [];
+      list.unshift(savedActivity);
+      await AsyncStorage.setItem(storageKey, JSON.stringify(list));
+
+      // Cache raw GPS coordinates for map and telemetry analysis
+      if (input.routePoints && input.routePoints.length > 0) {
+        await AsyncStorage.setItem(
+          `@track_local_telemetry_${savedActivity.id}`,
+          JSON.stringify(input.routePoints)
+        );
+      }
+    } catch (err) {
+      console.warn('Error persisting activity to local storage:', err);
+    }
+
+    return savedActivity;
   },
 
   /**

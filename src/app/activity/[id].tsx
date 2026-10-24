@@ -61,7 +61,7 @@ export default function ActivityDetailScreen() {
   // Delete state
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isLiveUser = Boolean(user && !isDemoMode && isConfigured);
+  const isLiveUser = Boolean(user && !isDemoMode);
   const isOwner = Boolean(
     isLiveUser && user && activity && (activity.userId === user.id || activity.athlete.name === 'You')
   );

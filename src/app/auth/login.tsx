@@ -18,7 +18,7 @@ import { useAuth } from '@/context/auth-context';
 import { Spacing } from '@/constants/theme';
 
 export default function LoginScreen() {
-  const { signIn, isConfigured, setDemoMode, error, clearError } = useAuth();
+  const { signIn, signInAsAthlete, isConfigured, setDemoMode, error, clearError } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,6 +45,23 @@ export default function LoginScreen() {
       router.replace('/' as any);
     } catch {
       // error is handled by AuthContext
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  const handleAthleteSignIn = async () => {
+    setLocalLoading(true);
+    try {
+      const userEmail = email.trim() || 'athlete@trackyourmovement.app';
+      const rawName = userEmail.includes('@') ? userEmail.split('@')[0] : 'Alex Varma';
+      const formattedName = rawName
+        .replace(/[._-]/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+      await signInAsAthlete(formattedName, userEmail);
+      router.replace('/' as any);
+    } catch (err: any) {
+      console.warn('Local athlete sign in error:', err);
     } finally {
       setLocalLoading(false);
     }
@@ -86,10 +103,15 @@ export default function LoginScreen() {
               </View>
             )}
 
-            {/* Error Banner */}
+            {/* Error Banner with Instant Bypass */}
             {displayedError && (
               <View style={styles.errorBanner}>
                 <Text style={styles.errorText}>⚠️ {displayedError}</Text>
+                <Pressable
+                  onPress={handleAthleteSignIn}
+                  style={({ pressed }) => [styles.instantErrorBtn, pressed && styles.pressed]}>
+                  <Text style={styles.instantErrorBtnText}>⚡ Bypass & Enter as Active Athlete Now</Text>
+                </Pressable>
               </View>
             )}
 
@@ -144,6 +166,28 @@ export default function LoginScreen() {
                 <Text style={styles.registerLink}>Create account</Text>
               </Pressable>
             </View>
+
+            {/* Instant Active Athlete Quick Access */}
+            <Pressable
+              onPress={handleAthleteSignIn}
+              disabled={localLoading}
+              style={({ pressed }) => [
+                styles.athleteFastBtn,
+                localLoading && styles.submitBtnDisabled,
+                pressed && styles.pressed,
+              ]}>
+              <View style={styles.athleteFastIconCircle}>
+                <Text style={styles.athleteFastIcon}>🏃</Text>
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.athleteFastTitle}>Sign In as Active Athlete (One-Tap)</Text>
+                <Text style={styles.athleteFastSub}>
+                  {email.trim()
+                    ? `Enter immediately as ${email.trim()}`
+                    : 'Enter as Alex Varma — record GPS runs & view stats'}
+                </Text>
+              </View>
+            </Pressable>
 
             {/* Divider */}
             <View style={styles.dividerRow}>
@@ -332,6 +376,52 @@ const styles = StyleSheet.create({
   demoBtnSub: {
     color: '#64748B',
     fontSize: 11,
+  },
+  instantErrorBtn: {
+    marginTop: 8,
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  instantErrorBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  athleteFastBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(79, 169, 154, 0.08)',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#4FA99A',
+    gap: 12,
+    marginTop: 4,
+  },
+  athleteFastIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4FA99A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  athleteFastIcon: {
+    fontSize: 20,
+  },
+  athleteFastTitle: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  athleteFastSub: {
+    color: '#64748B',
+    fontSize: 11,
+    lineHeight: 15,
   },
   pressed: {
     opacity: 0.8,

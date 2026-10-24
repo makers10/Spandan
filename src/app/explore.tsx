@@ -90,7 +90,7 @@ export default function ExploreScreen() {
   const [isAthletesLoading, setIsAthletesLoading] = useState(false);
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
 
-  const isLiveUser = Boolean(user && !isDemoMode && isConfigured);
+  const isLiveUser = Boolean(user && !isDemoMode);
 
   // Load Community Feed
   useEffect(() => {
@@ -103,13 +103,14 @@ export default function ExploreScreen() {
       try {
         if (isLiveUser) {
           const acts = await activityService.fetchSocialFeed(user?.id);
-          if (isMounted) setFeedActivities(acts);
+          if (isMounted) setFeedActivities(acts.length > 0 ? acts : getMockActivities());
         } else {
           const mocks = getMockActivities();
           if (isMounted) setFeedActivities(mocks);
         }
       } catch (err: any) {
         console.warn('Error loading social feed:', err.message);
+        if (isMounted) setFeedActivities(getMockActivities());
       } finally {
         if (isMounted) setIsFeedLoading(false);
       }

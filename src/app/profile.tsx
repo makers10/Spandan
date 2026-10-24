@@ -47,7 +47,7 @@ export default function ProfileScreen() {
   const [unitPref, setUnitPref] = useState<'metric' | 'imperial'>('metric');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
-  const isLiveUser = Boolean(user && !isDemoMode && isConfigured);
+  const isLiveUser = Boolean(user && !isDemoMode);
   const mockProfile = getMockAthleteProfile();
 
   useEffect(() => {

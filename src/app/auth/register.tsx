@@ -18,7 +18,7 @@ import { useAuth } from '@/context/auth-context';
 import { Spacing } from '@/constants/theme';
 
 export default function RegisterScreen() {
-  const { signUp, error, clearError } = useAuth();
+  const { signUp, signInAsAthlete, error, clearError } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -58,12 +58,24 @@ export default function RegisterScreen() {
       const res = await signUp(email.trim(), password, fullName.trim());
       if (res.requiresEmailConfirmation) {
         setIsSuccess(true);
-        setSuccessMessage('Account created! A confirmation email has been sent. Please check your inbox to activate your account.');
+        setSuccessMessage(
+          `Supabase created your account, but requires email confirmation before cloud login. You can confirm via your email inbox, or tap below to start tracking workouts immediately!`
+        );
       } else {
         router.replace('/' as any);
       }
     } catch {
       // handled by context error
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  const handleInstantAccess = async () => {
+    setLocalLoading(true);
+    try {
+      await signInAsAthlete(fullName.trim() || 'Alex Varma', email.trim() || 'athlete@trackyourmovement.app');
+      router.replace('/' as any);
     } finally {
       setLocalLoading(false);
     }
@@ -93,8 +105,18 @@ export default function RegisterScreen() {
             {isSuccess ? (
               <View style={styles.successContainer}>
                 <Text style={styles.successIcon}>✉️</Text>
-                <Text style={styles.successTitle}>Check Your Inbox</Text>
+                <Text style={styles.successTitle}>Account Created</Text>
                 <Text style={styles.successText}>{successMessage}</Text>
+
+                <Pressable
+                  onPress={handleInstantAccess}
+                  style={styles.instantAccessBtn}>
+                  <Text style={styles.instantAccessBtnText}>⚡ Enter App Immediately</Text>
+                  <Text style={styles.instantAccessBtnSub}>
+                    Start recording GPS runs right now without waiting for email confirmation
+                  </Text>
+                </Pressable>
+
                 <Pressable
                   onPress={() => router.replace('/auth/login' as any)}
                   style={styles.backToLoginBtn}>
@@ -107,6 +129,9 @@ export default function RegisterScreen() {
                 {displayedError && (
                   <View style={styles.errorBanner}>
                     <Text style={styles.errorText}>⚠️ {displayedError}</Text>
+                    <Pressable onPress={handleInstantAccess} style={styles.instantErrorBtn}>
+                      <Text style={styles.instantErrorBtnText}>⚡ Bypass & Enter as Active Athlete</Text>
+                    </Pressable>
                   </View>
                 )}
 
@@ -177,6 +202,28 @@ export default function RegisterScreen() {
                   ) : (
                     <Text style={styles.submitBtnText}>Create Account</Text>
                   )}
+                </Pressable>
+
+                {/* Instant Active Athlete Quick Access */}
+                <Pressable
+                  onPress={handleInstantAccess}
+                  disabled={localLoading}
+                  style={({ pressed }) => [
+                    styles.athleteFastBtn,
+                    localLoading && styles.submitBtnDisabled,
+                    pressed && styles.pressed,
+                  ]}>
+                  <View style={styles.athleteFastIconCircle}>
+                    <Text style={styles.athleteFastIcon}>⚡</Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.athleteFastTitle}>One-Tap Enter as Active Athlete</Text>
+                    <Text style={styles.athleteFastSub}>
+                      {fullName.trim()
+                        ? `Enter as ${fullName.trim()} — start tracking immediately`
+                        : 'Skip email confirmation & enter immediately'}
+                    </Text>
+                  </View>
                 </Pressable>
 
                 {/* Return to Login */}
@@ -327,17 +374,90 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  backToLoginBtn: {
+  instantAccessBtn: {
     backgroundColor: '#4FA99A',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    width: '100%',
+    gap: 4,
+    marginTop: 8,
+    shadowColor: '#4FA99A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  instantAccessBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  instantAccessBtnSub: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  instantErrorBtn: {
+    backgroundColor: '#4FA99A',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  instantErrorBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  backToLoginBtn: {
+    backgroundColor: '#F1F5F9',
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    marginTop: 8,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   backToLoginBtnText: {
-    color: '#FFFFFF',
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  athleteFastBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(79, 169, 154, 0.08)',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#4FA99A',
+    gap: 12,
+    marginTop: 4,
+  },
+  athleteFastIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4FA99A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  athleteFastIcon: {
+    fontSize: 20,
+  },
+  athleteFastTitle: {
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
+  },
+  athleteFastSub: {
+    color: '#64748B',
+    fontSize: 11,
+    lineHeight: 15,
   },
   pressed: {
     opacity: 0.8,

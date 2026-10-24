@@ -42,7 +42,7 @@ export default function HomeScreen() {
   const [liveActivities, setLiveActivities] = useState<Activity[]>([]);
   const [liveWeeklyStats, setLiveWeeklyStats] = useState<WeeklyStats | null>(null);
 
-  const isLiveUser = Boolean(user && !isDemoMode && isConfigured);
+  const isLiveUser = Boolean(user && !isDemoMode);
 
   // Fetch real activities if user is signed in with Supabase
   useEffect(() => {
@@ -158,7 +158,7 @@ export default function HomeScreen() {
               {isLiveUser ? (
                 <View style={styles.cloudBadge}>
                   <View style={styles.cloudDot} />
-                  <Text style={styles.cloudBadgeText}>Supabase Connected</Text>
+                  <Text style={styles.cloudBadgeText}>Active Athlete</Text>
                 </View>
               ) : (
                 <Pressable

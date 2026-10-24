@@ -1,4 +1,5 @@
 import { Session } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export interface UserProfile {
@@ -68,37 +69,93 @@ export const authService = {
   },
 
   async getProfile(userId: string): Promise<UserProfile | null> {
-    if (!isSupabaseConfigured()) return null;
+    if (userId.startsWith('athlete-')) {
+      try {
+        const raw = await AsyncStorage.getItem('@track_local_profile');
+        if (raw) return JSON.parse(raw);
+      } catch (err) {
+        console.warn('Error fetching local athlete profile:', err);
+      }
+    }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error) {
-      console.warn('Error fetching athlete profile:', error.message);
+    if (!isSupabaseConfigured()) {
+      try {
+        const raw = await AsyncStorage.getItem('@track_local_profile');
+        if (raw) return JSON.parse(raw);
+      } catch {
+        // ignore
+      }
       return null;
     }
-    return data as UserProfile | null;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Error fetching athlete profile from Supabase, checking local cache:', error.message);
+        const raw = await AsyncStorage.getItem('@track_local_profile');
+        if (raw) return JSON.parse(raw);
+        return null;
+      }
+      return data as UserProfile | null;
+    } catch {
+      const raw = await AsyncStorage.getItem('@track_local_profile');
+      if (raw) return JSON.parse(raw);
+      return null;
+    }
   },
 
-  async updateProfile(userId: string, updates: Partial<UserProfile>) {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured.');
+  async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile> {
+    // Update local profile cache first
+    let localProfile: UserProfile = {
+      id: userId,
+      email: null,
+      full_name: null,
+      username: null,
+      avatar_text: null,
+      bio: null,
+      city: null,
+      weekly_distance_goal_km: 50,
+      ...updates,
+    };
+
+    try {
+      const raw = await AsyncStorage.getItem('@track_local_profile');
+      if (raw) {
+        const current = JSON.parse(raw);
+        localProfile = { ...current, ...updates };
+      }
+      await AsyncStorage.setItem('@track_local_profile', JSON.stringify(localProfile));
+    } catch (err) {
+      console.warn('Error updating local profile cache:', err);
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId)
-      .select()
-      .single();
+    if (!isSupabaseConfigured() || userId.startsWith('athlete-')) {
+      return localProfile;
+    }
 
-    if (error) throw error;
-    return data as UserProfile;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.warn('Supabase profile update fallback to local storage:', error.message);
+        return localProfile;
+      }
+      return data as UserProfile;
+    } catch {
+      return localProfile;
+    }
   },
 };

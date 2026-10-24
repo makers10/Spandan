@@ -62,7 +62,7 @@ export const TabButton = React.forwardRef<any, TabTriggerSlotProps>(function Tab
 
 export function CustomTabList(props: TabListProps) {
   const { user, profile, isDemoMode, isConfigured } = useAuth();
-  const isLiveUser = Boolean(user && !isDemoMode && isConfigured);
+  const isLiveUser = Boolean(user && !isDemoMode);
 
   const avatar = isLiveUser
     ? profile?.avatar_text || user?.email?.substring(0, 2).toUpperCase() || 'ME'

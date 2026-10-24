@@ -70,7 +70,7 @@ export default function RecordScreen() {
   const [isDuplicateSaveLocked, setIsDuplicateSaveLocked] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
-  const isLiveUser = Boolean(user && !isDemoMode && isConfigured);
+  const isLiveUser = Boolean(user && !isDemoMode);
 
   // Check hardware and permission state on initial mount
   useEffect(() => {
@@ -362,7 +362,7 @@ export default function RecordScreen() {
           routePoints: pts,
         });
         setSaveStatus(
-          `✅ Saved ${finalDistance} km (${pts.length} GPS points) to Supabase PostgreSQL database!`
+          `✅ Saved ${finalDistance} km (${pts.length} GPS points) to your training log!`
         );
       } else {
         setSaveStatus(
