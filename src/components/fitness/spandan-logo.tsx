@@ -1,37 +1,55 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 interface SpandanLogoProps {
   size?: 'small' | 'medium' | 'large';
   showTagline?: boolean;
 }
 
-export function SpandanLogo({ size = 'medium', showTagline = false }: SpandanLogoProps) {
+export function SpandanLogo({ size = 'medium', showTagline = true }: SpandanLogoProps) {
   const isSmall = size === 'small';
   const isLarge = size === 'large';
 
-  const markSize = isSmall ? 26 : isLarge ? 42 : 32;
-  const textSize = isSmall ? 14 : isLarge ? 22 : 17;
+  const markSize = isSmall ? 28 : isLarge ? 46 : 34;
+  const textSize = isSmall ? 15 : isLarge ? 24 : 19;
+  const taglineSize = isSmall ? 8 : isLarge ? 11 : 9.5;
+  const dotScale = isSmall ? 0.8 : isLarge ? 1.3 : 1;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.markContainer, { width: markSize, height: markSize }]}>
-        {/* Athletic pulse electrocardiogram stylized symbol */}
-        <View style={styles.pulseInner}>
-          <View style={styles.pulseLineLeft} />
-          <View style={styles.pulsePeakUp} />
-          <View style={styles.pulsePeakDown} />
-          <View style={styles.pulsePeakUpSmall} />
-          <View style={styles.pulseLineRight} />
+      {/* Athletic Kinetic Movement Brand Mark */}
+      <View
+        style={[
+          styles.markContainer,
+          {
+            width: markSize,
+            height: markSize,
+            borderRadius: isSmall ? 8 : isLarge ? 13 : 10,
+          },
+        ]}>
+        <View style={styles.markInner}>
+          {/* Forward velocity movement trail */}
+          <View style={[styles.velocityTrail, { transform: [{ rotate: '45deg' }] }]} />
+          {/* Primary dynamic track arrow */}
+          <View style={styles.leadChevron}>
+            <View style={styles.chevronArmUp} />
+            <View style={styles.chevronArmDown} />
+          </View>
+          {/* Live GPS tracking node */}
+          <View style={styles.beaconDot} />
         </View>
       </View>
+
+      {/* Brand Typography Lockup */}
       <View style={styles.textContainer}>
         <View style={styles.brandRow}>
-          <Text style={[styles.brandName, { fontSize: textSize }]}>Track your movement</Text>
-          <View style={styles.dot} />
+          <Text style={[styles.brandName, { fontSize: textSize }]}>Track</Text>
+          <View style={[styles.dotWrapper, { transform: [{ scale: dotScale }] }]}>
+            <View style={styles.dotAura} />
+            <View style={styles.dotCore} />
+          </View>
         </View>
         {showTagline && (
-          <Text style={styles.tagline}>PRECISION GPS & MOVEMENT TRACKER</Text>
+          <Text style={[styles.tagline, { fontSize: taglineSize }]}>YOUR MOVEMENT</Text>
         )}
       </View>
     </View>
@@ -46,57 +64,62 @@ const styles = StyleSheet.create({
   },
   markContainer: {
     backgroundColor: '#4FA99A',
-    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
     shadowColor: '#4FA99A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  pulseInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+  markInner: {
     width: '100%',
-    paddingHorizontal: 2,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
-  pulseLineLeft: {
+  velocityTrail: {
+    position: 'absolute',
+    left: '26%',
+    width: '24%',
+    height: '24%',
+    borderRightWidth: 2.2,
+    borderTopWidth: 2.2,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    borderRadius: 2,
+  },
+  leadChevron: {
+    position: 'absolute',
+    left: '38%',
+    width: '32%',
+    height: '48%',
+    justifyContent: 'center',
+  },
+  chevronArmUp: {
+    width: '100%',
+    height: 2.5,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 1.5,
+    transform: [{ rotate: '42deg' }, { translateY: -2 }],
+    transformOrigin: 'right center',
+  },
+  chevronArmDown: {
+    width: '100%',
+    height: 2.5,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 1.5,
+    transform: [{ rotate: '-42deg' }, { translateY: 2 }],
+    transformOrigin: 'right center',
+  },
+  beaconDot: {
+    position: 'absolute',
+    right: '22%',
+    top: '32%',
     width: 4,
-    height: 2.5,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#FFFFFF',
-    borderRadius: 1,
-  },
-  pulsePeakUp: {
-    width: 2.5,
-    height: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 1,
-    marginHorizontal: 1,
-  },
-  pulsePeakDown: {
-    width: 2.5,
-    height: 22,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 1,
-    marginHorizontal: 1,
-    transform: [{ translateY: 2 }],
-  },
-  pulsePeakUpSmall: {
-    width: 2.5,
-    height: 10,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 1,
-    marginHorizontal: 1,
-  },
-  pulseLineRight: {
-    flex: 1,
-    height: 2.5,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 1,
   },
   textContainer: {
     justifyContent: 'center',
@@ -104,26 +127,41 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
   },
   brandName: {
     color: '#0F172A',
     fontWeight: '900',
-    letterSpacing: -0.3,
-    fontFamily: 'sans-serif',
+    letterSpacing: -0.6,
+    fontFamily: Platform.select({ ios: 'System', default: 'sans-serif' }),
+    includeFontPadding: false,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  dotWrapper: {
+    width: 10,
+    height: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 1,
+  },
+  dotAura: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(79, 169, 154, 0.25)',
+  },
+  dotCore: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#4FA99A',
-    marginBottom: 2,
   },
   tagline: {
     color: '#4FA99A',
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    marginTop: -1,
+    fontWeight: '800',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: 1,
+    includeFontPadding: false,
   },
 });
