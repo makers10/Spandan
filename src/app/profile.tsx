@@ -353,7 +353,7 @@ export default function ProfileScreen() {
           {/* Sign Out Action at Bottom for Live Users */}
           {isLiveUser && (
             <Pressable onPress={handleSignOut} style={styles.signOutBottomBtn}>
-              <Text style={styles.signOutBottomBtnText}>Sign Out of Spandan</Text>
+              <Text style={styles.signOutBottomBtnText}>Sign Out of Track your movement</Text>
             </Pressable>
           )}
         </View>

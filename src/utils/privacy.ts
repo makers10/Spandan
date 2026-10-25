@@ -1,5 +1,5 @@
 /**
- * Spandan Privacy & Geofence Cloaking Engine
+ * Track your movement Privacy & Geofence Cloaking Engine
  * Protects athlete personal safety by obfuscating start and end locations
  * (e.g. Home, Office, School) within a customizable privacy radius (default 500 meters).
  */

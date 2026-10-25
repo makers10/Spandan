@@ -1,5 +1,5 @@
 /**
- * Spandan Fitness Tracking Application
+ * Track your movement Fitness Tracking Application
  * Core Domain Types & Data Contracts
  */
 

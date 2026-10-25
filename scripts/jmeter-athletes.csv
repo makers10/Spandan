@@ -1,11 +1,11 @@
 email,password,user_id,athlete_name,sport_preference
-athlete_01@loadtest.spandan.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000001,"LoadTester 1",run
-athlete_02@loadtest.spandan.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000002,"LoadTester 2",walk
-athlete_03@loadtest.spandan.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000003,"LoadTester 3",ride
-athlete_04@loadtest.spandan.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000004,"LoadTester 4",run
-athlete_05@loadtest.spandan.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000005,"LoadTester 5",walk
-athlete_06@loadtest.spandan.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000006,"LoadTester 6",ride
-athlete_07@loadtest.spandan.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000007,"LoadTester 7",run
-athlete_08@loadtest.spandan.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000008,"LoadTester 8",walk
-athlete_09@loadtest.spandan.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000009,"LoadTester 9",ride
-athlete_10@loadtest.spandan.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000010,"LoadTester 10",run
+athlete_01@loadtest.trackyourmovement.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000001,"LoadTester 1",run
+athlete_02@loadtest.trackyourmovement.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000002,"LoadTester 2",walk
+athlete_03@loadtest.trackyourmovement.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000003,"LoadTester 3",ride
+athlete_04@loadtest.trackyourmovement.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000004,"LoadTester 4",run
+athlete_05@loadtest.trackyourmovement.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000005,"LoadTester 5",walk
+athlete_06@loadtest.trackyourmovement.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000006,"LoadTester 6",ride
+athlete_07@loadtest.trackyourmovement.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000007,"LoadTester 7",run
+athlete_08@loadtest.trackyourmovement.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000008,"LoadTester 8",walk
+athlete_09@loadtest.trackyourmovement.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000009,"LoadTester 9",ride
+athlete_10@loadtest.trackyourmovement.internal,TestRunnerSecret2026!,00000000-0000-4000-a000-000000000010,"LoadTester 10",run

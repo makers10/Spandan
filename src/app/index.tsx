@@ -114,7 +114,7 @@ export default function HomeScreen() {
 
   const athleteAvatar = isLiveUser
     ? profile?.avatar_text || athleteDisplayName.substring(0, 2).toUpperCase()
-    : 'SP';
+    : 'TM';
 
   const todayFormatted = new Date().toLocaleDateString('en-US', {
     weekday: 'short',

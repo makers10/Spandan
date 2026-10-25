@@ -1,5 +1,5 @@
 /**
- * Spandan Fitness Tracking App - Features, Edge Cases & Privacy Security Test Suite
+ * Track your movement Fitness Tracking App - Features, Edge Cases & Privacy Security Test Suite
  *
  * Test Suites:
  * Phase 1.1: Math & Edge Cases (Last partial km split, 0 distance, GPS jitter, auto-pause moving time)
@@ -11,7 +11,7 @@
 import assert from 'node:assert';
 
 
-console.log('🚀 Starting Spandan Phase 1 Automated Test Suite: Edge Cases, Streaks, RLS & Cloaking...\n');
+console.log('🚀 Starting Track your movement Phase 1 Automated Test Suite: Edge Cases, Streaks, RLS & Cloaking...\n');
 
 let totalTests = 0;
 let passedTests = 0;

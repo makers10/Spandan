@@ -1,5 +1,5 @@
 /**
- * Spandan Social & Community Service
+ * Track your movement Social & Community Service
  * Manages athlete follows, kudos, activity comments, profile updates, and privacy controls.
  */
 

@@ -10,7 +10,7 @@ export function SpandanLogo({ size = 'medium', showTagline = true }: SpandanLogo
   const isLarge = size === 'large';
 
   const markSize = isSmall ? 28 : isLarge ? 42 : 32;
-  const textSize = isSmall ? 16 : isLarge ? 24 : 19;
+  const textSize = isSmall ? 15 : isLarge ? 22 : 18;
   const taglineSize = isSmall ? 8 : isLarge ? 10.5 : 9;
   const dotScale = isSmall ? 0.8 : isLarge ? 1.2 : 1;
 
@@ -37,19 +37,23 @@ export function SpandanLogo({ size = 'medium', showTagline = true }: SpandanLogo
       {/* Brand Typography Lockup */}
       <View style={styles.textContainer}>
         <View style={styles.brandRow}>
-          <Text style={[styles.brandName, { fontSize: textSize }]}>Spandan</Text>
+          <Text style={[styles.brandName, { fontSize: textSize }]} numberOfLines={1}>
+            Track your movement
+          </Text>
           <View style={[styles.dotWrapper, { transform: [{ scale: dotScale }] }]}>
             <View style={styles.dotAura} />
             <View style={styles.dotCore} />
           </View>
         </View>
         {showTagline && (
-          <Text style={[styles.tagline, { fontSize: taglineSize }]}>ATHLETE PULSE</Text>
+          <Text style={[styles.tagline, { fontSize: taglineSize }]}>ATHLETE TRACKER</Text>
         )}
       </View>
     </View>
   );
 }
+
+export const AppLogo = SpandanLogo;
 
 const styles = StyleSheet.create({
   container: {

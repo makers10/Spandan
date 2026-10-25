@@ -1,5 +1,5 @@
 /**
- * Spandan Design System Tokens - Apple Health Minimalist Theme
+ * Track your movement Design System Tokens - Apple Health Minimalist Theme
  * Clean, spacious, high-legibility interface with native iOS aesthetic.
  */
 

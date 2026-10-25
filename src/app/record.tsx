@@ -741,7 +741,7 @@ export default function RecordScreen() {
                   <Text style={styles.webNoticeTitle}>Web Browser GPS Notice</Text>
                 </View>
                 <Text style={styles.webNoticeText}>
-                  Web browsers suspend location tracking when this browser tab is inactive or mobile screens lock. To record runs with your screen locked, use Spandan on Android with native foreground service background tracking.
+                  Web browsers suspend location tracking when this browser tab is inactive or mobile screens lock. To record runs with your screen locked, use Track your movement on Android with native foreground service background tracking.
                 </Text>
               </View>
             )}

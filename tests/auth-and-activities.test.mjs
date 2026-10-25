@@ -1,5 +1,5 @@
 /**
- * Spandan Fitness Tracking App - Auth & Activity Verification Test Suite
+ * Track your movement Fitness Tracking App - Auth & Activity Verification Test Suite
  * Validates authentication rules, RLS policies, unauthorized access, activity mapping, and demo isolation.
  */
 
@@ -12,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
-console.log('🧪 Starting Spandan Supabase Integration & Security Audit Tests...\n');
+console.log('🧪 Starting Track your movement Supabase Integration & Security Audit Tests...\n');
 
 let totalTests = 0;
 let passedTests = 0;
@@ -156,7 +156,7 @@ runTest('Email & password validation rules behave correctly', () => {
 
   assert.strictEqual(isValidEmail(''), false);
   assert.strictEqual(isValidEmail('plainaddress'), false);
-  assert.strictEqual(isValidEmail('athlete@spandan.fit'), true);
+  assert.strictEqual(isValidEmail('athlete@trackyourmovement.com'), true);
 
   assert.strictEqual(isValidPassword('123'), false);
   assert.strictEqual(isValidPassword('12345'), false);

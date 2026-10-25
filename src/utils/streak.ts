@@ -1,5 +1,5 @@
 /**
- * Spandan Streak Engine
+ * Track your movement Streak Engine
  * Calculates athlete daily workout streaks with timezone awareness,
  * midnight boundary precision (11:59 PM vs 12:01 AM), and multi-workout deduplication.
  */

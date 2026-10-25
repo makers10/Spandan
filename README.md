@@ -1,4 +1,4 @@
-# Spandan (स्पंदन) 🏃‍♂️🚴‍♀️
+# Track your movement 🏃‍♂️🚴‍♀️
 
 > **Next-Generation Cardiovascular & Athlete Longevity Tracking Platform**  
 > Built with Expo SDK 58, React Native, React 19, and Supabase.
@@ -14,15 +14,15 @@
 
 ## 🌟 Overview
 
-**Spandan** (*"Pulse"* or *"Heartbeat"* in Sanskrit) is an open-architecture, cross-platform mobile and web application designed for endurance athletes and everyday fitness enthusiasts. 
+**Track your movement** is an open-architecture, cross-platform mobile and web application designed for endurance athletes and everyday fitness enthusiasts. 
 
-Unlike conventional fitness trackers that prioritize vanity distance and maximum speed at the cost of overtraining and injuries, Spandan focuses on **cardiovascular efficiency, aerobic longevity (Zone-2 training), and athlete privacy**.
+Unlike conventional fitness trackers that prioritize vanity distance and maximum speed at the cost of overtraining and injuries, Track your movement focuses on **cardiovascular efficiency, aerobic longevity (Zone-2 training), and athlete privacy**.
 
 ---
 
-## ⚡ What Makes Spandan Different?
+## ⚡ What Makes Track your movement Different?
 
-| Feature | Strava / Nike Run Club | Spandan Platform |
+| Feature | Strava / Nike Run Club | Track your movement Platform |
 | :--- | :--- | :--- |
 | **Core Philosophy** | Raw speed & vanity leaderboards | Cardiovascular health, aerobic base & longevity |
 | **Route Privacy** | Public routes often expose home address | **Smart Privacy Cloaking**: Auto-masks 500m start/end radius |
@@ -48,7 +48,7 @@ Unlike conventional fitness trackers that prioritize vanity distance and maximum
 ## 📂 Project Architecture
 
 ```
-spandan/
+track-your-movement/
 ├── .env.example               # Template environment configuration
 ├── app.json                   # Expo application manifest & permission plugins
 ├── assets/                    # App icons, splash screens, and vector badges
@@ -91,8 +91,8 @@ spandan/
 ### 1. Clone & Install Dependencies
 
 ```bash
-git clone https://github.com/your-username/spandan.git
-cd spandan
+git clone https://github.com/your-username/track-your-movement.git
+cd "Track your movement"
 npm install
 ```
 
@@ -111,7 +111,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-publishable-anon-key
 ```
 
-> **Note:** If Supabase credentials are not provided, Spandan automatically activates **Demo Mode**, enabling all features with mock athlete data.
+> **Note:** If Supabase credentials are not provided, Track your movement automatically activates **Demo Mode**, enabling all features with mock athlete data.
 
 ### 3. Setup Supabase Database (Optional for Live Mode)
 
@@ -142,7 +142,7 @@ npx expo start --ios
 
 ## 🧪 Testing & Code Quality
 
-Spandan includes automated test suites and static analysis tools:
+Track your movement includes automated test suites and static analysis tools:
 
 ```bash
 # Run unit & geospatial integration tests

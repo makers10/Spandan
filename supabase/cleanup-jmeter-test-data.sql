@@ -1,5 +1,5 @@
 -- ====================================================================
--- SPANDAN SAFE JMETER CLEANUP SCRIPT
+-- TRACK YOUR MOVEMENT SAFE JMETER CLEANUP SCRIPT
 -- TARGET: Load-test staging database
 --
 -- SAFETY CONTRACT:

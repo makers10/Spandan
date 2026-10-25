@@ -10,7 +10,7 @@ import { AuthProvider } from '@/context/auth-context';
 
 SplashScreen.preventAutoHideAsync();
 
-const SpandanDarkTheme = {
+const AppDarkTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
@@ -22,7 +22,7 @@ const SpandanDarkTheme = {
   },
 };
 
-const SpandanLightTheme = {
+const AppLightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
@@ -37,7 +37,7 @@ const SpandanLightTheme = {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const theme = isDark ? SpandanDarkTheme : SpandanLightTheme;
+  const theme = isDark ? AppDarkTheme : AppLightTheme;
 
   return (
     <AuthProvider>

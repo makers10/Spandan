@@ -1,5 +1,5 @@
 -- ====================================================================
--- Spandan High-Performance Fitness & Social Tracking Schema
+-- Track your movement High-Performance Fitness & Social Tracking Schema
 -- Production Hybrid Architecture: PostgreSQL + JSONB + PostGIS (SRID 4326)
 --
 -- Replaces row-by-row 'activity_points' table bloat with:
@@ -23,7 +23,7 @@ create table if not exists public.profiles (
   full_name text,
   username text unique,
   avatar_text text,
-  bio text default 'Spandan Athlete. Tracking the athletic pulse.',
+  bio text default 'Track your movement Athlete. Tracking the athletic pulse.',
   city text default 'Athlete City',
   weekly_distance_goal_km numeric(6, 2) default 50.0 check (weekly_distance_goal_km >= 0),
   unit_preference text default 'metric' check (unit_preference in ('metric', 'imperial')),

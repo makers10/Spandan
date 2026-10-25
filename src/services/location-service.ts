@@ -1,5 +1,5 @@
 /**
- * Spandan Cross-Platform GPS Location Service
+ * Track your movement Cross-Platform GPS Location Service
  * Provides real GPS location tracking on Android, iOS, and Web (via browser Geolocation API).
  * Supports both high-precision foreground tracking and native Android background tracking
  * via expo-task-manager and persistent foreground services.
@@ -11,7 +11,8 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { GpsCoordinate, isValidCoordinate } from '@/utils/geo';
 
-export const SPANDAN_BACKGROUND_LOCATION_TASK = 'SPANDAN_BACKGROUND_LOCATION_TASK';
+export const TRACK_BACKGROUND_LOCATION_TASK = 'TRACK_BACKGROUND_LOCATION_TASK';
+export const SPANDAN_BACKGROUND_LOCATION_TASK = TRACK_BACKGROUND_LOCATION_TASK;
 
 export interface LocationPermissionState {
   granted: boolean;
@@ -26,9 +27,9 @@ const backgroundListeners = new Set<BackgroundLocationCallback>();
 // Register native background location task at module scope
 if (Platform.OS !== 'web') {
   try {
-    TaskManager.defineTask(SPANDAN_BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
+    TaskManager.defineTask(TRACK_BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
       if (error) {
-        console.warn('Spandan background location task error:', error.message);
+        console.warn('Track your movement background location task error:', error.message);
         return;
       }
       if (data) {
@@ -286,19 +287,19 @@ export const locationService = {
 
     try {
       // Check if task is already running
-      const isRegistered = await TaskManager.isTaskRegisteredAsync(SPANDAN_BACKGROUND_LOCATION_TASK);
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(TRACK_BACKGROUND_LOCATION_TASK);
       backgroundListeners.add(onLocation);
 
       if (isRegistered) {
         return true;
       }
 
-      await Location.startLocationUpdatesAsync(SPANDAN_BACKGROUND_LOCATION_TASK, {
+      await Location.startLocationUpdatesAsync(TRACK_BACKGROUND_LOCATION_TASK, {
         accuracy: Location.Accuracy.BestForNavigation,
         timeInterval: 1000,
         distanceInterval: 2,
         foregroundService: {
-          notificationTitle: 'Spandan',
+          notificationTitle: 'Track your movement',
           notificationBody: 'Recording your GPS workout in the background',
           notificationColor: '#4FA99A',
         },
@@ -321,9 +322,9 @@ export const locationService = {
     if (Platform.OS === 'web') return;
 
     try {
-      const isRegistered = await TaskManager.isTaskRegisteredAsync(SPANDAN_BACKGROUND_LOCATION_TASK);
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(TRACK_BACKGROUND_LOCATION_TASK);
       if (isRegistered) {
-        await Location.stopLocationUpdatesAsync(SPANDAN_BACKGROUND_LOCATION_TASK);
+        await Location.stopLocationUpdatesAsync(TRACK_BACKGROUND_LOCATION_TASK);
       }
     } catch (err: any) {
       console.warn('Error stopping background location task:', err.message);
@@ -336,7 +337,7 @@ export const locationService = {
   async isBackgroundTrackingActive(): Promise<boolean> {
     if (Platform.OS === 'web') return false;
     try {
-      return await TaskManager.isTaskRegisteredAsync(SPANDAN_BACKGROUND_LOCATION_TASK);
+      return await TaskManager.isTaskRegisteredAsync(TRACK_BACKGROUND_LOCATION_TASK);
     } catch {
       return false;
     }

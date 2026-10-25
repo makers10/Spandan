@@ -1,12 +1,12 @@
-# Spandan Backend Performance & Load Testing Guide (Apache JMeter)
+# Track your movement Backend Performance & Load Testing Guide (Apache JMeter)
 
-This document provides engineering guidelines, architectural flows, and reference test plans for evaluating the scalability and latency of the **Spandan** fitness application backend running on Supabase (PostgreSQL + PostgREST + GoTrue).
+This document provides engineering guidelines, architectural flows, and reference test plans for evaluating the scalability and latency of the **Track your movement** fitness application backend running on Supabase (PostgreSQL + PostgREST + GoTrue).
 
 ---
 
 ## 1. Overview & Architecture
 
-Spandan utilizes Supabase PostgREST for direct, low-latency relational queries guarded by PostgreSQL **Row Level Security (RLS)**.
+Track your movement utilizes Supabase PostgREST for direct, low-latency relational queries guarded by PostgreSQL **Row Level Security (RLS)**.
 
 ```
 +-------------------------------------------------------------------------+
@@ -140,7 +140,7 @@ All requests must pass standard Supabase client headers:
 ## 4. Test Environment & Seed Data
 
 ### 4.1 Seed Data Generation
-Spandan provides a deterministic data generator in `scripts/seed-jmeter-test-data.mjs`:
+Track your movement provides a deterministic data generator in `scripts/seed-jmeter-test-data.mjs`:
 
 ```bash
 # Generate CSV datasets and SQL seed scripts
@@ -155,7 +155,7 @@ This generates:
 ### 4.2 Non-Destructive Isolation Contract
 - **Test User ID Prefix**: `00000000-0000-4000-a000-************`
 - **Test Activity ID Prefix**: `00000000-a000-4000-****-************`
-- **Test Email Domain**: `@loadtest.spandan.internal`
+- **Test Email Domain**: `@loadtest.trackyourmovement.internal`
 - The cleanup script contains hardcoded `LIKE '00000000-%'` filters and **cannot** match or delete production users.
 
 ---

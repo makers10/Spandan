@@ -1,5 +1,5 @@
 /**
- * Spandan Geospatial & Activity Telemetry Engine
+ * Track your movement Geospatial & Activity Telemetry Engine
  * Robust distance, pace, speed, and track processing with zero external dependencies.
  */
 

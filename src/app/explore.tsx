@@ -375,7 +375,7 @@ export default function ExploreScreen() {
                 </View>
                 <Text style={styles.challengeTitle}>100K Movement Odyssey</Text>
                 <Text style={styles.challengeDesc}>
-                  Ride 100 km this month and earn the official Spandan Finisher digital badge.
+                  Ride 100 km this month and earn the official Track your movement Finisher digital badge.
                 </Text>
                 <View style={styles.challengeFooter}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

@@ -1,5 +1,5 @@
 /**
- * Spandan Fitness Tracking App - Geospatial, Telemetry & Social Security Verification
+ * Track your movement Fitness Tracking App - Geospatial, Telemetry & Social Security Verification
  * Tests:
  * 1. Haversine distance, coordinate validation, cumulative distance, jitter filtering
  * 2. Kilometer splits calculation (full and fractional km, pace/speed)
@@ -19,7 +19,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
-console.log('🌐 Starting Spandan Geospatial, Telemetry & Social Verification Tests...\n');
+console.log('🌐 Starting Track your movement Geospatial, Telemetry & Social Verification Tests...\n');
 
 let totalTests = 0;
 let passedTests = 0;
