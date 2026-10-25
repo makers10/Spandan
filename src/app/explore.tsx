@@ -13,11 +13,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { Activity, getMockActivities } from '@/data/mock-fitness-data';
+import { Activity } from '@/types/fitness';
 import { ActivityCard } from '@/components/fitness/activity-card';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import { socialService } from '@/services/social-service';
+import { Ionicons } from '@expo/vector-icons';
 
 interface SegmentItem {
   id: string;
@@ -101,16 +102,11 @@ export default function ExploreScreen() {
       setIsFeedLoading(true);
 
       try {
-        if (isLiveUser) {
-          const acts = await activityService.fetchSocialFeed(user?.id);
-          if (isMounted) setFeedActivities(acts.length > 0 ? acts : getMockActivities());
-        } else {
-          const mocks = getMockActivities();
-          if (isMounted) setFeedActivities(mocks);
-        }
+        const acts = await activityService.fetchSocialFeed(user?.id);
+        if (isMounted) setFeedActivities(acts);
       } catch (err: any) {
         console.warn('Error loading social feed:', err.message);
-        if (isMounted) setFeedActivities(getMockActivities());
+        if (isMounted) setFeedActivities([]);
       } finally {
         if (isMounted) setIsFeedLoading(false);
       }
@@ -232,7 +228,7 @@ export default function ExploreScreen() {
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Ionicons name="search" size={16} color="#8E8E93" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder={
@@ -285,7 +281,7 @@ export default function ExploreScreen() {
                 </View>
               ) : feedActivities.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyIcon}>🏃</Text>
+                  <Ionicons name="newspaper-outline" size={32} color="#8E8E93" style={{ marginBottom: 8 }} />
                   <Text style={styles.emptyTitle}>No Activities in Feed Yet</Text>
                   <Text style={styles.emptySub}>
                     Be the first to record an activity or follow other athletes to populate your stream!
@@ -309,7 +305,7 @@ export default function ExploreScreen() {
                 </View>
               ) : athletes.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyIcon}>👥</Text>
+                  <Ionicons name="people-outline" size={32} color="#8E8E93" style={{ marginBottom: 8 }} />
                   <Text style={styles.emptyTitle}>No Athletes Found</Text>
                   <Text style={styles.emptySub}>
                     Try searching with another name or check your connection.
@@ -350,7 +346,7 @@ export default function ExploreScreen() {
                           <Pressable
                             onPress={() => handleBlockAthlete(ath.id, ath.name)}
                             style={styles.blockBtn}>
-                            <Text style={styles.blockBtnText}>🚫</Text>
+                            <Ionicons name="ban-outline" size={16} color="#FF3B30" />
                           </Pressable>
                         )}
                       </View>
@@ -374,7 +370,10 @@ export default function ExploreScreen() {
                   Ride 100 km this month and earn the official Spandan Finisher digital badge.
                 </Text>
                 <View style={styles.challengeFooter}>
-                  <Text style={styles.challengeStats}>👥 1,842 Athletes Joined</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Ionicons name="people-outline" size={14} color="#8E8E93" />
+                    <Text style={styles.challengeStats}>1,842 Athletes Joined</Text>
+                  </View>
                   <Pressable style={styles.joinBtn}>
                     <Text style={styles.joinBtnText}>Join Challenge</Text>
                   </Pressable>
@@ -384,7 +383,10 @@ export default function ExploreScreen() {
               {/* Segments List */}
               <View style={styles.sectionHeadingRow}>
                 <Text style={styles.sectionHeading}>Popular Segments Near You</Text>
-                <Text style={styles.sectionBadge}>📍 Within 25 km</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Ionicons name="location-outline" size={12} color="#007AFF" />
+                  <Text style={styles.sectionBadge}>Within 25 km</Text>
+                </View>
               </View>
 
               <View style={styles.segmentList}>
@@ -398,13 +400,16 @@ export default function ExploreScreen() {
                             { backgroundColor: seg.type === 'run' ? '#FF6B00' : '#00D2D3' },
                           ]}>
                           <Text style={styles.segTypeTagText}>
-                            {seg.type === 'run' ? '🏃 RUN' : '🚴 RIDE'}
+                            {seg.type.toUpperCase()}
                           </Text>
                         </View>
                         <Text style={styles.segDistance}>{seg.distanceKm} km</Text>
                         <Text style={styles.segElev}>+{seg.elevationM} m</Text>
                       </View>
-                      <Text style={styles.komBadge}>👑 {seg.komTime}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                        <Ionicons name="ribbon-outline" size={13} color="#FF9500" />
+                        <Text style={styles.komBadge}>{seg.komTime}</Text>
+                      </View>
                     </View>
 
                     <Text style={styles.segName}>{seg.name}</Text>

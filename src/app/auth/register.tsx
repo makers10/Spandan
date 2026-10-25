@@ -17,6 +17,7 @@ import { router } from 'expo-router';
 import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { useAuth } from '@/context/auth-context';
 import { Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
   const { signUp, signInAsAthlete, resendConfirmationEmail, error, clearError } = useAuth();
@@ -141,7 +142,7 @@ export default function RegisterScreen() {
               <View style={styles.confirmationContainer}>
                 {/* Visual Icon Badge */}
                 <View style={styles.emailBadgeCircle}>
-                  <Text style={styles.emailBadgeEmoji}>✉️</Text>
+                  <Ionicons name="mail-outline" size={32} color="#4FA99A" />
                   <View style={styles.onlineDot} />
                 </View>
 
@@ -155,7 +156,7 @@ export default function RegisterScreen() {
                   <Text style={styles.recipientLabel}>CONFIRMATION SENT TO</Text>
                   <Text style={styles.recipientEmail}>{email.trim()}</Text>
                   <View style={styles.pendingPill}>
-                    <Text style={styles.pendingPillText}>⏳ Verification Link Sent</Text>
+                    <Text style={styles.pendingPillText}>Verification Link Sent</Text>
                   </View>
                 </View>
 
@@ -203,18 +204,27 @@ export default function RegisterScreen() {
                 {/* Resend Status Banner */}
                 {resendStatus === 'sent' && (
                   <View style={styles.resendSuccessBanner}>
-                    <Text style={styles.resendSuccessText}>✓ {resendFeedback}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Ionicons name="checkmark-circle-outline" size={14} color="#34C759" />
+                      <Text style={styles.resendSuccessText}>{resendFeedback}</Text>
+                    </View>
                   </View>
                 )}
                 {resendStatus === 'error' && (
                   <View style={styles.resendErrorBanner}>
-                    <Text style={styles.resendErrorText}>⚠️ {resendFeedback}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Ionicons name="alert-circle-outline" size={14} color="#FF3B30" />
+                      <Text style={styles.resendErrorText}>{resendFeedback}</Text>
+                    </View>
                   </View>
                 )}
 
                 {/* Action: Open Email App */}
                 <Pressable onPress={handleOpenEmailApp} style={styles.openEmailBtn}>
-                  <Text style={styles.openEmailBtnText}>📬 Open Email App</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Ionicons name="mail-open-outline" size={16} color="#FFFFFF" />
+                    <Text style={styles.openEmailBtnText}>Open Email App</Text>
+                  </View>
                 </Pressable>
 
                 {/* Action: Resend Confirmation Link */}
@@ -225,7 +235,10 @@ export default function RegisterScreen() {
                   {resendStatus === 'sending' ? (
                     <ActivityIndicator size="small" color="#4FA99A" />
                   ) : (
-                    <Text style={styles.resendBtnText}>🔄 Resend Confirmation Email</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                      <Ionicons name="refresh-outline" size={13} color="#4FA99A" />
+                      <Text style={styles.resendBtnText}>Resend Confirmation Email</Text>
+                    </View>
                   )}
                 </Pressable>
 
@@ -242,7 +255,7 @@ export default function RegisterScreen() {
                   disabled={localLoading}
                   style={styles.instantAccessBtn}>
                   <Text style={styles.instantAccessBtnText}>
-                    ⚡ Enter App Immediately as {fullName.trim() || 'Active Athlete'}
+                    Enter App Immediately as {fullName.trim() || 'Active Athlete'}
                   </Text>
                   <Text style={styles.instantAccessBtnSub}>
                     Start logging runs and rides right away — workouts are saved locally and will sync once verified
@@ -261,16 +274,22 @@ export default function RegisterScreen() {
                 {/* Error Banner */}
                 {displayedError && (
                   <View style={styles.errorBanner}>
-                    <Text style={styles.errorText}>⚠️ {displayedError}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="alert-circle-outline" size={16} color="#FF3B30" />
+                      <Text style={styles.errorText}>{displayedError}</Text>
+                    </View>
                     {displayedError.toLowerCase().includes('already registered') && (
                       <Pressable onPress={handleResend} style={styles.resendFromErrorBtn}>
-                        <Text style={styles.resendFromErrorBtnText}>
-                          🔄 Resend Confirmation Email to {email.trim() || 'this email'}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Ionicons name="refresh-outline" size={13} color="#4FA99A" />
+                          <Text style={styles.resendFromErrorBtnText}>
+                            Resend Confirmation Email to {email.trim() || 'this email'}
+                          </Text>
+                        </View>
                       </Pressable>
                     )}
                     <Pressable onPress={handleInstantAccess} style={styles.instantErrorBtn}>
-                      <Text style={styles.instantErrorBtnText}>⚡ Bypass & Enter as Active Athlete</Text>
+                      <Text style={styles.instantErrorBtnText}>Bypass & Enter as Active Athlete</Text>
                     </Pressable>
                   </View>
                 )}
@@ -361,7 +380,7 @@ export default function RegisterScreen() {
                     pressed && styles.pressed,
                   ]}>
                   <View style={styles.athleteFastIconCircle}>
-                    <Text style={styles.athleteFastIcon}>⚡</Text>
+                    <Ionicons name="flash-outline" size={20} color="#4FA99A" />
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.athleteFastTitle}>One-Tap Enter as Active Athlete</Text>

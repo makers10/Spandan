@@ -4,7 +4,7 @@
  */
 
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { ActivityComment } from '@/data/mock-fitness-data';
+import { ActivityComment } from '@/types/fitness';
 
 export const socialService = {
   /**
@@ -160,18 +160,7 @@ export const socialService = {
    */
   async fetchActivityComments(activityId: string): Promise<ActivityComment[]> {
     if (!isSupabaseConfigured()) {
-      return [
-        {
-          id: 'mock-c-1',
-          activityId,
-          userId: 'mock-user-1',
-          userName: 'Priya Sharma',
-          userAvatar: 'PS',
-          commentText: 'Incredible split times on this route! Solid training run.',
-          createdAtIso: new Date(Date.now() - 3600000).toISOString(),
-          timeAgo: '1h ago',
-        },
-      ];
+      return [];
     }
 
     const { data, error } = await supabase

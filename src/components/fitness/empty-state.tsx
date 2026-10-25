@@ -1,5 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 
 interface EmptyStateProps {
   title?: string;
@@ -16,9 +18,18 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.iconCircle}>
-        <Text style={styles.icon}>⚡</Text>
-      </View>
+      <MotiView
+        animate={{
+          scale: [1, 1.05, 1],
+        }}
+        transition={{
+          type: 'timing',
+          duration: 2000,
+          loop: true,
+        } as any}
+        style={styles.iconCircle}>
+        <Ionicons name="fitness-outline" size={30} color="#4FA99A" />
+      </MotiView>
 
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>

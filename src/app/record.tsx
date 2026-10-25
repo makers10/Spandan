@@ -13,7 +13,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { ActivityType, ActivityVisibility } from '@/data/mock-fitness-data';
+import { ActivityType, ActivityVisibility } from '@/types/fitness';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import {
@@ -26,6 +26,8 @@ import {
   generateSvgPathFromCoordinates,
 } from '@/utils/geo';
 import { locationService } from '@/services/location-service';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 
 type RecordingState = 'idle' | 'recording' | 'paused';
 type GpsStatus = 'idle' | 'checking' | 'acquiring' | 'locked' | 'paused' | 'denied' | 'error' | 'unsupported';
@@ -361,11 +363,11 @@ export default function RecordScreen() {
           routePoints: pts,
         });
         setSaveStatus(
-          `✅ Saved ${finalDistance} km (${pts.length} GPS points) to your training log!`
+          `Saved ${finalDistance} km (${pts.length} GPS points) to your training log!`
         );
       } else {
         setSaveStatus(
-          `ℹ️ Demo Mode: Real GPS workout completed locally (${finalDistance} km, ${pts.length} points). Sign in to persist your activities to Supabase.`
+          `Demo Mode: Workout completed locally (${finalDistance} km, ${pts.length} points). Sign in to persist activities.`
         );
       }
 
@@ -378,7 +380,7 @@ export default function RecordScreen() {
       setElevationGainM(0);
     } catch (err: any) {
       console.error('Error saving activity:', err);
-      setSaveStatus(`❌ Failed to save: ${err.message}`);
+      setSaveStatus(`Failed to save: ${err.message}`);
       setIsDuplicateSaveLocked(false); // allow retry on error
     } finally {
       setIsSaving(false);
@@ -496,7 +498,10 @@ export default function RecordScreen() {
           {/* GPS Error or Permission Alert Banner */}
           {gpsErrorMsg && (
             <View style={styles.gpsErrorBanner}>
-              <Text style={styles.gpsErrorTitle}>⚠️ Location Notice</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Ionicons name="warning-outline" size={16} color="#FF9500" />
+                <Text style={styles.gpsErrorTitle}>Location Notice</Text>
+              </View>
               <Text style={styles.gpsErrorText}>{gpsErrorMsg}</Text>
               {gpsStatus === 'denied' && (
                 <Pressable onPress={handleRequestPermission} style={styles.permissionActionBtn}>
@@ -509,10 +514,10 @@ export default function RecordScreen() {
           {/* Sport Selector */}
           <View style={styles.sportSelector}>
             {[
-              { type: 'run' as const, label: 'Run', icon: '🏃' },
-              { type: 'ride' as const, label: 'Ride', icon: '🚴' },
-              { type: 'walk' as const, label: 'Walk', icon: '🚶' },
-              { type: 'hike' as const, label: 'Hike', icon: '🥾' },
+              { type: 'run' as const, label: 'Run', iconName: 'fitness-outline' as const },
+              { type: 'ride' as const, label: 'Ride', iconName: 'bicycle-outline' as const },
+              { type: 'walk' as const, label: 'Walk', iconName: 'walk-outline' as const },
+              { type: 'hike' as const, label: 'Hike', iconName: 'trail-sign-outline' as const },
             ].map((sport) => {
               const isSelected = selectedSport === sport.type;
               return (
@@ -524,7 +529,11 @@ export default function RecordScreen() {
                     isSelected && { backgroundColor: sportColor, borderColor: sportColor },
                     recordingState !== 'idle' && !isSelected && { opacity: 0.5 },
                   ]}>
-                  <Text style={styles.sportIcon}>{sport.icon}</Text>
+                  <Ionicons
+                    name={sport.iconName}
+                    size={20}
+                    color={isSelected ? '#FFFFFF' : '#8E8E93'}
+                  />
                   <Text style={[styles.sportLabel, isSelected && styles.sportLabelSelected]}>
                     {sport.label}
                   </Text>
@@ -537,7 +546,28 @@ export default function RecordScreen() {
           <View style={styles.hudContainer}>
             {/* Main Timer Display */}
             <View style={styles.timerBox}>
-              <Text style={styles.hudLabel}>ELAPSED MOVING TIME</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                {recordingState === 'recording' && (
+                  <MotiView
+                    animate={{
+                      scale: [1, 1.3, 1],
+                      opacity: [1, 0.4, 1],
+                    }}
+                    transition={{
+                      type: 'timing',
+                      duration: 1000,
+                      loop: true,
+                    } as any}
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: '#FF3B30',
+                    }}
+                  />
+                )}
+                <Text style={styles.hudLabel}>ELAPSED MOVING TIME</Text>
+              </View>
               <Text style={styles.timerValue}>{formatDuration(movingSeconds)}</Text>
               {isRecordingPaused && <Text style={styles.pausedBadge}>PAUSED</Text>}
             </View>
@@ -575,11 +605,26 @@ export default function RecordScreen() {
 
             {/* Live Telemetry Status Bar */}
             <View style={styles.telemetryBar}>
-              <Text style={styles.telemetryText}>
-                {recordingState !== 'idle'
-                  ? `📡 ${routePoints.length} GPS Points • Live Tracking`
-                  : 'Ready to track with device GPS'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                {recordingState !== 'idle' && (
+                  <MotiView
+                    animate={{
+                      scale: [1, 1.25, 1],
+                    }}
+                    transition={{
+                      type: 'timing',
+                      duration: 1200,
+                      loop: true,
+                    } as any}>
+                    <Ionicons name="radio" size={13} color="#4FA99A" />
+                  </MotiView>
+                )}
+                <Text style={styles.telemetryText}>
+                  {recordingState !== 'idle'
+                    ? `${routePoints.length} GPS Points • Live Tracking`
+                    : 'Ready to track with device GPS'}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -587,7 +632,10 @@ export default function RecordScreen() {
           {routePoints.length >= 2 && (
             <View style={styles.routePreviewCard}>
               <View style={styles.routePreviewHeader}>
-                <Text style={styles.routePreviewTitle}>📍 RECORDED ROUTE TRACK</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Ionicons name="navigate-outline" size={14} color="#4FA99A" />
+                  <Text style={styles.routePreviewTitle}>RECORDED ROUTE TRACK</Text>
+                </View>
                 <Text style={styles.routePreviewSubtitle}>
                   {routePoints.length} ordered GPS fixes
                 </Text>
@@ -643,9 +691,16 @@ export default function RecordScreen() {
 
           {/* Cloud Persistence Notice */}
           <View style={styles.authNoticeCard}>
-            <Text style={styles.authNoticeTitle}>
-              {isLiveUser ? '☁️ SUPABASE CLOUD SYNC ACTIVE' : 'ℹ️ DEMO RECORDING MODE'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Ionicons
+                name={isLiveUser ? 'cloud-done-outline' : 'information-circle-outline'}
+                size={16}
+                color="#4FA99A"
+              />
+              <Text style={styles.authNoticeTitle}>
+                {isLiveUser ? 'SUPABASE CLOUD SYNC ACTIVE' : 'DEMO RECORDING MODE'}
+              </Text>
+            </View>
             <Text style={styles.authNoticeText}>
               {isLiveUser
                 ? `Logged in as ${user?.email}. Finished sessions will be saved directly into your Supabase activities table with compressed GPS telemetry and PostGIS route path.`
@@ -678,7 +733,10 @@ export default function RecordScreen() {
             </Pressable>
             {Platform.OS === 'web' && (
               <View style={styles.webNoticeCard}>
-                <Text style={styles.webNoticeTitle}>🌐 Web Browser GPS Notice</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Ionicons name="globe-outline" size={15} color="#007AFF" />
+                  <Text style={styles.webNoticeTitle}>Web Browser GPS Notice</Text>
+                </View>
                 <Text style={styles.webNoticeText}>
                   Web browsers suspend location tracking when this browser tab is inactive or mobile screens lock. To record runs with your screen locked, use Spandan on Android with native foreground service background tracking.
                 </Text>
@@ -699,9 +757,12 @@ export default function RecordScreen() {
 
             {distanceKm === 0 && (
               <View style={styles.emptyTrackWarning}>
-                <Text style={styles.emptyTrackWarningText}>
-                  ⚠️ 0.00 km recorded. If you just tested stationary recording, this session will save without distance.
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="alert-circle-outline" size={16} color="#FF9500" />
+                  <Text style={styles.emptyTrackWarningText}>
+                    0.00 km recorded. If you just tested stationary recording, this session will save without distance.
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -719,23 +780,38 @@ export default function RecordScreen() {
             <View style={styles.modalInputGroup}>
               <Text style={styles.modalInputLabel}>VISIBILITY</Text>
               <View style={styles.visibilityRow}>
-                {(['public', 'followers', 'private'] as ActivityVisibility[]).map((v) => (
-                  <Pressable
-                    key={v}
-                    onPress={() => setActivityVisibility(v)}
-                    style={[
-                      styles.visBtn,
-                      activityVisibility === v && styles.visBtnActive,
-                    ]}>
-                    <Text
+                {(['public', 'followers', 'private'] as ActivityVisibility[]).map((v) => {
+                  const iconName: keyof typeof Ionicons.glyphMap =
+                    v === 'public'
+                      ? 'globe-outline'
+                      : v === 'followers'
+                      ? 'people-outline'
+                      : 'lock-closed-outline';
+                  const label = v.charAt(0).toUpperCase() + v.slice(1);
+                  return (
+                    <Pressable
+                      key={v}
+                      onPress={() => setActivityVisibility(v)}
                       style={[
-                        styles.visBtnText,
-                        activityVisibility === v && styles.visBtnTextActive,
+                        styles.visBtn,
+                        activityVisibility === v && styles.visBtnActive,
                       ]}>
-                      {v === 'public' ? '🌐 Public' : v === 'followers' ? '👥 Followers' : '🔒 Private'}
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Ionicons
+                        name={iconName}
+                        size={14}
+                        color={activityVisibility === v ? '#FFFFFF' : '#8E8E93'}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text
+                        style={[
+                          styles.visBtnText,
+                          activityVisibility === v && styles.visBtnTextActive,
+                        ]}>
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
 

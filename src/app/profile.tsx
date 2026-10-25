@@ -15,11 +15,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router';
 
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { getMockAthleteProfile } from '@/data/mock-fitness-data';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import { socialService } from '@/services/social-service';
 import { authService } from '@/services/auth-service';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -33,8 +33,8 @@ export default function ProfileScreen() {
   } | null>(null);
 
   const [followCounts, setFollowCounts] = useState<{ followers: number; following: number }>({
-    followers: 142,
-    following: 89,
+    followers: 0,
+    following: 0,
   });
 
   // Edit Profile Modal
@@ -47,7 +47,6 @@ export default function ProfileScreen() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
   const isLiveUser = Boolean(user && !isDemoMode);
-  const mockProfile = getMockAthleteProfile();
 
   useEffect(() => {
     async function loadUserStats() {
@@ -132,28 +131,33 @@ export default function ProfileScreen() {
 
   const displayName = isLiveUser
     ? profile?.full_name || user?.email?.split('@')[0] || 'Athlete'
-    : mockProfile.name;
+    : 'Athlete';
 
   const displayHandle = isLiveUser
     ? `@${profile?.username || user?.email?.split('@')[0] || 'athlete'}`
-    : mockProfile.handle;
+    : '@athlete';
 
   const displayAvatar = isLiveUser
     ? profile?.avatar_text || displayName.substring(0, 2).toUpperCase()
-    : mockProfile.avatarText;
+    : 'SP';
 
   const displayBio = isLiveUser
     ? profile?.bio || 'Athlete on Track your movement. Logging miles and reaching milestones.'
-    : mockProfile.tagline;
+    : 'Track your movement and reach your fitness goals.';
 
-  const displayCity = isLiveUser ? profile?.city || 'India' : mockProfile.city;
+  const displayCity = isLiveUser ? profile?.city || 'India' : 'India';
 
   const displayMemberSince =
     isLiveUser && user?.created_at
       ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-      : mockProfile.memberSince;
+      : '2026';
 
-  const activeStats = isLiveUser && realStats ? realStats : mockProfile.stats;
+  const activeStats = realStats || {
+    totalActivities: 0,
+    totalDistanceKm: 0,
+    totalHours: 0,
+    elevationTotalM: 0,
+  };
 
   // Convert distance if Imperial is selected
   const distanceUnit = unitPref === 'imperial' ? 'mi' : 'km';
@@ -199,23 +203,6 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Mode Banner */}
-          {!isLiveUser && (
-            <View style={styles.demoBanner}>
-              <View style={styles.demoTextGroup}>
-                <Text style={styles.demoBannerTitle}>DEMO ATHLETE PROFILE (MOCK DATA)</Text>
-                <Text style={styles.demoBannerSub}>
-                  You are viewing sample metrics. Sign in with Supabase to save your personal records and cloud telemetry.
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => openAuthModal('login')}
-                style={styles.demoActionBtn}>
-                <Text style={styles.demoActionBtnText}>Sign In</Text>
-              </Pressable>
-            </View>
-          )}
-
           {/* Athlete Profile Card */}
           <View style={styles.profileCard}>
             <View style={styles.profileTopRow}>
@@ -233,9 +220,12 @@ export default function ProfileScreen() {
                   </View>
                 </View>
                 <Text style={styles.handleText}>{displayHandle}</Text>
-                <Text style={styles.locationText}>
-                  📍 {displayCity} • Member since {displayMemberSince}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                  <Ionicons name="location-outline" size={12} color="#8E8E93" />
+                  <Text style={styles.locationText}>
+                    {displayCity} • Member since {displayMemberSince}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -260,9 +250,7 @@ export default function ProfileScreen() {
 
           {/* All-Time Performance Summary */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {isLiveUser ? 'Career Milestones (Supabase)' : 'Career Milestones (Sample Data)'}
-            </Text>
+            <Text style={styles.sectionTitle}>Career Milestones</Text>
           </View>
 
           <View style={styles.allTimeGrid}>
@@ -336,44 +324,25 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>Trophy Case & PRs</Text>
           </View>
 
-          <View style={styles.prGrid}>
-            {mockProfile.personalRecords.map((pr) => (
-              <View key={pr.event} style={styles.prCard}>
-                <Text style={styles.prIcon}>🏆</Text>
-                <View style={styles.prDetails}>
-                  <Text style={styles.prEvent}>{pr.event}</Text>
-                  <Text style={styles.prDate}>{pr.date}</Text>
-                </View>
-                <Text style={styles.prTime}>{pr.time}</Text>
-              </View>
-            ))}
+          <View style={styles.emptyCaseCard}>
+            <Ionicons name="trophy-outline" size={26} color="#8E8E93" style={{ marginBottom: 6 }} />
+            <Text style={styles.emptyCaseTitle}>No Personal Records Yet</Text>
+            <Text style={styles.emptyCaseSub}>
+              Complete outdoor runs or rides to automatically log your best 5K, 10K, and distance records.
+            </Text>
           </View>
 
           {/* Gear Tracker Section */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Gear & Shoe Tracker</Text>
+            <Text style={styles.sectionTitle}>Gear & Equipment Tracker</Text>
           </View>
 
-          <View style={styles.gearList}>
-            {mockProfile.shoes.map((shoe) => {
-              const pct = Math.min(100, Math.round((shoe.distanceKm / shoe.maxKm) * 100));
-              return (
-                <View key={shoe.name} style={styles.gearCard}>
-                  <View style={styles.gearTopRow}>
-                    <Text style={styles.gearName}>👟 {shoe.name}</Text>
-                    <Text style={styles.gearKm}>
-                      {shoe.distanceKm} / {shoe.maxKm} km
-                    </Text>
-                  </View>
-                  <View style={styles.gearTrack}>
-                    <View style={[styles.gearFill, { width: `${pct}%` }]} />
-                  </View>
-                  <Text style={styles.gearRemainingText}>
-                    {shoe.maxKm - shoe.distanceKm} km remaining before recommended retirement
-                  </Text>
-                </View>
-              );
-            })}
+          <View style={styles.emptyCaseCard}>
+            <Ionicons name="footsteps-outline" size={26} color="#8E8E93" style={{ marginBottom: 6 }} />
+            <Text style={styles.emptyCaseTitle}>No Equipment Added</Text>
+            <Text style={styles.emptyCaseSub}>
+              Track mileage and wear on your running shoes or road bikes as you record workouts.
+            </Text>
           </View>
 
           {/* Sign Out Action at Bottom for Live Users */}
@@ -796,7 +765,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   prIcon: {
-    fontSize: 18,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   prDetails: {
     flex: 1,
@@ -856,6 +828,28 @@ const styles = StyleSheet.create({
   gearRemainingText: {
     color: '#64748B',
     fontSize: 11,
+  },
+  emptyCaseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.04)',
+  },
+  emptyCaseTitle: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  emptyCaseSub: {
+    color: '#8E8E93',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 280,
   },
   signOutBottomBtn: {
     backgroundColor: 'rgba(239, 68, 68, 0.1)',

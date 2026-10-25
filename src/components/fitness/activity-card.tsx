@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Activity } from '@/data/mock-fitness-data';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Activity } from '@/types/fitness';
 
 interface ActivityCardProps {
   activity: Activity;
@@ -30,19 +32,19 @@ export function ActivityCard({ activity, onKudosToggle }: ActivityCardProps) {
     run: {
       label: 'Outdoor Run',
       color: '#FF6B00',
-      icon: '🏃',
+      iconName: 'fitness-outline' as const,
       paceUnit: '/km',
     },
     ride: {
       label: 'Outdoor Ride',
       color: '#00D2D3',
-      icon: '🚴',
+      iconName: 'bicycle-outline' as const,
       paceUnit: 'km/h',
     },
     walk: {
       label: 'Outdoor Walk',
       color: '#10B981',
-      icon: '🚶',
+      iconName: 'walk-outline' as const,
       paceUnit: '/km',
     },
   }[activity.type];
@@ -54,7 +56,7 @@ export function ActivityCard({ activity, onKudosToggle }: ActivityCardProps) {
         <View style={styles.workoutRow}>
           {/* Leading Apple Activity Icon Square */}
           <View style={[styles.sportSquare, { backgroundColor: sportMeta.color }]}>
-            <Text style={styles.sportEmoji}>{sportMeta.icon}</Text>
+            <Ionicons name={sportMeta.iconName} size={24} color="#FFFFFF" />
           </View>
 
           {/* Center Details */}
@@ -83,8 +85,8 @@ export function ActivityCard({ activity, onKudosToggle }: ActivityCardProps) {
             <View style={styles.subPillRow}>
               <Text style={styles.metaSubText} numberOfLines={1} ellipsizeMode="tail">
                 {activity.calories} KCAL
-                {activity.avgHeartRate ? `  •  ❤️ ${activity.avgHeartRate} BPM` : ''}
-                {activity.elevationMeters > 0 ? `  •  ⛰️ +${activity.elevationMeters}m` : ''}
+                {activity.avgHeartRate ? `  •  ${activity.avgHeartRate} BPM` : ''}
+                {activity.elevationMeters > 0 ? `  •  +${activity.elevationMeters}m` : ''}
               </Text>
             </View>
           </View>
@@ -97,14 +99,27 @@ export function ActivityCard({ activity, onKudosToggle }: ActivityCardProps) {
       {/* Subtle Bottom Interaction Bar */}
       <View style={styles.footerRow}>
         <Pressable onPress={handleKudosPress} style={styles.kudosBtn}>
-          <Text style={styles.kudosEmoji}>{hasKudoed ? '🧡' : '🤍'}</Text>
+          <MotiView
+            animate={{
+              scale: hasKudoed ? [1, 1.35, 1] : 1,
+            }}
+            transition={{
+              type: 'spring',
+              damping: 12,
+            } as any}>
+            <Ionicons
+              name={hasKudoed ? 'heart' : 'heart-outline'}
+              size={17}
+              color={hasKudoed ? '#FF2D55' : '#8E8E93'}
+            />
+          </MotiView>
           <Text style={[styles.kudosText, hasKudoed && styles.kudosTextActive]}>
             {kudosCount} {kudosCount === 1 ? 'Kudo' : 'Kudos'}
           </Text>
         </Pressable>
 
         <Pressable onPress={handleCardPress} style={styles.commentsBtn}>
-          <Text style={styles.commentsEmoji}>💬</Text>
+          <Ionicons name="chatbubble-outline" size={15} color="#8E8E93" />
           <Text style={styles.commentsText}>
             {activity.commentsCount > 0 ? `${activity.commentsCount} comments` : 'Comment'}
           </Text>

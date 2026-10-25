@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { DailyActivity } from '@/data/mock-fitness-data';
+import { Ionicons } from '@expo/vector-icons';
+import { DailyActivity } from '@/types/fitness';
 
 interface WeeklyChartProps {
   days: DailyActivity[];
@@ -23,7 +24,7 @@ export function WeeklyChart({ days }: WeeklyChartProps) {
       <View style={styles.header}>
         <View style={styles.categoryCluster}>
           <View style={styles.iconBadge}>
-            <Text style={styles.iconText}>📊</Text>
+            <Ionicons name="bar-chart-outline" size={13} color="#4FA99A" />
           </View>
           <Text style={styles.categoryTitle}>WEEKLY RHYTHM</Text>
         </View>

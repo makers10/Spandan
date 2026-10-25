@@ -6,7 +6,7 @@ import {
   ActivityVisibility,
   WeeklyStats,
   DailyActivity,
-} from '@/data/mock-fitness-data';
+} from '@/types/fitness';
 import {
   GpsCoordinate,
   MinifiedTelemetryPoint,

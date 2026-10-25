@@ -42,13 +42,23 @@ export default function AppTabs() {
   );
 }
 
+const emptySubscribe = () => () => {};
+
 export function ModernTabBar(props: TabListProps) {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const mounted = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+
+  // Guarantee SSR and initial client hydration have identical styling
+  const isDark = mounted && colorScheme === 'dark';
 
   return (
     <View
       {...props}
+      {...({ suppressHydrationWarning: true } as any)}
       style={[
         styles.tabBarContainer,
         isDark ? styles.tabBarDark : styles.tabBarLight,

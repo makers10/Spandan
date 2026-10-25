@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { useAuth } from '@/context/auth-context';
 import { Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const { signIn, signInAsAthlete, resendConfirmationEmail, isConfigured, setDemoMode, error, clearError } = useAuth();
@@ -61,9 +62,9 @@ export default function LoginScreen() {
     setResendLoading(true);
     try {
       await resendConfirmationEmail(email.trim());
-      setResendFeedback(`✓ Confirmation link resent to ${email.trim()}! Please check your inbox.`);
+      setResendFeedback(`Confirmation link resent to ${email.trim()}! Please check your inbox.`);
     } catch (err: any) {
-      setResendFeedback(`⚠️ ${err?.message || 'Could not resend email right now.'}`);
+      setResendFeedback(err?.message || 'Could not resend email right now.');
     } finally {
       setResendLoading(false);
     }
@@ -114,7 +115,10 @@ export default function LoginScreen() {
             {/* Supabase status banner */}
             {!isConfigured && (
               <View style={styles.unconfiguredBox}>
-                <Text style={styles.unconfiguredTitle}>⚡ SUPABASE SETUP REQUIRED</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Ionicons name="warning-outline" size={16} color="#FF9500" />
+                  <Text style={styles.unconfiguredTitle}>SUPABASE SETUP REQUIRED</Text>
+                </View>
                 <Text style={styles.unconfiguredText}>
                   Your project URL is configured, but the Anon Key is missing in `.env`.
                   You can explore in Demo Mode or paste your key into `.env`.
@@ -127,9 +131,12 @@ export default function LoginScreen() {
               <View style={styles.errorBanner}>
                 {displayedError.toLowerCase().includes('email not confirmed') ? (
                   <View style={{ gap: 6 }}>
-                    <Text style={[styles.errorText, { fontWeight: '800' }]}>
-                      ✉️ Email Confirmation Pending
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="mail-outline" size={16} color="#34C759" />
+                      <Text style={[styles.errorText, { fontWeight: '800' }]}>
+                        Email Confirmation Pending
+                      </Text>
+                    </View>
                     <Text style={[styles.errorText, { fontWeight: '400', fontSize: 12 }]}>
                       Your account requires email confirmation. Please check your inbox (and Spam/Junk folder) at {email.trim() || 'your email'} and tap the verification link.
                     </Text>
@@ -151,20 +158,26 @@ export default function LoginScreen() {
                         {resendLoading ? (
                           <ActivityIndicator size="small" color="#4FA99A" />
                         ) : (
-                          <Text style={{ color: '#4FA99A', fontSize: 12, fontWeight: '700' }}>
-                            🔄 Resend Confirmation Email
-                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Ionicons name="refresh-outline" size={13} color="#4FA99A" />
+                            <Text style={{ color: '#4FA99A', fontSize: 12, fontWeight: '700' }}>
+                              Resend Confirmation Email
+                            </Text>
+                          </View>
                         )}
                       </Pressable>
                     )}
                   </View>
                 ) : (
-                  <Text style={styles.errorText}>⚠️ {displayedError}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="alert-circle-outline" size={16} color="#FF3B30" />
+                    <Text style={styles.errorText}>{displayedError}</Text>
+                  </View>
                 )}
                 <Pressable
                   onPress={handleAthleteSignIn}
                   style={({ pressed }) => [styles.instantErrorBtn, pressed && styles.pressed]}>
-                  <Text style={styles.instantErrorBtnText}>⚡ Bypass & Enter as Active Athlete Now</Text>
+                  <Text style={styles.instantErrorBtnText}>Bypass & Enter as Active Athlete Now</Text>
                 </Pressable>
               </View>
             )}
@@ -231,7 +244,7 @@ export default function LoginScreen() {
                 pressed && styles.pressed,
               ]}>
               <View style={styles.athleteFastIconCircle}>
-                <Text style={styles.athleteFastIcon}>🏃</Text>
+                <Ionicons name="person-outline" size={20} color="#4FA99A" />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={styles.athleteFastTitle}>Sign In as Active Athlete (One-Tap)</Text>
@@ -254,7 +267,10 @@ export default function LoginScreen() {
             <Pressable
               onPress={handleDemoMode}
               style={({ pressed }) => [styles.demoBtn, pressed && styles.pressed]}>
-              <Text style={styles.demoBtnText}>🏃 Continue in Safe Demo Mode</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Ionicons name="eye-outline" size={16} color="#64748B" />
+                <Text style={styles.demoBtnText}>Continue in Safe Demo Mode</Text>
+              </View>
               <Text style={styles.demoBtnSub}>Explore sample workouts without logging in</Text>
             </Pressable>
           </View>

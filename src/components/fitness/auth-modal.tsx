@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { useAuth } from '@/context/auth-context';
 import { Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 export function AuthModal() {
   const {
@@ -145,7 +146,7 @@ export function AuthModal() {
               <View style={styles.topBar}>
                 <SpandanLogo size="medium" showTagline />
                 <Pressable onPress={closeAuthModal} style={styles.closeBtn}>
-                  <Text style={styles.closeBtnText}>✕</Text>
+                  <Ionicons name="close" size={20} color="#8E8E93" />
                 </Pressable>
               </View>
 
@@ -199,7 +200,10 @@ export function AuthModal() {
               {/* Supabase status banner if unconfigured */}
               {!isConfigured && (
                 <View style={styles.unconfiguredBox}>
-                  <Text style={styles.unconfiguredTitle}>⚡ SUPABASE SETUP REQUIRED</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <Ionicons name="warning-outline" size={16} color="#FF9500" />
+                    <Text style={styles.unconfiguredTitle}>SUPABASE SETUP REQUIRED</Text>
+                  </View>
                   <Text style={styles.unconfiguredText}>
                     Your project URL is configured, but the Anon Key is missing in `.env`.
                     You can explore in Demo Mode or use One-Tap Sign In.
@@ -210,9 +214,12 @@ export function AuthModal() {
               {/* Success / Email Notice */}
               {successNotice && (
                 <View style={styles.successBanner}>
-                  <Text style={styles.successText}>✉️ {successNotice}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="mail-outline" size={16} color="#34C759" />
+                    <Text style={styles.successText}>{successNotice}</Text>
+                  </View>
                   <Pressable onPress={handleOneTapAthlete} style={styles.bypassBtn}>
-                    <Text style={styles.bypassBtnText}>⚡ Enter App Immediately</Text>
+                    <Text style={styles.bypassBtnText}>Enter App Immediately</Text>
                   </Pressable>
                 </View>
               )}
@@ -220,9 +227,12 @@ export function AuthModal() {
               {/* Error Banner */}
               {errorMessage && (
                 <View style={styles.errorBanner}>
-                  <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="alert-circle-outline" size={16} color="#FF3B30" />
+                    <Text style={styles.errorText}>{errorMessage}</Text>
+                  </View>
                   <Pressable onPress={handleOneTapAthlete} style={styles.bypassBtn}>
-                    <Text style={styles.bypassBtnText}>⚡ Bypass & Enter as Active Athlete</Text>
+                    <Text style={styles.bypassBtnText}>Bypass & Enter as Active Athlete</Text>
                   </Pressable>
                 </View>
               )}
@@ -237,7 +247,7 @@ export function AuthModal() {
                   pressed && styles.pressed,
                 ]}>
                 <View style={styles.oneTapIconCircle}>
-                  <Text style={styles.oneTapIcon}>🏃</Text>
+                  <Ionicons name="person-outline" size={20} color="#4FA99A" />
                 </View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.oneTapTitle}>One-Tap Sign In as Active Athlete</Text>

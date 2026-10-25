@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface StatCardProps {
   label: string;
@@ -8,7 +9,7 @@ interface StatCardProps {
   deltaText?: string;
   isPositiveDelta?: boolean;
   accentColor?: string;
-  iconSymbol?: string;
+  iconName?: keyof typeof Ionicons.glyphMap;
 }
 
 export function StatCard({
@@ -18,16 +19,16 @@ export function StatCard({
   deltaText,
   isPositiveDelta = true,
   accentColor = '#4FA99A',
-  iconSymbol,
+  iconName,
 }: StatCardProps) {
   return (
     <View style={styles.card}>
       {/* Apple Health Top Header with Category Icon */}
       <View style={styles.topRow}>
         <View style={styles.categoryCluster}>
-          {iconSymbol && (
+          {iconName && (
             <View style={[styles.iconBadge, { backgroundColor: `${accentColor}18` }]}>
-              <Text style={[styles.iconText, { color: accentColor }]}>{iconSymbol}</Text>
+              <Ionicons name={iconName} size={13} color={accentColor} />
             </View>
           )}
           <Text style={styles.label}>{label.toUpperCase()}</Text>

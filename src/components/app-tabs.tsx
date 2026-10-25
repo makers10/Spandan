@@ -8,8 +8,6 @@ import {
   TabListProps,
 } from 'expo-router/ui';
 import {
-  Image,
-  ImageSourcePropType,
   Pressable,
   StyleSheet,
   Text,
@@ -18,15 +16,38 @@ import {
 } from 'react-native';
 import { usePathname } from 'expo-router';
 import { MotiView } from 'moti';
+import { Ionicons } from '@expo/vector-icons';
 
 type TabIconType = 'summary' | 'explore' | 'record' | 'profile';
 
-const TAB_ICONS: Record<TabIconType, ImageSourcePropType> = {
-  summary: require('@/assets/images/tabIcons/home.png'),
-  explore: require('@/assets/images/tabIcons/explore.png'),
-  record: require('@/assets/images/tabIcons/record.png'),
-  profile: require('@/assets/images/tabIcons/profile.png'),
-};
+function TabIcon({
+  icon,
+  active,
+  color,
+}: {
+  icon: TabIconType;
+  active: boolean;
+  color: string;
+}) {
+  let name: keyof typeof Ionicons.glyphMap;
+
+  switch (icon) {
+    case 'summary':
+      name = active ? 'heart' : 'heart-outline';
+      break;
+    case 'explore':
+      name = active ? 'compass' : 'compass-outline';
+      break;
+    case 'record':
+      name = active ? 'radio-button-on' : 'radio-button-off';
+      break;
+    case 'profile':
+      name = active ? 'person' : 'person-outline';
+      break;
+  }
+
+  return <Ionicons name={name} size={22} color={color} />;
+}
 
 interface TabButtonProps extends TabTriggerSlotProps {
   icon: TabIconType;
@@ -116,11 +137,7 @@ export const TabButton = React.forwardRef<any, TabButtonProps>(function TabButto
               damping: 14,
             } as any}
             style={styles.tabIconWrapper}>
-            <Image
-              source={TAB_ICONS[icon]}
-              resizeMode="contain"
-              style={[styles.tabIconImage, { tintColor: color }]}
-            />
+            <TabIcon icon={icon} active={active} color={color} />
           </MotiView>
           <Text
             numberOfLines={1}
@@ -132,6 +149,17 @@ export const TabButton = React.forwardRef<any, TabButtonProps>(function TabButto
             ]}>
             {label}
           </Text>
+          <MotiView
+            animate={{
+              scale: active ? 1 : 0,
+              opacity: active ? 1 : 0,
+            }}
+            transition={{
+              type: 'spring',
+              damping: 15,
+            } as any}
+            style={styles.activeDot}
+          />
 
         </MotiView>
       )}
@@ -211,21 +239,14 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.93 }],
   },
   tabIconWrapper: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabIconWrapperActive: {
-    transform: [{ scale: 1.05 }],
-  },
-  tabIconImage: {
-    width: 20,
-    height: 20,
-  },
   tabLabel: {
-    fontSize: 7.5,
-    lineHeight: 10,
+    fontSize: 9.5,
+    lineHeight: 12,
     fontWeight: '500',
     letterSpacing: 0,
     textAlign: 'center',
@@ -235,6 +256,13 @@ const styles = StyleSheet.create({
   tabLabelActive: {
     fontWeight: '700',
     color: '#4FA99A',
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#4FA99A',
+    marginTop: 1,
   },
   inactiveDot: {
     width: 4,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ActivityType } from '@/data/mock-fitness-data';
+import { ActivityType } from '@/types/fitness';
 
 export type FilterValue = 'all' | ActivityType;
 

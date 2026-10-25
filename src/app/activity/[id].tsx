@@ -21,11 +21,12 @@ import {
   ActivitySplit,
   ActivityType,
   ActivityVisibility,
-  getMockActivities,
-} from '@/data/mock-fitness-data';
+} from '@/types/fitness';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import { socialService } from '@/services/social-service';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import {
   GpsCoordinate,
   calculateElevationStats,
@@ -76,14 +77,10 @@ export default function ActivityDetailScreen() {
 
       try {
         let loadedAct: Activity | null = null;
-        if (isLiveUser) {
+        try {
           loadedAct = await activityService.fetchActivityById(id);
-        }
-
-        // Fallback to mock activity if not found in database or in demo mode
-        if (!loadedAct) {
-          const allMocks = getMockActivities();
-          loadedAct = allMocks.find((a) => a.id === id) || null;
+        } catch {
+          loadedAct = null;
         }
 
         if (isMounted) {
@@ -304,12 +301,20 @@ export default function ActivityDetailScreen() {
               </View>
               {activity.visibility && (
                 <View style={styles.visibilityPill}>
+                  <Ionicons
+                    name={
+                      activity.visibility === 'public'
+                        ? 'globe-outline'
+                        : activity.visibility === 'followers'
+                        ? 'people-outline'
+                        : 'lock-closed-outline'
+                    }
+                    size={12}
+                    color="#8E8E93"
+                    style={{ marginRight: 4 }}
+                  />
                   <Text style={styles.visibilityText}>
-                    {activity.visibility === 'public'
-                      ? '🌐 Public'
-                      : activity.visibility === 'followers'
-                      ? '👥 Followers'
-                      : '🔒 Private'}
+                    {activity.visibility.charAt(0).toUpperCase() + activity.visibility.slice(1)}
                   </Text>
                 </View>
               )}
@@ -348,7 +353,12 @@ export default function ActivityDetailScreen() {
           {/* Title Card */}
           <View style={styles.titleCard}>
             <Text style={styles.titleText}>{activity.title}</Text>
-            {activity.gearName && <Text style={styles.gearText}>👟 {activity.gearName}</Text>}
+            {activity.gearName && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+                <Ionicons name="footsteps-outline" size={14} color="#8E8E93" />
+                <Text style={styles.gearText}>{activity.gearName}</Text>
+              </View>
+            )}
           </View>
 
           {/* Primary Telemetry Grid */}
@@ -392,7 +402,10 @@ export default function ActivityDetailScreen() {
           {/* GPS Route Map & Track Rendering Card */}
           <View style={styles.mapCard}>
             <View style={styles.mapHeader}>
-              <Text style={styles.mapSectionTitle}>🗺️ GPS ROUTE GEOMETRY</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="map-outline" size={15} color="#4FA99A" />
+                <Text style={styles.mapSectionTitle}>GPS ROUTE GEOMETRY</Text>
+              </View>
               <Text style={styles.mapSubtitle}>
                 {pointsLoading
                   ? 'Loading coordinates...'
@@ -407,13 +420,13 @@ export default function ActivityDetailScreen() {
               {startCoord && finishCoord && (
                 <View style={styles.mapMarkersRow}>
                   <View style={styles.markerBadge}>
-                    <Text style={styles.startDot}>🟢</Text>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#22C55E', marginRight: 6 }} />
                     <Text style={styles.markerText}>
                       Start: {startCoord.latitude.toFixed(4)}, {startCoord.longitude.toFixed(4)}
                     </Text>
                   </View>
                   <View style={styles.markerBadge}>
-                    <Text style={styles.finishDot}>🏁</Text>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444', marginRight: 6 }} />
                     <Text style={styles.markerText}>
                       End: {finishCoord.latitude.toFixed(4)}, {finishCoord.longitude.toFixed(4)}
                     </Text>
@@ -442,9 +455,18 @@ export default function ActivityDetailScreen() {
                   <View style={[styles.routePathLine, { borderColor: sportColor }]} />
                   <View style={[styles.nativeRouteRibbon, { backgroundColor: `${sportColor}15` }]} />
                   <View style={styles.nativeRoutePinsRow}>
-                    <Text style={styles.nativeRoutePin}>🟢 Start Fix</Text>
-                    <Text style={styles.nativeRoutePin}>⚡ WGS84 GPS</Text>
-                    <Text style={styles.nativeRoutePin}>🏁 Finish Fix</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#22C55E' }} />
+                      <Text style={styles.nativeRoutePin}>Start Fix</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name="navigate-outline" size={12} color="#64748B" />
+                      <Text style={styles.nativeRoutePin}>WGS84 GPS</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444' }} />
+                      <Text style={styles.nativeRoutePin}>Finish Fix</Text>
+                    </View>
                   </View>
                   <Text style={styles.routeVisualCaption}>
                     WGS84 High-Precision GPS Track Polyline
@@ -454,9 +476,12 @@ export default function ActivityDetailScreen() {
 
               {/* Privacy Cloaking Banner */}
               <View style={styles.cloakedBanner}>
-                <Text style={styles.cloakedBannerText}>
-                  🛡️ Smart Cloaked • 500m start & finish perimeter masked for personal safety
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Ionicons name="shield-checkmark-outline" size={13} color="#64748B" />
+                  <Text style={styles.cloakedBannerText}>
+                    Smart Cloaked • 500m start & finish perimeter masked for personal safety
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
@@ -514,14 +539,31 @@ export default function ActivityDetailScreen() {
               <Pressable
                 onPress={handleToggleKudos}
                 style={[styles.kudosBtn, hasKudoed && styles.kudosBtnActive]}>
-                <Text style={styles.kudosIcon}>{hasKudoed ? '🧡' : '🤍'}</Text>
+                <MotiView
+                  animate={{
+                    scale: hasKudoed ? [1, 1.4, 1] : 1,
+                  }}
+                  transition={{
+                    type: 'spring',
+                    damping: 12,
+                    stiffness: 240,
+                  } as any}>
+                  <Ionicons
+                    name={hasKudoed ? 'heart' : 'heart-outline'}
+                    size={18}
+                    color={hasKudoed ? '#FF2D55' : '#8E8E93'}
+                  />
+                </MotiView>
                 <Text style={[styles.kudosCountText, hasKudoed && styles.kudosCountActive]}>
                   {kudosCount} {kudosCount === 1 ? 'Kudo' : 'Kudos'}
                 </Text>
               </Pressable>
-              <Text style={styles.commentCountSummary}>
-                💬 {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Ionicons name="chatbubble-outline" size={14} color="#8E8E93" />
+                <Text style={styles.commentCountSummary}>
+                  {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
+                </Text>
+              </View>
             </View>
 
             {/* Comment Input */}

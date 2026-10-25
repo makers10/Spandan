@@ -1,5 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 
 interface GoalBarProps {
   currentDistance: number;
@@ -17,13 +19,24 @@ export function GoalBar({ currentDistance, targetDistance, streakWeeks }: GoalBa
       <View style={styles.header}>
         <View style={styles.categoryCluster}>
           <View style={styles.iconBadge}>
-            <Text style={styles.iconText}>🎯</Text>
+            <Ionicons name="flag" size={13} color="#4FA99A" />
           </View>
           <Text style={styles.categoryTitle}>WEEKLY GOAL</Text>
         </View>
 
         <View style={styles.streakPill}>
-          <Text style={styles.streakText}>🔥 {streakWeeks} Wk Streak</Text>
+          <MotiView
+            animate={{
+              scale: [1, 1.15, 1],
+            }}
+            transition={{
+              type: 'timing',
+              duration: 1400,
+              loop: true,
+            } as any}>
+            <Ionicons name="flame" size={13} color="#FF9500" style={{ marginRight: 4 }} />
+          </MotiView>
+          <Text style={styles.streakText}>{streakWeeks} Wk Streak</Text>
         </View>
       </View>
 
@@ -43,9 +56,14 @@ export function GoalBar({ currentDistance, targetDistance, streakWeeks }: GoalBa
 
       {/* Footer Details */}
       <View style={styles.footer}>
-        <Text style={styles.remainingText}>
-          {remaining === '0.0' ? '🎉 Goal achieved this week' : `${remaining} km to reach your goal`}
-        </Text>
+        {remaining === '0.0' ? (
+          <View style={styles.footerSuccessRow}>
+            <Ionicons name="checkmark-circle" size={14} color="#34C759" style={{ marginRight: 5 }} />
+            <Text style={styles.remainingText}>Goal achieved this week</Text>
+          </View>
+        ) : (
+          <Text style={styles.remainingText}>{`${remaining} km to reach your goal`}</Text>
+        )}
       </View>
     </View>
   );
@@ -143,6 +161,10 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 8,
+  },
+  footerSuccessRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   remainingText: {
     color: '#8E8E93',

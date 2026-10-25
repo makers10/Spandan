@@ -22,21 +22,18 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import {
-  getMockActivities,
-  getMockWeeklyStats,
   Activity,
   WeeklyStats,
-} from '@/data/mock-fitness-data';
+  createEmptyWeeklyStats,
+} from '@/types/fitness';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { user, profile, isDemoMode, openAuthModal } = useAuth();
+  const { user, profile, isDemoMode } = useAuth();
 
   const [filter, setFilter] = useState<FilterValue>('all');
   const [isLoading, setIsLoading] = useState(false);
-  const [simulateEmpty, setSimulateEmpty] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [showDevDrawer, setShowDevDrawer] = useState(false);
 
   // Data states
   const [liveActivities, setLiveActivities] = useState<Activity[]>([]);
@@ -88,34 +85,19 @@ export default function HomeScreen() {
       } catch (err: any) {
         console.warn('Failed to refresh user activities from Supabase:', err.message);
       }
-    } else {
-      await new Promise((r) => setTimeout(r, 600));
     }
     setRefreshing(false);
   };
 
-  const handleSimulateLoadingToggle = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
-  };
+  // Determine active dataset (strictly real user activities)
+  const activeWeeklyStats: WeeklyStats = liveWeeklyStats || createEmptyWeeklyStats();
+  const rawActivities: Activity[] = liveActivities;
 
-  // Determine active dataset
-  const activeWeeklyStats: WeeklyStats = isLiveUser && liveWeeklyStats
-    ? liveWeeklyStats
-    : getMockWeeklyStats();
-
-  const rawActivities: Activity[] = isLiveUser
-    ? liveActivities
-    : getMockActivities();
-
-  // Filter activities based on selection and simulated empty state
-  const activities: Activity[] = simulateEmpty
-    ? []
-    : filter === 'all'
-    ? rawActivities
-    : rawActivities.filter((a) => a.type === filter);
+  // Filter activities based on selection
+  const activities: Activity[] =
+    filter === 'all'
+      ? rawActivities
+      : rawActivities.filter((a) => a.type === filter);
 
   const counts = {
     all: rawActivities.length,
@@ -126,11 +108,11 @@ export default function HomeScreen() {
 
   const athleteDisplayName = isLiveUser
     ? profile?.full_name || user?.email?.split('@')[0] || 'Athlete'
-    : 'Alex';
+    : 'Athlete';
 
   const athleteAvatar = isLiveUser
     ? profile?.avatar_text || athleteDisplayName.substring(0, 2).toUpperCase()
-    : 'AV';
+    : 'SP';
 
   const todayFormatted = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -177,15 +159,6 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Cloud Sync / Demo State Notice */}
-          {!isLiveUser && (
-            <Pressable onPress={() => openAuthModal('login')} style={styles.demoNoticeRow}>
-              <Text style={styles.demoNoticeText}>
-                ⚡ Viewing Demo Mode with sample workouts. <Text style={styles.demoNoticeLink}>Sign in to sync cloud data</Text>
-              </Text>
-            </Pressable>
-          )}
-
           {/* Loading State or Full Dashboard */}
           {isLoading ? (
             <SkeletonLoader />
@@ -219,7 +192,7 @@ export default function HomeScreen() {
                     deltaText={isLiveUser ? `${activeWeeklyStats.activitiesCount} sessions` : `${activeWeeklyStats.distanceChangePercent}% vs last wk`}
                     isPositiveDelta
                     accentColor="#FF6B00"
-                    iconSymbol="🏃"
+                    iconName="flame-outline"
                   />
 
                   <StatCard
@@ -228,7 +201,7 @@ export default function HomeScreen() {
                     deltaText={`${activeWeeklyStats.activitiesCount} workouts`}
                     isPositiveDelta
                     accentColor="#00D2D3"
-                    iconSymbol="⏱️"
+                    iconName="time-outline"
                   />
 
                   <StatCard
@@ -238,7 +211,7 @@ export default function HomeScreen() {
                     deltaText={`${activeWeeklyStats.caloriesBurned} kcal`}
                     isPositiveDelta
                     accentColor="#10B981"
-                    iconSymbol="⛰️"
+                    iconName="trending-up-outline"
                   />
                 </View>
               </View>
@@ -261,81 +234,16 @@ export default function HomeScreen() {
                 {/* Workout Cards or Empty State */}
                 {activities.length === 0 ? (
                   <EmptyState
-                    title={
-                      simulateEmpty
-                        ? 'No Activities'
-                        : isLiveUser
-                        ? 'No Activities Yet'
-                        : `No ${filter} Workouts`
-                    }
-                    message={
-                      simulateEmpty
-                        ? 'Simulated empty state active. Use developer options below to restore data.'
-                        : isLiveUser
-                        ? 'Tap "Record" to log your first workout session to Supabase.'
-                        : `No workouts found matching "${filter}". Record your next session or choose another filter.`
-                    }
+                    title={filter === 'all' ? 'No Activities Yet' : `No ${filter.toUpperCase()} Workouts`}
+                    message="Every milestone begins with a single step. Start recording your workouts to build your training history."
                     onRecordPress={() => router.push('/record' as any)}
-                    onResetFilter={
-                      simulateEmpty
-                        ? () => setSimulateEmpty(false)
-                        : filter !== 'all'
-                        ? () => setFilter('all')
-                        : undefined
-                    }
+                    onResetFilter={filter !== 'all' ? () => setFilter('all') : undefined}
                   />
                 ) : (
                   <View style={styles.activitiesList}>
                     {activities.map((activity) => (
                       <ActivityCard key={activity.id} activity={activity} />
                     ))}
-                  </View>
-                )}
-              </View>
-
-              {/* Minimalist Developer / Testing Options (Foldable) */}
-              <View style={styles.devContainer}>
-                <Pressable
-                  onPress={() => setShowDevDrawer((prev) => !prev)}
-                  style={styles.devToggleBtn}>
-                  <Text style={styles.devToggleText}>
-                    Developer Sandbox Options {showDevDrawer ? '▲' : '▼'}
-                  </Text>
-                </Pressable>
-
-                {showDevDrawer && (
-                  <View style={styles.devRow}>
-                    <Pressable
-                      onPress={handleSimulateLoadingToggle}
-                      style={({ pressed }) => [
-                        styles.devBtn,
-                        isLoading && styles.devBtnActive,
-                        pressed && styles.pressed,
-                      ]}>
-                      <Text style={styles.devBtnText}>
-                        {isLoading ? 'Loading...' : 'Test Skeleton Loading'}
-                      </Text>
-                    </Pressable>
-
-                    <Pressable
-                      onPress={() => setSimulateEmpty((prev) => !prev)}
-                      style={({ pressed }) => [
-                        styles.devBtn,
-                        simulateEmpty && styles.devBtnActive,
-                        pressed && styles.pressed,
-                      ]}>
-                      <Text style={styles.devBtnText}>
-                        {simulateEmpty ? 'Restore Workouts' : 'Test Empty State'}
-                      </Text>
-                    </Pressable>
-
-                    {!isLiveUser && (
-                      <Pressable
-                        onPress={() => openAuthModal('login')}
-                        style={({ pressed }) => [styles.devBtnPrimary, pressed && styles.pressed]}>
-                        <Text style={styles.devBtnPrimaryText}>Sign In Modal</Text>
-                      </Pressable>
-                    )}
                   </View>
                 )}
               </View>
@@ -475,54 +383,6 @@ const styles = StyleSheet.create({
   },
   activitiesList: {
     gap: 12,
-  },
-  devContainer: {
-    marginTop: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  devToggleBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  devToggleText: {
-    color: '#8E8E93',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  devRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-    marginTop: 10,
-    justifyContent: 'center',
-  },
-  devBtn: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
-  },
-  devBtnActive: {
-    backgroundColor: '#E5E5EA',
-  },
-  devBtnText: {
-    color: '#636366',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  devBtnPrimary: {
-    backgroundColor: '#4FA99A',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  devBtnPrimaryText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
   },
   pressed: {
     opacity: 0.75,
