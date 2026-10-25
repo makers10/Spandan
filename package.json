@@ -16,6 +16,7 @@
     "expo-linking": "~58.0.14",
     "expo-location": "~58.0.18",
     "expo-router": "~58.0.25",
+    "expo-sensors": "~58.0.4",
     "expo-splash-screen": "~58.0.11",
     "expo-status-bar": "~58.0.4",
     "expo-symbols": "~58.0.4",
@@ -46,7 +47,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "node tests/auth-and-activities.test.mjs && node tests/geo-and-tracking.test.mjs && node tests/features-and-privacy.test.mjs",
+    "test": "node tests/auth-and-activities.test.mjs && node tests/geo-and-tracking.test.mjs && node tests/features-and-privacy.test.mjs && node tests/floor-climbing.test.mjs",
     "lint": "expo lint",
     "build:apk": "powershell -ExecutionPolicy Bypass -File .\\scripts\\build-apk.ps1",
     "serve:apk": "node scripts/serve-apk.mjs"

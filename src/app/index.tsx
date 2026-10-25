@@ -232,7 +232,7 @@ export default function HomeScreen() {
                     label="Elevation"
                     value={activeWeeklyStats.elevationGainM}
                     unit="M"
-                    deltaText={`${activeWeeklyStats.caloriesBurned} kcal`}
+                    deltaText={`${activeWeeklyStats.floorsClimbedTotal || Math.floor(activeWeeklyStats.elevationGainM / 3)} floors climbed`}
                     isPositiveDelta
                     accentColor="#10B981"
                     iconName="trending-up-outline"

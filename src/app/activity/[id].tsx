@@ -397,6 +397,18 @@ export default function ActivityDetailScreen() {
                 <Text style={styles.telemetryUnit}>m</Text>
               </View>
             </View>
+
+            <View style={styles.telemetryItem}>
+              <Text style={styles.telemetryLabel}>FLOORS</Text>
+              <View style={styles.telemetryValueRow}>
+                <Text style={styles.telemetryValue}>
+                  {activity.floorsClimbed !== undefined
+                    ? activity.floorsClimbed
+                    : Math.floor((activity.elevationMeters || elevationStats.gainMeters) / 3)}
+                </Text>
+                <Text style={styles.telemetryUnit}>fl</Text>
+              </View>
+            </View>
           </View>
 
           {/* GPS Route Map & Track Rendering Card */}

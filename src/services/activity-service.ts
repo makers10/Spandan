@@ -51,6 +51,7 @@ export interface CreateActivityInput {
   paceOrSpeedFormatted: string;
   paceOrSpeedLabel?: string;
   elevationMeters?: number;
+  floorsClimbed?: number;
   calories?: number;
   avgHeartRate?: number;
   maxHeartRate?: number;
@@ -95,6 +96,9 @@ function mapDatabaseRowToActivity(item: any, fallbackAthleteName: string = 'Athl
     paceOrSpeedFormatted: item.pace_or_speed_formatted,
     paceOrSpeedLabel: item.pace_or_speed_label || 'Avg Pace',
     elevationMeters: Number(item.elevation_meters || 0),
+    floorsClimbed: item.floors_climbed !== undefined && item.floors_climbed !== null
+      ? Number(item.floors_climbed)
+      : Math.floor(Number(item.elevation_meters || 0) / 3.0),
     calories: Number(item.calories || 0),
     avgHeartRate: item.avg_heart_rate ? Number(item.avg_heart_rate) : undefined,
     maxHeartRate: item.max_heart_rate ? Number(item.max_heart_rate) : undefined,
@@ -414,6 +418,7 @@ export const activityService = {
         paceOrSpeedFormatted: input.paceOrSpeedFormatted,
         paceOrSpeedLabel: input.paceOrSpeedLabel || (input.type === 'ride' ? 'Avg Speed' : 'Avg Pace'),
         elevationMeters: Number(input.elevationMeters || 0),
+        floorsClimbed: Number(input.floorsClimbed || Math.floor((input.elevationMeters || 0) / 3.0)),
         calories: Number(input.calories || 0),
         avgHeartRate: input.avgHeartRate,
         maxHeartRate: input.maxHeartRate,
@@ -545,6 +550,7 @@ export const activityService = {
   calculateWeeklyStats(activities: Activity[], goalKm: number = 50.0): WeeklyStats {
     const totalDistance = activities.reduce((sum, a) => sum + a.distanceKm, 0);
     const totalElev = activities.reduce((sum, a) => sum + a.elevationMeters, 0);
+    const totalFloors = activities.reduce((sum, a) => sum + (a.floorsClimbed || Math.floor(a.elevationMeters / 3.0)), 0);
     const totalCalories = activities.reduce((sum, a) => sum + a.calories, 0);
 
     const totalMinutes = activities.reduce((sum, a) => {
@@ -597,6 +603,7 @@ export const activityService = {
       activeTimeMinutes: totalMinutes,
       activitiesCount: activities.length,
       elevationGainM: totalElev,
+      floorsClimbedTotal: totalFloors,
       caloriesBurned: totalCalories,
       prevWeekDistanceKm: 0,
       distanceChangePercent: 100,

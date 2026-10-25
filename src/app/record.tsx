@@ -27,6 +27,7 @@ import {
   generateSvgPathFromCoordinates,
 } from '@/utils/geo';
 import { locationService } from '@/services/location-service';
+import { floorService } from '@/services/floor-service';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 
@@ -59,7 +60,28 @@ export default function RecordScreen() {
   const [movingSeconds, setMovingSeconds] = useState<number>(0);
   const [distanceKm, setDistanceKm] = useState<number>(0);
   const [elevationGainM, setElevationGainM] = useState<number>(0);
+  const [floorsClimbed, setFloorsClimbed] = useState<number>(0);
+  const [floorAscentM, setFloorAscentM] = useState<number>(0);
+  const [isElevatorAlert, setIsElevatorAlert] = useState<boolean>(false);
+  const [sensorSourceLabel, setSensorSourceLabel] = useState<string>('Barometer');
   const [currentPaceOrSpeed, setCurrentPaceOrSpeed] = useState<string>('--:--');
+
+  // Subscribe to real-time Barometer + Pedometer floor climbing telemetry
+  useEffect(() => {
+    const unsub = floorService.subscribe((metrics) => {
+      setFloorsClimbed(metrics.floorsClimbed);
+      setFloorAscentM(metrics.currentAscentMeters);
+      setIsElevatorAlert(metrics.isElevatorDetected);
+      if (metrics.sensorSource === 'barometer_cma') {
+        setSensorSourceLabel('Apple CoreMotion Altimeter');
+      } else if (metrics.sensorSource === 'barometer_hpa') {
+        setSensorSourceLabel('Barometer Pressure Sensor');
+      } else {
+        setSensorSourceLabel('Barometric Fusion Engine');
+      }
+    });
+    return unsub;
+  }, []);
 
   // Settings
   const [autoPause, setAutoPause] = useState(true);
@@ -170,6 +192,11 @@ export default function RecordScreen() {
           }
         }
 
+        // Feed GPS altitude into Floor Climbing Engine as fallback
+        if (fix.altitude !== null && fix.altitude !== undefined) {
+          floorService.ingestGpsAltitude(fix.altitude);
+        }
+
         const updated = [...currentPoints, fix];
         routePointsRef.current = updated;
         setRoutePoints(updated);
@@ -234,6 +261,8 @@ export default function RecordScreen() {
     setRoutePoints([]);
     setDistanceKm(0);
     setElevationGainM(0);
+    setFloorsClimbed(0);
+    setFloorAscentM(0);
     setMovingSeconds(0);
     setPausedDurationMs(0);
     setPauseStartMs(null);
@@ -242,6 +271,7 @@ export default function RecordScreen() {
     setStartTimeMs(now);
     setRecordingState('recording');
     setGpsStatus('acquiring');
+    floorService.startTracking();
 
     // Subscribe to hardware GPS stream
     try {
@@ -266,6 +296,7 @@ export default function RecordScreen() {
       setRecordingState('paused');
       setPauseStartMs(Date.now());
       setGpsStatus('paused');
+      floorService.stopTracking();
     }
   };
 
@@ -278,6 +309,7 @@ export default function RecordScreen() {
       setPauseStartMs(null);
       setRecordingState('recording');
       setGpsStatus('locked');
+      floorService.startTracking();
     }
   };
 
@@ -291,6 +323,7 @@ export default function RecordScreen() {
     if (locationService.isBackgroundSupported()) {
       locationService.stopBackgroundTracking().catch(() => {});
     }
+    floorService.stopTracking();
 
     const now = Date.now();
     let finalPaused = pausedDurationMs;
@@ -357,6 +390,7 @@ export default function RecordScreen() {
           paceOrSpeedFormatted: paceVal,
           paceOrSpeedLabel: speedOrPaceLabel,
           elevationMeters: elevationGainM,
+          floorsClimbed: floorsClimbed || Math.floor(elevationGainM / 3.0),
           calories: Math.max(10, Math.round(finalDistance * 65)),
           location: pts.length > 0 ? 'Outdoor GPS Session' : 'Manual Entry',
           polylinePreview: polylineSvg,
@@ -379,6 +413,9 @@ export default function RecordScreen() {
       setDistanceKm(0);
       setMovingSeconds(0);
       setElevationGainM(0);
+      setFloorsClimbed(0);
+      setFloorAscentM(0);
+      floorService.reset();
     } catch (err: any) {
       console.error('Error saving activity:', err);
       setSaveStatus(`Failed to save: ${err.message}`);
@@ -402,6 +439,9 @@ export default function RecordScreen() {
     setDistanceKm(0);
     setMovingSeconds(0);
     setElevationGainM(0);
+    setFloorsClimbed(0);
+    setFloorAscentM(0);
+    floorService.reset();
     setSaveStatus(null);
     setGpsErrorMsg(null);
     setIsDuplicateSaveLocked(false);
@@ -606,6 +646,46 @@ export default function RecordScreen() {
                   <Text style={styles.hudUnit}>m</Text>
                 </View>
               </View>
+
+              <View style={styles.hudCol}>
+                <Text style={styles.hudLabel}>FLOORS</Text>
+                <View style={styles.hudValRow}>
+                  <Text style={[styles.hudVal, { color: '#4FA99A' }]}>{floorsClimbed}</Text>
+                  <Text style={styles.hudUnit}>fl</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Live Barometer Floor Progression HUD */}
+            <View style={styles.floorBanner}>
+              <View style={styles.floorBannerLeft}>
+                <View style={styles.floorIconWrap}>
+                  <Ionicons name="stats-chart" size={13} color="#4FA99A" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.floorBannerTitle}>
+                      {floorsClimbed} Floors Climbed
+                    </Text>
+                    <Text style={styles.floorProgressText}>
+                      +{floorAscentM.toFixed(1)}m / 3.0m
+                    </Text>
+                  </View>
+                  <View style={styles.progressBarTrack}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        { width: `${Math.min(100, Math.max(0, (floorAscentM / 3.0) * 100))}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.floorBannerSub}>
+                    {isElevatorAlert
+                      ? '⚠️ Rapid vertical lift detected (elevator ride filtered out)'
+                      : `${sensorSourceLabel} • Apple Health 3.0m/flight standard`}
+                  </Text>
+                </View>
+              </View>
             </View>
 
             {/* Live Telemetry Status Bar */}
@@ -755,7 +835,7 @@ export default function RecordScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Save Completed Workout</Text>
             <Text style={styles.modalSub}>
-              {formatDuration(movingSeconds)} • {distanceKm.toFixed(2)} km • {elevationGainM}m Elev
+              {formatDuration(movingSeconds)} • {distanceKm.toFixed(2)} km • {elevationGainM}m Elev • {floorsClimbed} Floors
             </Text>
 
             {distanceKm === 0 && (
@@ -1083,6 +1163,60 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
     width: '100%',
     alignItems: 'center',
+  },
+  floorBanner: {
+    marginVertical: 10,
+    width: '100%',
+    backgroundColor: 'rgba(79, 169, 154, 0.08)',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 169, 154, 0.18)',
+  },
+  floorBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  floorIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: 'rgba(79, 169, 154, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  floorBannerTitle: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  floorProgressText: {
+    color: '#4FA99A',
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+  },
+  progressBarTrack: {
+    width: '100%',
+    height: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+    borderRadius: 2,
+    marginTop: 4,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#4FA99A',
+    borderRadius: 2,
+  },
+  floorBannerSub: {
+    color: '#64748B',
+    fontSize: 10,
+    fontWeight: '500',
+    marginTop: 1,
   },
   telemetryText: {
     color: '#64748B',

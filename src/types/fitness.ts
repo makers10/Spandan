@@ -51,6 +51,7 @@ export interface Activity {
   paceOrSpeedFormatted: string;
   paceOrSpeedLabel: string;
   elevationMeters: number;
+  floorsClimbed?: number;
   calories: number;
   avgHeartRate?: number;
   maxHeartRate?: number;
@@ -82,6 +83,7 @@ export interface WeeklyStats {
   activeTimeMinutes: number;
   activitiesCount: number;
   elevationGainM: number;
+  floorsClimbedTotal?: number;
   caloriesBurned: number;
   prevWeekDistanceKm: number;
   distanceChangePercent: number;
@@ -141,6 +143,7 @@ export function createEmptyWeeklyStats(): WeeklyStats {
     activeTimeMinutes: 0,
     activitiesCount: 0,
     elevationGainM: 0,
+    floorsClimbedTotal: 0,
     caloriesBurned: 0,
     prevWeekDistanceKm: 0,
     distanceChangePercent: 0,
@@ -162,7 +165,7 @@ export function createEmptyAthleteProfile(): AthleteProfile {
     handle: '@athlete',
     tagline: 'Track your movement and reach your fitness goals.',
     city: 'India',
-    avatarText: 'SP',
+    avatarText: 'TM',
     memberSince: '2026',
     stats: {
       totalActivities: 0,

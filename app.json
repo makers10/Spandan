@@ -8,7 +8,10 @@
     "scheme": "trackyourmovement",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "NSMotionUsageDescription": "Allow Track your movement to access the barometer and pedometer to count stairs and floors climbed."
+      }
     },
     "android": {
       "package": "com.makers10.trackyourmovement",
@@ -24,7 +27,8 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION"
+        "FOREGROUND_SERVICE_LOCATION",
+        "ACTIVITY_RECOGNITION"
       ]
     },
     "web": {
