@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router';
 
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { AtmosphericBackground } from '@/components/ui/atmospheric-background';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import { socialService } from '@/services/social-service';
@@ -170,15 +171,19 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <AtmosphericBackground glowMidColor="rgba(79, 169, 154, 0.08)" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.contentWrapper}>
-          {/* Apple Large Title Navigation Header */}
+          {/* Modern Large Title Navigation Header */}
           <View style={styles.headerBar}>
             <View style={styles.headerLeft}>
-              <Text style={styles.subtitleHeader}>ACCOUNT</Text>
+              <View style={styles.categoryPill}>
+                <Ionicons name="person-outline" size={12} color="#3D8C7F" />
+                <Text style={styles.categoryPillText}>ACCOUNT</Text>
+              </View>
               <Text style={styles.largeTitle}>Profile</Text>
             </View>
 
@@ -215,7 +220,7 @@ export default function ProfileScreen() {
                   <Text style={styles.athleteName}>{displayName}</Text>
                   <View style={styles.proBadge}>
                     <Text style={styles.proBadgeText}>
-                      {isLiveUser ? 'VERIFIED ATHLETE' : 'PRO DEMO'}
+                      {isLiveUser ? 'VERIFIED ATHLETE' : 'ATHLETE'}
                     </Text>
                   </View>
                 </View>
@@ -435,7 +440,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F6F8F8',
   },
   scrollView: {
     flex: 1,
@@ -458,21 +463,30 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   headerLeft: {
-    gap: 2,
+    gap: 4,
   },
-  subtitleHeader: {
-    color: '#8E8E93',
-    fontSize: 12,
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: 'rgba(79, 169, 154, 0.1)',
+  },
+  categoryPillText: {
+    color: '#3D8C7F',
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   largeTitle: {
     color: '#000000',
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: 34,
+    lineHeight: 40,
     fontWeight: '800',
-    letterSpacing: -0.8,
-    paddingBottom: 2,
+    letterSpacing: -1,
   },
   headerRightActions: {
     flexDirection: 'row',

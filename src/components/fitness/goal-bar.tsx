@@ -72,21 +72,21 @@ export function GoalBar({ currentDistance, targetDistance, streakWeeks }: GoalBa
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: '#17332C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(79, 169, 154, 0.08)',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   categoryCluster: {
     flexDirection: 'row',
@@ -101,9 +101,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconText: {
-    fontSize: 11,
-  },
   categoryTitle: {
     color: '#8E8E93',
     fontSize: 11,
@@ -111,13 +108,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   streakPill: {
-    backgroundColor: '#F2F2F7',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 149, 0, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
   },
   streakText: {
-    color: '#8E8E93',
+    color: '#D97706',
     fontSize: 11,
     fontWeight: '700',
   },

@@ -13,6 +13,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { AtmosphericBackground } from '@/components/ui/atmospheric-background';
 import { ActivityType, ActivityVisibility } from '@/types/fitness';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
@@ -472,15 +473,19 @@ export default function RecordScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <AtmosphericBackground glowMidColor="rgba(255, 107, 0, 0.06)" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.contentWrapper}>
-          {/* Apple Large Title Navigation Header */}
+          {/* Modern Large Title Navigation Header */}
           <View style={styles.headerBar}>
             <View style={styles.headerLeft}>
-              <Text style={styles.subtitleHeader}>WORKOUT</Text>
+              <View style={styles.categoryPill}>
+                <Ionicons name="radio-button-on" size={12} color="#3D8C7F" />
+                <Text style={styles.categoryPillText}>WORKOUT TRACKER</Text>
+              </View>
               <Text style={styles.largeTitle}>Record</Text>
             </View>
             <View style={styles.headerRight}>
@@ -697,9 +702,7 @@ export default function RecordScreen() {
                 size={16}
                 color="#4FA99A"
               />
-              <Text style={styles.authNoticeTitle}>
-                {isLiveUser ? 'SUPABASE CLOUD SYNC ACTIVE' : 'DEMO RECORDING MODE'}
-              </Text>
+              
             </View>
             <Text style={styles.authNoticeText}>
               {isLiveUser
@@ -846,7 +849,7 @@ export default function RecordScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F6F8F8',
   },
   scrollView: {
     flex: 1,
@@ -864,29 +867,36 @@ const styles = StyleSheet.create({
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     paddingTop: 8,
     paddingBottom: 4,
   },
   headerLeft: {
-    gap: 2,
+    gap: 4,
   },
-  headerRight: {
-    marginBottom: 4,
+  headerRight: {},
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: 'rgba(79, 169, 154, 0.1)',
   },
-  subtitleHeader: {
-    color: '#8E8E93',
-    fontSize: 12,
+  categoryPillText: {
+    color: '#3D8C7F',
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   largeTitle: {
     color: '#000000',
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: 34,
+    lineHeight: 40,
     fontWeight: '800',
-    letterSpacing: -0.8,
-    paddingBottom: 2,
+    letterSpacing: -1,
   },
   gpsStatusBadge: {
     flexDirection: 'row',

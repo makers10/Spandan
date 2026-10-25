@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { StatCard } from '@/components/fitness/stat-card';
 import { GoalBar } from '@/components/fitness/goal-bar';
@@ -18,6 +19,7 @@ import { FilterPills, FilterValue } from '@/components/fitness/filter-pills';
 import { ActivityCard } from '@/components/fitness/activity-card';
 import { SkeletonLoader } from '@/components/fitness/skeleton-loader';
 import { EmptyState } from '@/components/fitness/empty-state';
+import { AtmosphericBackground } from '@/components/ui/atmospheric-background';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
@@ -115,7 +117,7 @@ export default function HomeScreen() {
     : 'SP';
 
   const todayFormatted = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
+    weekday: 'short',
     month: 'short',
     day: 'numeric',
   }).toUpperCase();
@@ -124,6 +126,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <AtmosphericBackground />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
@@ -137,24 +140,35 @@ export default function HomeScreen() {
           />
         }>
         <View style={styles.contentWrapper}>
-          {/* Apple Health Large Title Navigation Header */}
+          {/* Modern Fitness Large Title Navigation Header */}
           <View style={styles.headerBar}>
             <View style={styles.headerLeft}>
-              <Text style={styles.dateHeader}>{todayFormatted}</Text>
+              <View style={styles.datePill}>
+                <Ionicons name="calendar-outline" size={12} color="#3D8C7F" />
+                <Text style={styles.datePillText}>{todayFormatted}</Text>
+              </View>
               <Text style={styles.largeTitle}>Summary</Text>
             </View>
 
             <View style={styles.headerRight}>
               <Pressable
                 onPress={() => router.push('/record' as any)}
-                style={({ pressed }) => [styles.recordBtn, pressed && styles.pressed]}>
-                <Text style={styles.recordBtnText}>+ Record</Text>
+                accessibilityRole="button"
+                accessibilityLabel="Record Workout"
+                style={({ pressed }) => [styles.recordBtn, pressed && styles.recordBtnPressed]}>
+                <View style={styles.recordIconWrap}>
+                  <Ionicons name="add" size={16} color="#FFFFFF" />
+                </View>
+                <Text style={styles.recordBtnText}>Record</Text>
               </Pressable>
 
               <Pressable
                 onPress={() => router.push('/profile' as any)}
-                style={styles.avatarBtn}>
+                accessibilityRole="button"
+                accessibilityLabel="Athlete Profile"
+                style={({ pressed }) => [styles.avatarBtn, pressed && styles.avatarBtnPressed]}>
                 <Text style={styles.avatarBtnText}>{athleteAvatar}</Text>
+                <View style={styles.avatarStatusDot} />
               </Pressable>
             </View>
           </View>
@@ -167,7 +181,12 @@ export default function HomeScreen() {
               {/* SECTION: ACTIVITY GOAL */}
               <View style={styles.sectionContainer}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>ACTIVITY & GOAL</Text>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={styles.sectionIconBadge}>
+                      <Ionicons name="pulse" size={13} color="#4FA99A" />
+                    </View>
+                    <Text style={styles.sectionTitle}>ACTIVITY & GOAL</Text>
+                  </View>
                 </View>
 
                 <GoalBar
@@ -180,7 +199,12 @@ export default function HomeScreen() {
               {/* SECTION: FAVORITES / STAT CARDS */}
               <View style={styles.sectionContainer}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>FAVORITES</Text>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={[styles.sectionIconBadge, { backgroundColor: 'rgba(255, 107, 0, 0.12)' }]}>
+                      <Ionicons name="flame" size={13} color="#FF6B00" />
+                    </View>
+                    <Text style={styles.sectionTitle}>FAVORITES</Text>
+                  </View>
                   <Text style={styles.sectionSubText}>{activeWeeklyStats.weekLabel}</Text>
                 </View>
 
@@ -224,7 +248,12 @@ export default function HomeScreen() {
               {/* SECTION: WORKOUTS LIST */}
               <View style={styles.sectionContainer}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>WORKOUTS</Text>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={[styles.sectionIconBadge, { backgroundColor: 'rgba(79, 169, 154, 0.12)' }]}>
+                      <Ionicons name="fitness" size={13} color="#4FA99A" />
+                    </View>
+                    <Text style={styles.sectionTitle}>WORKOUTS</Text>
+                  </View>
                   <Text style={styles.sectionSubText}>{rawActivities.length} total</Text>
                 </View>
 
@@ -258,7 +287,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F6F8F8',
   },
   scrollView: {
     flex: 1,
@@ -276,85 +305,109 @@ const styles = StyleSheet.create({
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingBottom: 4,
+    alignItems: 'center',
+    paddingVertical: 4,
   },
   headerLeft: {
-    gap: 2,
+    gap: 4,
   },
-  dateHeader: {
-    color: '#8E8E93',
-    fontSize: 12,
+  datePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: 'rgba(79, 169, 154, 0.1)',
+  },
+  datePillText: {
+    color: '#3D8C7F',
+    fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.6,
   },
   largeTitle: {
     color: '#000000',
-    fontSize: 32,
+    fontSize: 34,
+    lineHeight: 40,
     fontWeight: '800',
-    letterSpacing: -0.8,
+    letterSpacing: -1,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
+    gap: 12,
   },
   recordBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: '#4FA99A',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 22,
     shadowColor: '#4FA99A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  recordBtnPressed: {
+    transform: [{ scale: 0.96 }],
+    opacity: 0.92,
+  },
+  recordIconWrap: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   recordBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
+    letterSpacing: 0.2,
   },
   avatarBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4FA99A',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowRadius: 6,
+    elevation: 2,
+    position: 'relative',
+  },
+  avatarBtnPressed: {
+    transform: [{ scale: 0.95 }],
+    opacity: 0.9,
   },
   avatarBtnText: {
     color: '#4FA99A',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  demoNoticeRow: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  demoNoticeText: {
-    color: '#636366',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  demoNoticeLink: {
-    color: '#4FA99A',
-    fontWeight: '700',
+  avatarStatusDot: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: '#34C759',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   sectionContainer: {
     gap: 10,
@@ -362,19 +415,32 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
     paddingHorizontal: 2,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  sectionIconBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    backgroundColor: 'rgba(79, 169, 154, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sectionTitle: {
-    color: '#8E8E93',
+    color: '#48484A',
     fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.6,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   sectionSubText: {
-    color: '#AEAEB2',
+    color: '#8E8E93',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   statsGrid: {
     flexDirection: 'row',

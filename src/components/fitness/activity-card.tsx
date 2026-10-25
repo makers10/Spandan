@@ -132,17 +132,17 @@ export function ActivityCard({ activity, onKudosToggle }: ActivityCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
+    paddingBottom: 14,
+    shadowColor: '#17332C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(79, 169, 154, 0.08)',
   },
   workoutRow: {
     flexDirection: 'row',
@@ -160,9 +160,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 4,
     elevation: 2,
-  },
-  sportEmoji: {
-    fontSize: 22,
   },
   centerCol: {
     flex: 1,

@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { Activity } from '@/types/fitness';
 import { ActivityCard } from '@/components/fitness/activity-card';
+import { AtmosphericBackground } from '@/components/ui/atmospheric-background';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import { socialService } from '@/services/social-service';
@@ -208,21 +209,28 @@ export default function ExploreScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <AtmosphericBackground glowMidColor="rgba(255, 107, 0, 0.05)" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.contentWrapper}>
-          {/* Apple Large Title Navigation Header */}
+          {/* Modern Large Title Navigation Header */}
           <View style={styles.headerBar}>
             <View style={styles.headerLeft}>
-              <Text style={styles.subtitleHeader}>COMMUNITY</Text>
+              <View style={styles.categoryPill}>
+                <Ionicons name="people-outline" size={12} color="#3D8C7F" />
+                <Text style={styles.categoryPillText}>COMMUNITY</Text>
+              </View>
               <Text style={styles.largeTitle}>Explore</Text>
             </View>
             <Pressable
               onPress={() => router.push('/profile' as any)}
-              style={styles.avatarBtn}>
+              accessibilityRole="button"
+              accessibilityLabel="Athlete Profile"
+              style={({ pressed }) => [styles.avatarBtn, pressed && styles.avatarBtnPressed]}>
               <Text style={styles.avatarBtnText}>{displayAvatar}</Text>
+              <View style={styles.avatarStatusDot} />
             </Pressable>
           </View>
 
@@ -435,7 +443,7 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F6F8F8',
   },
   scrollView: {
     flex: 1,
@@ -458,40 +466,67 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   headerLeft: {
-    gap: 2,
+    gap: 4,
   },
-  subtitleHeader: {
-    color: '#8E8E93',
-    fontSize: 12,
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: 'rgba(79, 169, 154, 0.1)',
+  },
+  categoryPillText: {
+    color: '#3D8C7F',
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   largeTitle: {
     color: '#000000',
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: 34,
+    lineHeight: 40,
     fontWeight: '800',
-    letterSpacing: -0.8,
-    paddingBottom: 2,
+    letterSpacing: -1,
   },
   avatarBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4FA99A',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 1,
-    marginBottom: 4,
+    shadowRadius: 6,
+    elevation: 2,
+    position: 'relative',
+  },
+  avatarBtnPressed: {
+    transform: [{ scale: 0.95 }],
+    opacity: 0.9,
   },
   avatarBtnText: {
     color: '#4FA99A',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  avatarStatusDot: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: '#34C759',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   searchContainer: {
     flexDirection: 'row',

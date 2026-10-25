@@ -149,17 +149,7 @@ export const TabButton = React.forwardRef<any, TabButtonProps>(function TabButto
             ]}>
             {label}
           </Text>
-          <MotiView
-            animate={{
-              scale: active ? 1 : 0,
-              opacity: active ? 1 : 0,
-            }}
-            transition={{
-              type: 'spring',
-              damping: 15,
-            } as any}
-            style={styles.activeDot}
-          />
+          
 
         </MotiView>
       )}
@@ -245,7 +235,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabLabel: {
-    fontSize: 9.5,
+    fontSize:8.5,
     lineHeight: 12,
     fontWeight: '500',
     letterSpacing: 0,
