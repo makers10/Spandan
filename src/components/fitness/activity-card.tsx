@@ -86,6 +86,7 @@ export function ActivityCard({ activity, onKudosToggle }: ActivityCardProps) {
               <Text style={styles.metaSubText} numberOfLines={1} ellipsizeMode="tail">
                 {activity.calories} KCAL
                 {activity.avgHeartRate ? `  •  ${activity.avgHeartRate} BPM` : ''}
+                {activity.cadenceOrSteps ? `  •  ${activity.cadenceOrSteps}` : ''}
                 {activity.elevationMeters > 0 ? `  •  +${activity.elevationMeters}m` : ''}
                 {(activity.floorsClimbed || Math.floor((activity.elevationMeters || 0) / 3)) > 0
                   ? `  •  ${activity.floorsClimbed || Math.floor((activity.elevationMeters || 0) / 3)} fl`

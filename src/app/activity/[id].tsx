@@ -409,6 +409,18 @@ export default function ActivityDetailScreen() {
                 <Text style={styles.telemetryUnit}>fl</Text>
               </View>
             </View>
+
+            {activity.cadenceOrSteps ? (
+              <View style={styles.telemetryItem}>
+                <Text style={styles.telemetryLabel}>STEPS</Text>
+                <View style={styles.telemetryValueRow}>
+                  <Text style={[styles.telemetryValue, { color: '#FF6B00' }]}>
+                    {activity.cadenceOrSteps.replace(/ steps?/i, '')}
+                  </Text>
+                  <Text style={styles.telemetryUnit}>st</Text>
+                </View>
+              </View>
+            ) : null}
           </View>
 
           {/* GPS Route Map & Track Rendering Card */}

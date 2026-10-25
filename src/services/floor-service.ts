@@ -8,8 +8,12 @@
  *    - On Android, converts ambient pressure (hPa) to elevation via the barometric hypsometric equation.
  * 2. Motion Sensors (Pedometer / Accelerometer):
  *    - Tracks human step cadence and vertical locomotion frequency.
+ *    - Prompts runtime permissions (ACTIVITY_RECOGNITION on Android & Motion on iOS).
  *    - Acts as an anti-elevator gate (distinguishes stair climbing from elevators/vehicles).
- * 3. Software Fusion Engine:
+ * 3. Sensor Fusion Fallback:
+ *    - Computes real-time steps dynamically via hardware pedometer, fused with stride-length
+ *      distance estimation when pedometer sensor is missing (web browser) or delayed.
+ * 4. Software Fusion Engine:
  *    - Apple Health standard: 1 floor / flight = 3.0 meters (10 feet / ~16 stairs) of vertical gain
  *      accompanied by active step cadence.
  */
@@ -23,6 +27,8 @@ import {
   calculateHypsometricAltitude,
   isElevatorAscent,
   calculateFloorsFromElevation,
+  estimateStepsFromDistance,
+  calculateCadenceSpm,
 } from '@/utils/floor-math';
 
 export {
@@ -32,6 +38,8 @@ export {
   calculateHypsometricAltitude,
   isElevatorAscent,
   calculateFloorsFromElevation,
+  estimateStepsFromDistance,
+  calculateCadenceSpm,
 };
 
 export interface FloorMetrics {
@@ -39,6 +47,8 @@ export interface FloorMetrics {
   currentAscentMeters: number;
   totalBarometricGainM: number;
   totalStepsInAscent: number;
+  liveSteps: number; // Total physical steps recorded during active workout
+  cadenceSpm: number; // Live steps per minute
   currentPressureHpa: number | null;
   relativeAltitudeM: number;
   isBarometerAvailable: boolean;
@@ -64,13 +74,21 @@ class FloorClimbingService {
   private accumulatedElevationM = 0;
   private lastAscentTimestamp = 0;
   private stepsAtFloorStart = 0;
-  private sessionTotalSteps = 0;
+
+  // Step tracking states
+  private sessionHardwareSteps = 0;
+  private sessionGpsEstimatedSteps = 0;
+  private liveSteps = 0;
+  private cadenceSpm = 0;
+  private lastMovingSeconds = 0;
+
   private floorsClimbed = 0;
   private totalBarometricGainM = 0;
   private isElevatorDetected = false;
 
   private isBarometerAvailable = false;
   private isPedometerAvailable = false;
+  private isPedometerPermissionGranted = false;
   private sensorSource: FloorMetrics['sensorSource'] = 'manual';
 
   // Fallback altitude tracker for GPS
@@ -78,6 +96,26 @@ class FloorClimbingService {
 
   constructor() {
     this.checkSensorAvailability();
+  }
+
+  /**
+   * Request native pedometer and motion permissions (required on Android 10+ and iOS)
+   */
+  async requestPedometerPermission(): Promise<boolean> {
+    if (Platform.OS === 'web') return false;
+    try {
+      const current = await Pedometer.getPermissionsAsync();
+      if (current.granted) {
+        this.isPedometerPermissionGranted = true;
+        return true;
+      }
+      const requested = await Pedometer.requestPermissionsAsync();
+      this.isPedometerPermissionGranted = requested.granted;
+      return requested.granted;
+    } catch (err) {
+      console.warn('Track your movement: Pedometer permission request error:', err);
+      return false;
+    }
   }
 
   /**
@@ -98,7 +136,11 @@ class FloorClimbingService {
       ]);
       this.isBarometerAvailable = Boolean(baroOk);
       this.isPedometerAvailable = Boolean(pedoOk);
-      this.sensorSource = this.isBarometerAvailable ? (Platform.OS === 'ios' ? 'barometer_cma' : 'barometer_hpa') : 'gps_fallback';
+      this.sensorSource = this.isBarometerAvailable
+        ? Platform.OS === 'ios'
+          ? 'barometer_cma'
+          : 'barometer_hpa'
+        : 'gps_fallback';
       return { barometer: this.isBarometerAvailable, pedometer: this.isPedometerAvailable };
     } catch {
       this.isBarometerAvailable = false;
@@ -112,11 +154,13 @@ class FloorClimbingService {
    * Start tracking barometric pressure and motion sensor step cadence
    */
   async startTracking(): Promise<boolean> {
-    this.reset();
+    if (Platform.OS !== 'web') {
+      await this.requestPedometerPermission().catch(() => {});
+    }
     await this.checkSensorAvailability();
 
     // 1. Subscribe to Barometer if hardware sensor exists
-    if (this.isBarometerAvailable) {
+    if (this.isBarometerAvailable && !this.barometerSub) {
       try {
         Barometer.setUpdateInterval(1000); // 1-second interval
         this.barometerSub = Barometer.addListener((data: { pressure: number; relativeAltitude?: number }) => {
@@ -127,8 +171,8 @@ class FloorClimbingService {
       }
     }
 
-    // 2. Subscribe to Pedometer if hardware sensor exists
-    if (this.isPedometerAvailable) {
+    // 2. Subscribe to Pedometer if hardware sensor exists and permission is granted
+    if (this.isPedometerAvailable && !this.pedometerSub) {
       try {
         this.pedometerSub = Pedometer.watchStepCount((result: { steps: number }) => {
           this.handlePedometerUpdate(result.steps);
@@ -186,10 +230,48 @@ class FloorClimbingService {
   }
 
   /**
-   * Process live pedometer step update
+   * Process live hardware pedometer step update
    */
   private handlePedometerUpdate(liveSteps: number) {
-    this.sessionTotalSteps = Math.max(0, liveSteps);
+    this.sessionHardwareSteps = Math.max(0, liveSteps);
+    this.liveSteps = Math.max(this.sessionHardwareSteps, this.sessionGpsEstimatedSteps);
+    if (this.lastMovingSeconds > 0) {
+      this.cadenceSpm = calculateCadenceSpm(this.liveSteps, this.lastMovingSeconds);
+    }
+    this.notify();
+  }
+
+  /**
+   * Ingest distance, sport type, and moving time from GPS/Workout loop
+   * Ensures steps increase dynamically when walking or running outdoors or indoors
+   */
+  ingestDistanceAndSpeed(distanceKm: number, sport: string, movingSeconds: number) {
+    this.lastMovingSeconds = movingSeconds;
+
+    if (sport === 'ride') {
+      // Cycling does not produce foot steps
+      this.cadenceSpm = 0;
+      this.notify();
+      return;
+    }
+
+    // Compute estimated steps based on standard stride length (fallback for web / missing sensor)
+    this.sessionGpsEstimatedSteps = estimateStepsFromDistance(distanceKm, sport);
+    this.liveSteps = Math.max(this.sessionHardwareSteps, this.sessionGpsEstimatedSteps);
+    this.cadenceSpm = calculateCadenceSpm(this.liveSteps, movingSeconds);
+    this.notify();
+  }
+
+  /**
+   * For testing or demo environments (e.g. desktop web browser testing),
+   * simulate foot strikes to verify UI telemetry and step-gated floor climbing
+   */
+  simulateSteps(count: number = 25) {
+    this.sessionHardwareSteps += count;
+    this.liveSteps = Math.max(this.sessionHardwareSteps, this.sessionGpsEstimatedSteps);
+    if (this.lastMovingSeconds > 0) {
+      this.cadenceSpm = calculateCadenceSpm(this.liveSteps, this.lastMovingSeconds);
+    }
     this.notify();
   }
 
@@ -224,7 +306,7 @@ class FloorClimbingService {
     this.lastAscentTimestamp = timestamp;
 
     const ascentRateMps = elapsedSeconds > 0 ? deltaMeters / elapsedSeconds : 0;
-    const stepsDuringCurrentAscent = this.sessionTotalSteps - this.stepsAtFloorStart;
+    const stepsDuringCurrentAscent = this.liveSteps - this.stepsAtFloorStart;
 
     // Check elevator filter
     if (isElevatorAscent(ascentRateMps, stepsDuringCurrentAscent)) {
@@ -248,7 +330,7 @@ class FloorClimbingService {
 
       this.floorsClimbed += 1;
       this.accumulatedElevationM -= METERS_PER_FLOOR;
-      this.stepsAtFloorStart = this.sessionTotalSteps;
+      this.stepsAtFloorStart = this.liveSteps;
     }
 
     this.notify();
@@ -285,7 +367,11 @@ class FloorClimbingService {
     this.accumulatedElevationM = 0;
     this.lastAscentTimestamp = 0;
     this.stepsAtFloorStart = 0;
-    this.sessionTotalSteps = 0;
+    this.sessionHardwareSteps = 0;
+    this.sessionGpsEstimatedSteps = 0;
+    this.liveSteps = 0;
+    this.cadenceSpm = 0;
+    this.lastMovingSeconds = 0;
     this.floorsClimbed = 0;
     this.totalBarometricGainM = 0;
     this.isElevatorDetected = false;
@@ -301,7 +387,9 @@ class FloorClimbingService {
       floorsClimbed: this.floorsClimbed,
       currentAscentMeters: Math.round(this.accumulatedElevationM * 10) / 10,
       totalBarometricGainM: Math.round(this.totalBarometricGainM * 10) / 10,
-      totalStepsInAscent: this.sessionTotalSteps,
+      totalStepsInAscent: this.liveSteps,
+      liveSteps: this.liveSteps,
+      cadenceSpm: this.cadenceSpm,
       currentPressureHpa: this.lastPressureHpa ? Math.round(this.lastPressureHpa * 10) / 10 : null,
       relativeAltitudeM: Math.round(this.lastRelativeAltitudeM * 10) / 10,
       isBarometerAvailable: this.isBarometerAvailable,

@@ -62,16 +62,20 @@ export default function RecordScreen() {
   const [elevationGainM, setElevationGainM] = useState<number>(0);
   const [floorsClimbed, setFloorsClimbed] = useState<number>(0);
   const [floorAscentM, setFloorAscentM] = useState<number>(0);
+  const [liveSteps, setLiveSteps] = useState<number>(0);
+  const [cadenceSpm, setCadenceSpm] = useState<number>(0);
   const [isElevatorAlert, setIsElevatorAlert] = useState<boolean>(false);
   const [sensorSourceLabel, setSensorSourceLabel] = useState<string>('Barometer');
   const [currentPaceOrSpeed, setCurrentPaceOrSpeed] = useState<string>('--:--');
 
-  // Subscribe to real-time Barometer + Pedometer floor climbing telemetry
+  // Subscribe to real-time Barometer + Pedometer floor climbing & step telemetry
   useEffect(() => {
     const unsub = floorService.subscribe((metrics) => {
       setFloorsClimbed(metrics.floorsClimbed);
       setFloorAscentM(metrics.currentAscentMeters);
       setIsElevatorAlert(metrics.isElevatorDetected);
+      setLiveSteps(metrics.liveSteps);
+      setCadenceSpm(metrics.cadenceSpm);
       if (metrics.sensorSource === 'barometer_cma') {
         setSensorSourceLabel('Apple CoreMotion Altimeter');
       } else if (metrics.sensorSource === 'barometer_hpa') {
@@ -159,6 +163,9 @@ export default function RecordScreen() {
         } else {
           setCurrentPaceOrSpeed(calculatePace(currentDistance, movingSec));
         }
+
+        // Ingest distance, sport, and moving time to keep live steps & cadence advancing
+        floorService.ingestDistanceAndSpeed(currentDistance, selectedSport, movingSec);
       }, 1000);
     }
 
@@ -263,6 +270,8 @@ export default function RecordScreen() {
     setElevationGainM(0);
     setFloorsClimbed(0);
     setFloorAscentM(0);
+    setLiveSteps(0);
+    setCadenceSpm(0);
     setMovingSeconds(0);
     setPausedDurationMs(0);
     setPauseStartMs(null);
@@ -271,6 +280,7 @@ export default function RecordScreen() {
     setStartTimeMs(now);
     setRecordingState('recording');
     setGpsStatus('acquiring');
+    floorService.requestPedometerPermission().catch(() => {});
     floorService.startTracking();
 
     // Subscribe to hardware GPS stream
@@ -391,6 +401,7 @@ export default function RecordScreen() {
           paceOrSpeedLabel: speedOrPaceLabel,
           elevationMeters: elevationGainM,
           floorsClimbed: floorsClimbed || Math.floor(elevationGainM / 3.0),
+          cadenceOrSteps: liveSteps > 0 ? `${liveSteps.toLocaleString()} steps` : undefined,
           calories: Math.max(10, Math.round(finalDistance * 65)),
           location: pts.length > 0 ? 'Outdoor GPS Session' : 'Manual Entry',
           polylinePreview: polylineSvg,
@@ -398,11 +409,11 @@ export default function RecordScreen() {
           routePoints: pts,
         });
         setSaveStatus(
-          `Saved ${finalDistance} km (${pts.length} GPS points) to your training log!`
+          `Saved ${finalDistance} km (${pts.length} GPS points, ${liveSteps.toLocaleString()} steps) to your training log!`
         );
       } else {
         setSaveStatus(
-          `Demo Mode: Workout completed locally (${finalDistance} km, ${pts.length} points). Sign in to persist activities.`
+          `Demo Mode: Workout completed locally (${finalDistance} km, ${pts.length} points, ${liveSteps.toLocaleString()} steps). Sign in to persist activities.`
         );
       }
 
@@ -415,6 +426,8 @@ export default function RecordScreen() {
       setElevationGainM(0);
       setFloorsClimbed(0);
       setFloorAscentM(0);
+      setLiveSteps(0);
+      setCadenceSpm(0);
       floorService.reset();
     } catch (err: any) {
       console.error('Error saving activity:', err);
@@ -441,6 +454,8 @@ export default function RecordScreen() {
     setElevationGainM(0);
     setFloorsClimbed(0);
     setFloorAscentM(0);
+    setLiveSteps(0);
+    setCadenceSpm(0);
     floorService.reset();
     setSaveStatus(null);
     setGpsErrorMsg(null);
@@ -639,13 +654,25 @@ export default function RecordScreen() {
                 </View>
               </View>
 
-              <View style={styles.hudCol}>
-                <Text style={styles.hudLabel}>ELEV GAIN</Text>
-                <View style={styles.hudValRow}>
-                  <Text style={styles.hudVal}>{elevationGainM}</Text>
-                  <Text style={styles.hudUnit}>m</Text>
+              {selectedSport === 'ride' ? (
+                <View style={styles.hudCol}>
+                  <Text style={styles.hudLabel}>ELEV GAIN</Text>
+                  <View style={styles.hudValRow}>
+                    <Text style={styles.hudVal}>{elevationGainM}</Text>
+                    <Text style={styles.hudUnit}>m</Text>
+                  </View>
                 </View>
-              </View>
+              ) : (
+                <View style={styles.hudCol}>
+                  <Text style={styles.hudLabel}>STEPS</Text>
+                  <View style={styles.hudValRow}>
+                    <Text style={[styles.hudVal, { color: '#FF6B00' }]}>
+                      {liveSteps.toLocaleString()}
+                    </Text>
+                    <Text style={styles.hudUnit}>st</Text>
+                  </View>
+                </View>
+              )}
 
               <View style={styles.hudCol}>
                 <Text style={styles.hudLabel}>FLOORS</Text>
@@ -654,6 +681,28 @@ export default function RecordScreen() {
                   <Text style={styles.hudUnit}>fl</Text>
                 </View>
               </View>
+            </View>
+
+            {/* Secondary Telemetry Strip */}
+            <View style={styles.secondaryHudStrip}>
+              <View style={styles.secondaryHudItem}>
+                <Ionicons name="trending-up-outline" size={13} color="#64748B" />
+                <Text style={styles.secondaryHudLabel}>ELEV GAIN:</Text>
+                <Text style={styles.secondaryHudVal}>+{elevationGainM}m</Text>
+              </View>
+              {selectedSport !== 'ride' ? (
+                <View style={styles.secondaryHudItem}>
+                  <Ionicons name="speedometer-outline" size={13} color="#64748B" />
+                  <Text style={styles.secondaryHudLabel}>CADENCE:</Text>
+                  <Text style={styles.secondaryHudVal}>{cadenceSpm} SPM</Text>
+                </View>
+              ) : (
+                <View style={styles.secondaryHudItem}>
+                  <Ionicons name="flame-outline" size={13} color="#64748B" />
+                  <Text style={styles.secondaryHudLabel}>CALORIES:</Text>
+                  <Text style={styles.secondaryHudVal}>{Math.max(10, Math.round(distanceKm * 40))} kcal</Text>
+                </View>
+              )}
             </View>
 
             {/* Live Barometer Floor Progression HUD */}
@@ -665,7 +714,7 @@ export default function RecordScreen() {
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text style={styles.floorBannerTitle}>
-                      {floorsClimbed} Floors Climbed
+                      {floorsClimbed} Floors Climbed • {liveSteps.toLocaleString()} Steps
                     </Text>
                     <Text style={styles.floorProgressText}>
                       +{floorAscentM.toFixed(1)}m / 3.0m
@@ -687,6 +736,16 @@ export default function RecordScreen() {
                 </View>
               </View>
             </View>
+
+            {/* Web / Demo Step Simulation Helper */}
+            {recordingState === 'recording' && (Platform.OS === 'web' || isDemoMode) && (
+              <Pressable
+                onPress={() => floorService.simulateSteps(30)}
+                style={styles.simulateStepBtn}>
+                <Ionicons name="footsteps-outline" size={14} color="#FF6B00" />
+                <Text style={styles.simulateStepBtnText}>Simulate +30 Steps (Web / Test Mode)</Text>
+              </Pressable>
+            )}
 
             {/* Live Telemetry Status Bar */}
             <View style={styles.telemetryBar}>
@@ -835,7 +894,9 @@ export default function RecordScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Save Completed Workout</Text>
             <Text style={styles.modalSub}>
-              {formatDuration(movingSeconds)} • {distanceKm.toFixed(2)} km • {elevationGainM}m Elev • {floorsClimbed} Floors
+              {formatDuration(movingSeconds)} • {distanceKm.toFixed(2)} km
+              {liveSteps > 0 ? ` • ${liveSteps.toLocaleString()} Steps` : ''}
+              {` • ${elevationGainM}m Elev • ${floorsClimbed} Floors`}
             </Text>
 
             {distanceKm === 0 && (
@@ -1156,6 +1217,55 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 11,
     fontWeight: '600',
+  },
+  secondaryHudStrip: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 18,
+    width: '100%',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 4,
+  },
+  secondaryHudItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  secondaryHudLabel: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  secondaryHudVal: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '800',
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+  },
+  simulateStepBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 107, 0, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 0, 0.25)',
+    marginVertical: 4,
+  },
+  simulateStepBtnText: {
+    color: '#FF6B00',
+    fontSize: 11,
+    fontWeight: '700',
   },
   telemetryBar: {
     paddingTop: 8,
