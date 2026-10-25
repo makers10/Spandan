@@ -7,8 +7,8 @@ interface AtmosphericBackgroundProps {
 }
 
 export function AtmosphericBackground({
-  glowTopColor = 'rgba(79, 169, 154, 0.12)',
-  glowMidColor = 'rgba(0, 210, 211, 0.07)',
+  glowTopColor = '#e8f5f1',
+  glowMidColor = '#edf4f2',
 }: AtmosphericBackgroundProps) {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -21,33 +21,33 @@ export function AtmosphericBackground({
 const styles = StyleSheet.create({
   glowTop: {
     position: 'absolute',
-    top: -90,
-    right: -50,
-    width: 320,
-    height: 320,
-    borderRadius: 160,
+    top: -80,
+    left: -40,
+    width: 360,
+    height: 360,
+    borderRadius: 180,
     ...Platform.select({
       web: {
-        filter: 'blur(80px)',
+        filter: 'blur(90px)',
       },
       default: {
-        opacity: 0.55,
+        opacity: 0.7,
       },
     }),
   },
   glowMid: {
     position: 'absolute',
-    top: 240,
-    left: -80,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
+    top: 300,
+    right: -60,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
     ...Platform.select({
       web: {
-        filter: 'blur(75px)',
+        filter: 'blur(80px)',
       },
       default: {
-        opacity: 0.45,
+        opacity: 0.6,
       },
     }),
   },

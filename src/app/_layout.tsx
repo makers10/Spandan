@@ -1,6 +1,6 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DefaultTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { LogBox, useColorScheme } from 'react-native';
+import { LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -17,40 +17,24 @@ LogBox.ignoreLogs([
   'SafeAreaView has been deprecated',
 ]);
 
-const AppDarkTheme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    primary: '#4FA99A',
-    background: '#000000',
-    card: '#1C1C1E',
-    text: '#FFFFFF',
-    border: '#2C2C2E',
-  },
-};
-
-const AppLightTheme = {
+const SpandanLightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#4FA99A',
-    background: '#F2F2F7',
+    primary: '#00b8a2',
+    background: '#f4f8f7',
     card: '#FFFFFF',
-    text: '#000000',
-    border: 'rgba(0, 0, 0, 0.04)',
+    text: '#0f172a',
+    border: 'rgba(226, 232, 240, 0.8)',
   },
 };
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = isDark ? AppDarkTheme : AppLightTheme;
-
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <ThemeProvider value={theme}>
-          <StatusBar style={isDark ? 'light' : 'dark'} />
+        <ThemeProvider value={SpandanLightTheme}>
+          <StatusBar style="dark" />
           <AnimatedSplashOverlay />
           <AppTabs />
           <AuthModal />

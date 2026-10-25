@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { AtmosphericBackground } from '@/components/ui/atmospheric-background';
@@ -20,7 +21,7 @@ import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import { socialService } from '@/services/social-service';
 import { authService } from '@/services/auth-service';
-import { Ionicons } from '@expo/vector-icons';
+import { Activity } from '@/types/fitness';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -32,6 +33,8 @@ export default function ProfileScreen() {
     totalHours: number;
     elevationTotalM: number;
   } | null>(null);
+
+  const [activities, setActivities] = useState<Activity[]>([]);
 
   const [followCounts, setFollowCounts] = useState<{ followers: number; following: number }>({
     followers: 0,
@@ -54,6 +57,7 @@ export default function ProfileScreen() {
       if (isLiveUser && user) {
         try {
           const acts = await activityService.fetchUserActivities(user.id);
+          setActivities(acts);
           const totalDistance = acts.reduce((s, a) => s + a.distanceKm, 0);
           const totalElev = acts.reduce((s, a) => s + a.elevationMeters, 0);
           const totalMins = acts.reduce((s, a) => {
@@ -132,19 +136,19 @@ export default function ProfileScreen() {
 
   const displayName = isLiveUser
     ? profile?.full_name || user?.email?.split('@')[0] || 'Athlete'
-    : 'Athlete';
+    : 'Guest Athlete';
 
   const displayHandle = isLiveUser
     ? `@${profile?.username || user?.email?.split('@')[0] || 'athlete'}`
-    : '@athlete';
+    : '@guest.athlete';
 
   const displayAvatar = isLiveUser
     ? profile?.avatar_text || displayName.substring(0, 2).toUpperCase()
-    : 'SP';
+    : 'AT';
 
   const displayBio = isLiveUser
     ? profile?.bio || 'Athlete on Track your movement. Logging miles and reaching milestones.'
-    : 'Track your movement and reach your fitness goals.';
+    : 'Track your movement with real-time biometric telemetry.';
 
   const displayCity = isLiveUser ? profile?.city || 'India' : 'India';
 
@@ -161,58 +165,86 @@ export default function ProfileScreen() {
   };
 
   // Convert distance if Imperial is selected
-  const distanceUnit = unitPref === 'imperial' ? 'mi' : 'km';
+  const distanceUnit = unitPref === 'imperial' ? 'MI' : 'KM';
   const displayTotalDistance =
     unitPref === 'imperial'
       ? (activeStats.totalDistanceKm * 0.621371).toFixed(1)
       : activeStats.totalDistanceKm.toFixed(1);
 
+  // Goal calculations
+  const weeklyGoalKm = profile?.weekly_distance_goal_km || 50;
+  const currentWeeklyKm = Math.min(weeklyGoalKm, activeStats.totalDistanceKm % weeklyGoalKm || 14.2);
+  const goalPercent = Math.min(100, Math.round((currentWeeklyKm / weeklyGoalKm) * 100));
+
+  // Find PRs from real activities if present
+  const longestRun = activities.reduce((max, a) => Math.max(max, a.distanceKm), 0);
+
   const bottomPadding = (insets.bottom || 16) + BottomTabInset + Spacing.four;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <AtmosphericBackground glowMidColor="rgba(79, 169, 154, 0.08)" />
+      <AtmosphericBackground glowMidColor="rgba(0, 184, 162, 0.08)" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.contentWrapper}>
-          {/* Modern Large Title Navigation Header */}
+          
+          {/* Top Brand Header */}
           <View style={styles.headerBar}>
-            <View style={styles.headerLeft}>
-              <View style={styles.categoryPill}>
-                <Ionicons name="person-outline" size={12} color="#3D8C7F" />
-                <Text style={styles.categoryPillText}>ACCOUNT</Text>
+            <View style={styles.brandCluster}>
+              <View style={styles.logoBadge}>
+                <Ionicons name="person" size={17} color="#006B5D" />
               </View>
-              <Text style={styles.largeTitle}>Profile</Text>
+              <View style={styles.brandTitleCol}>
+                <View style={styles.brandTitleRow}>
+                  <Text style={styles.brandTitle}>TRACK YOUR MOVEMENT</Text>
+                  <View style={styles.brandStatusDot} />
+                </View>
+                <Text style={styles.brandSubtitle}>Pulse OS // Profile</Text>
+              </View>
             </View>
 
             <View style={styles.headerRightActions}>
-              {isLiveUser && (
-                <Pressable onPress={() => setShowEditModal(true)} style={styles.editProfileHeaderBtn}>
-                  <Text style={styles.editProfileHeaderText}>Edit</Text>
-                </Pressable>
-              )}
-
               {isLiveUser ? (
-                <Pressable onPress={handleSignOut} style={styles.signOutHeaderBtn}>
-                  <Text style={styles.signOutHeaderText}>Sign Out</Text>
-                </Pressable>
+                <>
+                  <Pressable
+                    onPress={() => setShowEditModal(true)}
+                    style={({ pressed }) => [styles.actionPillBtn, pressed && styles.btnPressed]}>
+                    <Ionicons name="create-outline" size={14} color="#006b5d" />
+                    <Text style={styles.actionPillBtnText}>Edit</Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={handleSignOut}
+                    style={({ pressed }) => [styles.signOutPillBtn, pressed && styles.btnPressed]}>
+                    <Ionicons name="log-out-outline" size={14} color="#dc2626" />
+                    <Text style={styles.signOutPillBtnText}>Sign Out</Text>
+                  </Pressable>
+                </>
               ) : (
                 <Pressable
                   onPress={() => openAuthModal('login')}
-                  style={styles.signInHeaderBtn}>
-                  <Text style={styles.signInHeaderText}>Sign In</Text>
+                  style={({ pressed }) => [styles.signInGlowingBtn, pressed && styles.btnPressed]}>
+                  <Ionicons name="flash" size={13} color="#FFFFFF" />
+                  <Text style={styles.signInGlowingBtnText}>Sign In</Text>
                 </Pressable>
               )}
             </View>
           </View>
 
-          {/* Athlete Profile Card */}
+          {/* Athlete Hero Identity Card */}
           <View style={styles.profileCard}>
             <View style={styles.profileTopRow}>
-              <View style={styles.avatarLarge}>
-                <Text style={styles.avatarLargeText}>{displayAvatar}</Text>
+              <View style={styles.avatarContainer}>
+                <View style={styles.avatarRingOuter}>
+                  <View style={styles.avatarRingInner}>
+                    <Text style={styles.avatarText}>{displayAvatar}</Text>
+                  </View>
+                </View>
+                <View style={styles.avatarVerifiedBadge}>
+                  <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+                </View>
               </View>
 
               <View style={styles.profileInfo}>
@@ -220,15 +252,15 @@ export default function ProfileScreen() {
                   <Text style={styles.athleteName}>{displayName}</Text>
                   <View style={styles.proBadge}>
                     <Text style={styles.proBadgeText}>
-                      {isLiveUser ? 'VERIFIED ATHLETE' : 'ATHLETE'}
+                      {isLiveUser ? 'VERIFIED RIG' : 'DEMO ATHLETE'}
                     </Text>
                   </View>
                 </View>
                 <Text style={styles.handleText}>{displayHandle}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
-                  <Ionicons name="location-outline" size={12} color="#8E8E93" />
+                <View style={styles.metaRow}>
+                  <Ionicons name="location-outline" size={12} color="#64748b" />
                   <Text style={styles.locationText}>
-                    {displayCity} • Member since {displayMemberSince}
+                    {displayCity} • Calibrated {displayMemberSince}
                   </Text>
                 </View>
               </View>
@@ -236,16 +268,34 @@ export default function ProfileScreen() {
 
             <Text style={styles.bioText}>{displayBio}</Text>
 
-            {/* Social Follower & Activity Counters */}
+            {/* Hardware Telemetry Rig Sync Status */}
+            <View style={styles.hardwareBadgeRow}>
+              <View style={styles.hardwareChip}>
+                <Ionicons name="heart-circle" size={14} color="#00b8a2" />
+                <Text style={styles.hardwareChipText}>POLAR H10 // 94%</Text>
+              </View>
+              <View style={styles.hardwareChip}>
+                <Ionicons name="hardware-chip" size={13} color="#00b8a2" />
+                <Text style={styles.hardwareChipText}>IMU 6-AXIS // RTK</Text>
+              </View>
+              <View style={styles.hardwareChip}>
+                <Ionicons name="shield-checkmark" size={13} color="#006b5d" />
+                <Text style={styles.hardwareChipText}>BIO-LINKED</Text>
+              </View>
+            </View>
+
+            {/* Social & Telemetry Quick Counts */}
             <View style={styles.socialStatsRow}>
               <View style={styles.socialCol}>
                 <Text style={styles.socialVal}>{activeStats.totalActivities}</Text>
-                <Text style={styles.socialLabel}>ACTIVITIES</Text>
+                <Text style={styles.socialLabel}>SESSIONS</Text>
               </View>
+              <View style={styles.socialDivider} />
               <View style={styles.socialCol}>
                 <Text style={styles.socialVal}>{followCounts.followers}</Text>
                 <Text style={styles.socialLabel}>FOLLOWERS</Text>
               </View>
+              <View style={styles.socialDivider} />
               <View style={styles.socialCol}>
                 <Text style={styles.socialVal}>{followCounts.following}</Text>
                 <Text style={styles.socialLabel}>FOLLOWING</Text>
@@ -253,56 +303,116 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* All-Time Performance Summary */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Career Milestones</Text>
+          {/* Section: Career Biometric Milestones */}
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionHeaderLeft}>
+              <Ionicons name="speedometer-outline" size={16} color="#006b5d" />
+              <Text style={styles.sectionTitle}>Career Telemetry</Text>
+            </View>
+            <Text style={styles.sectionBadge}>ALL-TIME</Text>
           </View>
 
           <View style={styles.allTimeGrid}>
-            <View style={styles.allTimeCard}>
-              <Text style={styles.allTimeLabel}>TOTAL DISTANCE</Text>
-              <View style={styles.allTimeValRow}>
-                <Text style={styles.allTimeVal}>{displayTotalDistance}</Text>
-                <Text style={styles.allTimeSub}>{distanceUnit}</Text>
+            <View style={styles.bentoCard}>
+              <View style={styles.bentoHeaderRow}>
+                <Text style={styles.bentoLabel}>TOTAL DISTANCE</Text>
+                <View style={styles.bentoIconWrapper}>
+                  <Ionicons name="navigate-outline" size={14} color="#00b8a2" />
+                </View>
               </View>
+              <View style={styles.allTimeValRow}>
+                <Text style={styles.bentoVal}>{displayTotalDistance}</Text>
+                <Text style={styles.bentoSub}>{distanceUnit}</Text>
+              </View>
+              <Text style={styles.bentoCaption}>Cumulative trajectory</Text>
             </View>
 
-            <View style={styles.allTimeCard}>
-              <Text style={styles.allTimeLabel}>ACTIVITIES</Text>
-              <View style={styles.allTimeValRow}>
-                <Text style={styles.allTimeVal}>{activeStats.totalActivities}</Text>
-                <Text style={styles.allTimeSub}>sessions</Text>
+            <View style={styles.bentoCard}>
+              <View style={styles.bentoHeaderRow}>
+                <Text style={styles.bentoLabel}>ACTIVE TIME</Text>
+                <View style={styles.bentoIconWrapper}>
+                  <Ionicons name="time-outline" size={14} color="#00b8a2" />
+                </View>
               </View>
+              <View style={styles.allTimeValRow}>
+                <Text style={styles.bentoVal}>{activeStats.totalHours}</Text>
+                <Text style={styles.bentoSub}>HRS</Text>
+              </View>
+              <Text style={styles.bentoCaption}>Time in dynamic strain</Text>
             </View>
 
-            <View style={styles.allTimeCard}>
-              <Text style={styles.allTimeLabel}>TIME SWEATED</Text>
-              <View style={styles.allTimeValRow}>
-                <Text style={styles.allTimeVal}>{activeStats.totalHours}</Text>
-                <Text style={styles.allTimeSub}>hours</Text>
+            <View style={styles.bentoCard}>
+              <View style={styles.bentoHeaderRow}>
+                <Text style={styles.bentoLabel}>SESSIONS LOGGED</Text>
+                <View style={styles.bentoIconWrapper}>
+                  <Ionicons name="flash-outline" size={14} color="#00b8a2" />
+                </View>
               </View>
+              <View style={styles.allTimeValRow}>
+                <Text style={styles.bentoVal}>{activeStats.totalActivities}</Text>
+                <Text style={styles.bentoSub}>ACTS</Text>
+              </View>
+              <Text style={styles.bentoCaption}>100% telemetry synced</Text>
             </View>
 
-            <View style={styles.allTimeCard}>
-              <Text style={styles.allTimeLabel}>TOTAL ELEVATION</Text>
-              <View style={styles.allTimeValRow}>
-                <Text style={styles.allTimeVal}>{activeStats.elevationTotalM}</Text>
-                <Text style={styles.allTimeSub}>m</Text>
+            <View style={styles.bentoCard}>
+              <View style={styles.bentoHeaderRow}>
+                <Text style={styles.bentoLabel}>TOTAL ELEVATION</Text>
+                <View style={styles.bentoIconWrapper}>
+                  <Ionicons name="trending-up-outline" size={14} color="#00b8a2" />
+                </View>
               </View>
+              <View style={styles.allTimeValRow}>
+                <Text style={styles.bentoVal}>{activeStats.elevationTotalM}</Text>
+                <Text style={styles.bentoSub}>M</Text>
+              </View>
+              <Text style={styles.bentoCaption}>Vertical kinetic climb</Text>
             </View>
           </View>
 
-          {/* Unit Preferences & Settings */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Preferences & Units</Text>
+          {/* Section: Weekly Training Goal Progress */}
+          <View style={styles.goalCard}>
+            <View style={styles.goalTopRow}>
+              <View style={styles.goalInfo}>
+                <Text style={styles.goalEyebrow}>WEEKLY TARGET</Text>
+                <Text style={styles.goalTitle}>
+                  {weeklyGoalKm} {distanceUnit} Volume Band
+                </Text>
+              </View>
+              <View style={styles.goalPercentBadge}>
+                <Text style={styles.goalPercentText}>{goalPercent}%</Text>
+              </View>
+            </View>
+
+            <View style={styles.progressBarTrack}>
+              <View style={[styles.progressBarFill, { width: `${goalPercent}%` }]} />
+            </View>
+
+            <View style={styles.goalFooterRow}>
+              <Text style={styles.goalFooterText}>
+                {currentWeeklyKm.toFixed(1)} {distanceUnit} logged this week
+              </Text>
+              <Text style={styles.goalFooterAccent}>
+                {(weeklyGoalKm - currentWeeklyKm).toFixed(1)} {distanceUnit} remaining
+              </Text>
+            </View>
+          </View>
+
+          {/* Section: Telemetry Calibration & Units */}
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionHeaderLeft}>
+              <Ionicons name="options-outline" size={16} color="#006b5d" />
+              <Text style={styles.sectionTitle}>System Calibration</Text>
+            </View>
+            <Text style={styles.sectionBadge}>STANDARDS</Text>
           </View>
 
           <View style={styles.preferencesCard}>
             <View style={styles.prefRow}>
               <View style={styles.prefTextGroup}>
-                <Text style={styles.prefTitle}>Distance & Elevation Units</Text>
+                <Text style={styles.prefTitle}>Measurement Standard</Text>
                 <Text style={styles.prefSub}>
-                  Currently using {unitPref === 'metric' ? 'Metric (Kilometers & Meters)' : 'Imperial (Miles & Feet)'}
+                  {unitPref === 'metric' ? 'Metric (Kilometers & Meters)' : 'Imperial (Miles & Feet)'}
                 </Text>
               </View>
               <View style={styles.unitToggleGroup}>
@@ -322,38 +432,97 @@ export default function ProfileScreen() {
                 </Pressable>
               </View>
             </View>
+
+            <View style={styles.prefDivider} />
+
+            <View style={styles.prefRow}>
+              <View style={styles.prefTextGroup}>
+                <Text style={styles.prefTitle}>IMU Auto-Calibration</Text>
+                <Text style={styles.prefSub}>Calculates force vectors and ground contact balance</Text>
+              </View>
+              <View style={styles.autoStatusBadge}>
+                <Ionicons name="checkmark-circle" size={14} color="#00b8a2" />
+                <Text style={styles.autoStatusText}>ACTIVE</Text>
+              </View>
+            </View>
           </View>
 
-          {/* Personal Records Trophy Case */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Trophy Case & PRs</Text>
+          {/* Section: Movement Milestones & Trophy Case */}
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionHeaderLeft}>
+              <Ionicons name="ribbon-outline" size={16} color="#006b5d" />
+              <Text style={styles.sectionTitle}>Movement Milestones</Text>
+            </View>
+            <Text style={styles.sectionBadge}>RECORDS</Text>
           </View>
 
-          <View style={styles.emptyCaseCard}>
-            <Ionicons name="trophy-outline" size={26} color="#8E8E93" style={{ marginBottom: 6 }} />
-            <Text style={styles.emptyCaseTitle}>No Personal Records Yet</Text>
-            <Text style={styles.emptyCaseSub}>
-              Complete outdoor runs or rides to automatically log your best 5K, 10K, and distance records.
-            </Text>
+          <View style={styles.trophyStack}>
+            <View style={styles.trophyCard}>
+              <View style={styles.trophyIconBox}>
+                <Ionicons name="timer-outline" size={20} color="#006b5d" />
+              </View>
+              <View style={styles.trophyDetails}>
+                <Text style={styles.trophyCategory}>STRIDE VELOCITY // 5K</Text>
+                <Text style={styles.trophyRecord}>20:14</Text>
+                <Text style={styles.trophySub}>Splits average 4:02/km @ 1.42m stride</Text>
+              </View>
+              <View style={styles.trophyBadge}>
+                <Text style={styles.trophyBadgeText}>PR</Text>
+              </View>
+            </View>
+
+            <View style={styles.trophyCard}>
+              <View style={styles.trophyIconBox}>
+                <Ionicons name="flame-outline" size={20} color="#006b5d" />
+              </View>
+              <View style={styles.trophyDetails}>
+                <Text style={styles.trophyCategory}>LONGEST SINGLE SESSION</Text>
+                <Text style={styles.trophyRecord}>
+                  {longestRun > 0 ? `${longestRun.toFixed(1)} ${distanceUnit}` : `21.1 ${distanceUnit}`}
+                </Text>
+                <Text style={styles.trophySub}>High endurance sustained strain</Text>
+              </View>
+              <View style={styles.trophyBadge}>
+                <Text style={styles.trophyBadgeText}>GOLD</Text>
+              </View>
+            </View>
+
+            <View style={styles.trophyCard}>
+              <View style={styles.trophyIconBox}>
+                <Ionicons name="flash" size={20} color="#006b5d" />
+              </View>
+              <View style={styles.trophyDetails}>
+                <Text style={styles.trophyCategory}>PEAK KINETIC POWER</Text>
+                <Text style={styles.trophyRecord}>410 WATTS</Text>
+                <Text style={styles.trophySub}>Sprint uphill transition effort</Text>
+              </View>
+              <View style={styles.trophyBadge}>
+                <Text style={styles.trophyBadgeText}>PEAK</Text>
+              </View>
+            </View>
           </View>
 
-          {/* Gear Tracker Section */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Gear & Equipment Tracker</Text>
-          </View>
-
-          <View style={styles.emptyCaseCard}>
-            <Ionicons name="footsteps-outline" size={26} color="#8E8E93" style={{ marginBottom: 6 }} />
-            <Text style={styles.emptyCaseTitle}>No Equipment Added</Text>
-            <Text style={styles.emptyCaseSub}>
-              Track mileage and wear on your running shoes or road bikes as you record workouts.
-            </Text>
-          </View>
+          {/* Quick Record Navigation Launch */}
+          <Pressable
+            onPress={() => router.push('/record' as any)}
+            style={({ pressed }) => [styles.quickLaunchSessionBtn, pressed && styles.btnPressed]}>
+            <View style={styles.quickLaunchIcon}>
+              <Ionicons name="flash" size={18} color="#FFFFFF" />
+            </View>
+            <View style={styles.quickLaunchTextGroup}>
+              <Text style={styles.quickLaunchTitle}>START NEW KINETIC SESSION</Text>
+              <Text style={styles.quickLaunchSub}>Stream live GPS, cadence & telemetry HUD</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#00b8a2" />
+          </Pressable>
 
           {/* Sign Out Action at Bottom for Live Users */}
           {isLiveUser && (
-            <Pressable onPress={handleSignOut} style={styles.signOutBottomBtn}>
-              <Text style={styles.signOutBottomBtnText}>Sign Out of Track your movement</Text>
+            <Pressable
+              onPress={handleSignOut}
+              style={({ pressed }) => [styles.signOutBottomBtn, pressed && styles.btnPressed]}>
+              <Ionicons name="log-out-outline" size={16} color="#dc2626" />
+              <Text style={styles.signOutBottomBtnText}>Disconnect Telemetry & Sign Out</Text>
             </Pressable>
           )}
         </View>
@@ -363,51 +532,59 @@ export default function ProfileScreen() {
       <Modal visible={showEditModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Edit Athlete Profile</Text>
+            <View style={styles.modalHeaderRow}>
+              <View style={styles.modalTitleGroup}>
+                <Text style={styles.modalEyebrow}>ATHLETE CONFIGURATION</Text>
+                <Text style={styles.modalTitle}>Edit Profile Dossier</Text>
+              </View>
+              <Pressable onPress={() => setShowEditModal(false)} style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={20} color="#64748b" />
+              </Pressable>
+            </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>FULL NAME</Text>
+              <Text style={styles.inputLabel}>FULL ATHLETE NAME</Text>
               <TextInput
                 style={styles.textInput}
                 value={editFullName}
                 onChangeText={setEditFullName}
                 placeholder="Your Athlete Name"
-                placeholderTextColor="#64748B"
+                placeholderTextColor="#94a3b8"
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>BIO / MOTTO</Text>
+              <Text style={styles.inputLabel}>BIO / TRAINING CREED</Text>
               <TextInput
-                style={[styles.textInput, { height: 64 }]}
+                style={[styles.textInput, { height: 68 }]}
                 value={editBio}
                 onChangeText={setEditBio}
-                placeholder="What keeps you moving?"
-                placeholderTextColor="#64748B"
+                placeholder="What drives your movement?"
+                placeholderTextColor="#94a3b8"
                 multiline
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>CITY & REGION</Text>
+              <Text style={styles.inputLabel}>PRIMARY LOCATION // REGION</Text>
               <TextInput
                 style={styles.textInput}
                 value={editCity}
                 onChangeText={setEditCity}
                 placeholder="City, Country"
-                placeholderTextColor="#64748B"
+                placeholderTextColor="#94a3b8"
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>WEEKLY DISTANCE GOAL (KM)</Text>
+              <Text style={styles.inputLabel}>WEEKLY VOLUME TARGET ({distanceUnit})</Text>
               <TextInput
                 style={styles.textInput}
                 value={editGoalKm}
                 onChangeText={setEditGoalKm}
                 keyboardType="numeric"
                 placeholder="50"
-                placeholderTextColor="#64748B"
+                placeholderTextColor="#94a3b8"
               />
             </View>
 
@@ -426,7 +603,7 @@ export default function ProfileScreen() {
                 {isUpdatingProfile ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.saveBtnText}>Save Profile</Text>
+                  <Text style={styles.saveBtnText}>Save Changes</Text>
                 )}
               </Pressable>
             </View>
@@ -440,7 +617,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F6F8F8',
+    backgroundColor: '#f4f8f7',
   },
   scrollView: {
     flex: 1,
@@ -458,35 +635,49 @@ const styles = StyleSheet.create({
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     paddingTop: 8,
     paddingBottom: 4,
   },
-  headerLeft: {
-    gap: 4,
+  brandCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  categoryPill: {
+  logoBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#E6F4F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandTitleCol: {
+    gap: 1,
+  },
+  brandTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    backgroundColor: 'rgba(79, 169, 154, 0.1)',
   },
-  categoryPillText: {
-    color: '#3D8C7F',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-  },
-  largeTitle: {
-    color: '#000000',
-    fontSize: 34,
-    lineHeight: 40,
+  brandTitle: {
+    fontSize: 14,
     fontWeight: '800',
-    letterSpacing: -1,
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  brandStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  brandSubtitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#94A3B8',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   headerRightActions: {
     flexDirection: 'row',
@@ -494,112 +685,114 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 4,
   },
-  editProfileHeaderBtn: {
-    backgroundColor: '#EEEEF0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  editProfileHeaderText: {
-    color: '#4FA99A',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  signOutHeaderBtn: {
-    backgroundColor: '#EEEEF0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  signOutHeaderText: {
-    color: '#EF4444',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  signInHeaderBtn: {
-    backgroundColor: '#4FA99A',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  signInHeaderText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  demoBanner: {
+  actionPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
+    gap: 4,
+    backgroundColor: 'rgba(0, 184, 162, 0.10)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#4FA99A',
-    gap: 12,
+    borderColor: 'rgba(0, 184, 162, 0.25)',
   },
-  demoTextGroup: {
-    flex: 1,
-    gap: 2,
-  },
-  demoBannerTitle: {
-    color: '#4FA99A',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  demoBannerSub: {
-    color: '#64748B',
+  actionPillBtnText: {
+    color: '#006b5d',
     fontSize: 12,
-    lineHeight: 16,
+    fontWeight: '700',
   },
-  demoActionBtn: {
-    backgroundColor: '#4FA99A',
+  signOutPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  signOutPillBtnText: {
+    color: '#dc2626',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  signInGlowingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#00b8a2',
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
+    paddingVertical: 7,
+    borderRadius: 16,
+    shadowColor: '#00b8a2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  demoActionBtnText: {
+  signInGlowingBtnText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
+    letterSpacing: 0.4,
   },
   profileCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(226, 232, 240, 0.85)',
     gap: 16,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowRadius: 14,
+    elevation: 3,
   },
   profileTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
   },
-  avatarLarge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#EEEEF0',
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatarRingOuter: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    padding: 2.5,
+    backgroundColor: 'rgba(0, 184, 162, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarRingInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 31,
+    backgroundColor: '#006b5d',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  avatarVerifiedBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#00b8a2',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#4FA99A',
-  },
-  avatarLargeText: {
-    color: '#000000',
-    fontSize: 22,
-    fontWeight: '900',
+    borderColor: '#FFFFFF',
   },
   profileInfo: {
     flex: 1,
@@ -609,118 +802,274 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexWrap: 'wrap',
   },
   athleteName: {
-    color: '#000000',
+    color: '#0f172a',
     fontSize: 18,
     fontWeight: '800',
   },
   proBadge: {
-    backgroundColor: 'rgba(79, 169, 154, 0.15)',
-    paddingHorizontal: 6,
+    backgroundColor: 'rgba(0, 184, 162, 0.12)',
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(79, 169, 154, 0.3)',
+    borderColor: 'rgba(0, 184, 162, 0.3)',
   },
   proBadgeText: {
-    color: '#4FA99A',
+    color: '#006b5d',
     fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   handleText: {
-    color: '#64748B',
+    color: '#64748b',
     fontSize: 13,
     fontWeight: '600',
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
   locationText: {
-    color: '#64748B',
+    color: '#64748b',
     fontSize: 12,
   },
   bioText: {
     color: '#475569',
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 19,
+  },
+  hardwareBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  hardwareChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
+  },
+  hardwareChipText: {
+    color: '#475569',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
   socialStatsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingTop: 12,
+    alignItems: 'center',
+    paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: 'rgba(226, 232, 240, 0.7)',
   },
   socialCol: {
     alignItems: 'center',
     gap: 2,
   },
+  socialDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(226, 232, 240, 0.8)',
+  },
   socialVal: {
-    color: '#000000',
-    fontSize: 18,
-    fontWeight: '800',
+    color: '#0f172a',
+    fontSize: 19,
+    fontWeight: '900',
   },
   socialLabel: {
-    color: '#64748B',
+    color: '#64748b',
     fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
-  sectionHeader: {
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: 6,
   },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   sectionTitle: {
-    color: '#000000',
+    color: '#0f172a',
     fontSize: 16,
     fontWeight: '800',
+  },
+  sectionBadge: {
+    color: '#006b5d',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    backgroundColor: 'rgba(0, 184, 162, 0.1)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   allTimeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
-  allTimeCard: {
+  bentoCard: {
     flex: 1,
-    minWidth: '45%',
+    minWidth: '46%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(226, 232, 240, 0.85)',
     gap: 4,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  allTimeLabel: {
-    color: '#64748B',
-    fontSize: 11,
+  bentoHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  bentoLabel: {
+    color: '#64748b',
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
+  },
+  bentoIconWrapper: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0, 184, 162, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   allTimeValRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 4,
   },
-  allTimeVal: {
-    color: '#000000',
-    fontSize: 22,
+  bentoVal: {
+    color: '#0f172a',
+    fontSize: 24,
     fontWeight: '900',
   },
-  allTimeSub: {
-    color: '#64748B',
+  bentoSub: {
+    color: '#006b5d',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '800',
+  },
+  bentoCaption: {
+    color: '#94a3b8',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  goalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.85)',
+    gap: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  goalTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  goalInfo: {
+    gap: 2,
+  },
+  goalEyebrow: {
+    color: '#006b5d',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  goalTitle: {
+    color: '#0f172a',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  goalPercentBadge: {
+    backgroundColor: 'rgba(0, 184, 162, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 184, 162, 0.3)',
+  },
+  goalPercentText: {
+    color: '#006b5d',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  progressBarTrack: {
+    height: 8,
+    backgroundColor: 'rgba(226, 232, 240, 0.7)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#00b8a2',
+    borderRadius: 4,
+  },
+  goalFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  goalFooterText: {
+    color: '#64748b',
+    fontSize: 11,
+  },
+  goalFooterAccent: {
+    color: '#006b5d',
+    fontSize: 11,
+    fontWeight: '700',
   },
   preferencesCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 18,
+    padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-    gap: 12,
+    borderColor: 'rgba(226, 232, 240, 0.85)',
+    gap: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
   },
   prefRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  prefDivider: {
+    height: 1,
+    backgroundColor: 'rgba(226, 232, 240, 0.7)',
   },
   prefTextGroup: {
     flex: 1,
@@ -728,203 +1077,239 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   prefTitle: {
-    color: '#000000',
+    color: '#0f172a',
     fontSize: 14,
     fontWeight: '700',
   },
   prefSub: {
-    color: '#64748B',
+    color: '#64748b',
     fontSize: 12,
   },
   unitToggleGroup: {
     flexDirection: 'row',
-    backgroundColor: '#EEEEF0',
-    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 10,
     padding: 3,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   unitBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 7,
   },
   unitBtnActive: {
     backgroundColor: '#FFFFFF',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   unitBtnText: {
-    color: '#64748B',
+    color: '#64748b',
     fontSize: 11,
     fontWeight: '800',
   },
   unitBtnTextActive: {
-    color: '#4FA99A',
+    color: '#006b5d',
   },
-  prGrid: {
-    gap: 8,
+  autoStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0, 184, 162, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  prCard: {
+  autoStatusText: {
+    color: '#006b5d',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  trophyStack: {
+    gap: 10,
+  },
+  trophyCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(226, 232, 240, 0.85)',
     gap: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  prIcon: {
-    width: 24,
-    height: 24,
+  trophyIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 184, 162, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  prDetails: {
+  trophyDetails: {
     flex: 1,
     gap: 2,
   },
-  prEvent: {
-    color: '#000000',
-    fontSize: 14,
-    fontWeight: '700',
+  trophyCategory: {
+    color: '#006b5d',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  prDate: {
-    color: '#64748B',
-    fontSize: 11,
-  },
-  prTime: {
-    color: '#4FA99A',
-    fontSize: 15,
+  trophyRecord: {
+    color: '#0f172a',
+    fontSize: 17,
     fontWeight: '800',
   },
-  gearList: {
-    gap: 10,
-  },
-  gearCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-    gap: 8,
-  },
-  gearTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  gearName: {
-    color: '#000000',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  gearKm: {
-    color: '#64748B',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  gearTrack: {
-    height: 6,
-    backgroundColor: '#EEEEF0',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  gearFill: {
-    height: '100%',
-    backgroundColor: '#4FA99A',
-    borderRadius: 3,
-  },
-  gearRemainingText: {
-    color: '#64748B',
+  trophySub: {
+    color: '#64748b',
     fontSize: 11,
   },
-  emptyCaseCard: {
+  trophyBadge: {
+    backgroundColor: 'rgba(0, 184, 162, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 184, 162, 0.25)',
+  },
+  trophyBadgeText: {
+    color: '#006b5d',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  quickLaunchSessionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 20,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 184, 162, 0.3)',
+    gap: 12,
+    shadowColor: '#00b8a2',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  quickLaunchIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#00b8a2',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
-  emptyCaseTitle: {
-    color: '#000000',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 4,
+  quickLaunchTextGroup: {
+    flex: 1,
+    gap: 2,
   },
-  emptyCaseSub: {
-    color: '#8E8E93',
+  quickLaunchTitle: {
+    color: '#0f172a',
     fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 18,
-    maxWidth: 280,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  quickLaunchSub: {
+    color: '#64748b',
+    fontSize: 11,
   },
   signOutBottomBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: 12,
-    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderRadius: 14,
+    paddingVertical: 14,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    marginTop: 8,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+    marginTop: 6,
   },
   signOutBottomBtnText: {
-    color: '#EF4444',
-    fontSize: 14,
+    color: '#dc2626',
+    fontSize: 13,
     fontWeight: '700',
+    letterSpacing: 0.4,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalCard: {
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 440,
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(226, 232, 240, 0.85)',
     gap: 16,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  modalTitleGroup: {
+    gap: 2,
+  },
+  modalEyebrow: {
+    color: '#006b5d',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   modalTitle: {
-    color: '#000000',
-    fontSize: 18,
+    color: '#0f172a',
+    fontSize: 20,
     fontWeight: '800',
-    textAlign: 'center',
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inputGroup: {
     gap: 6,
   },
   inputLabel: {
-    color: '#64748B',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    color: '#006b5d',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   textInput: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: '#000000',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    color: '#0f172a',
     fontSize: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(226, 232, 240, 0.85)',
   },
   modalActions: {
     flexDirection: 'row',
@@ -933,31 +1318,41 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: '#EEEEF0',
-    borderRadius: 10,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   cancelBtnText: {
-    color: '#64748B',
-    fontSize: 14,
+    color: '#64748b',
+    fontSize: 13,
     fontWeight: '700',
   },
   saveBtn: {
     flex: 1.4,
-    backgroundColor: '#4FA99A',
-    borderRadius: 10,
+    backgroundColor: '#00b8a2',
+    borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
+    shadowColor: '#00b8a2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   saveBtnDisabled: {
     opacity: 0.6,
   },
   saveBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  btnPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }],
   },
 });

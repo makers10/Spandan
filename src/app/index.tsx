@@ -12,13 +12,15 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { StatCard } from '@/components/fitness/stat-card';
-import { GoalBar } from '@/components/fitness/goal-bar';
-import { WeeklyChart } from '@/components/fitness/weekly-chart';
+import { ReadinessHeroCard } from '@/components/fitness/readiness-hero-card';
+import { KineticStrainCard } from '@/components/fitness/kinetic-strain-card';
+import { QuickLaunchBar } from '@/components/fitness/quick-launch-bar';
+import { FeaturedChallengeBanner } from '@/components/fitness/featured-challenge-banner';
+import { TelemetrySessionCard } from '@/components/fitness/telemetry-session-card';
+import { BiometricSyncCard } from '@/components/fitness/biometric-sync-card';
 import { FilterPills, FilterValue } from '@/components/fitness/filter-pills';
 import { ActivityCard } from '@/components/fitness/activity-card';
 import { SkeletonLoader } from '@/components/fitness/skeleton-loader';
-import { EmptyState } from '@/components/fitness/empty-state';
 import { AtmosphericBackground } from '@/components/ui/atmospheric-background';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
@@ -112,6 +114,10 @@ export default function HomeScreen() {
     ? profile?.full_name || user?.email?.split('@')[0] || 'Athlete'
     : 'Athlete';
 
+  const athleteFirstName = isLiveUser
+    ? (profile?.full_name || user?.email?.split('@')[0] || 'Athlete').split(' ')[0]
+    : 'Alex';
+
   const athleteAvatar = isLiveUser
     ? profile?.avatar_text || athleteDisplayName.substring(0, 2).toUpperCase()
     : 'TM';
@@ -135,31 +141,32 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#4FA99A"
-            colors={['#4FA99A']}
+            tintColor="#006B5D"
+            colors={['#006B5D']}
           />
         }>
         <View style={styles.contentWrapper}>
-          {/* Modern Fitness Large Title Navigation Header */}
+          {/* Top Kinetic Pulse Header */}
           <View style={styles.headerBar}>
-            <View style={styles.headerLeft}>
-              <View style={styles.datePill}>
-                <Ionicons name="calendar-outline" size={12} color="#3D8C7F" />
-                <Text style={styles.datePillText}>{todayFormatted}</Text>
+            <View style={styles.brandCluster}>
+              <View style={styles.logoBadge}>
+                <Ionicons name="pulse" size={17} color="#006B5D" />
               </View>
-              <Text style={styles.largeTitle}>Summary</Text>
+              <View style={styles.brandTitleCol}>
+                <View style={styles.brandTitleRow}>
+                  <Text style={styles.brandTitle}>TRACK YOUR MOVEMENT</Text>
+                  <View style={styles.brandStatusDot} />
+                </View>
+                <Text style={styles.brandSubtitle}>Pulse OS // Dashboard</Text>
+              </View>
             </View>
 
-            <View style={styles.headerRight}>
+            <View style={styles.headerRightActions}>
               <Pressable
                 onPress={() => router.push('/record' as any)}
-                accessibilityRole="button"
-                accessibilityLabel="Record Workout"
-                style={({ pressed }) => [styles.recordBtn, pressed && styles.recordBtnPressed]}>
-                <View style={styles.recordIconWrap}>
-                  <Ionicons name="add" size={16} color="#FFFFFF" />
-                </View>
-                <Text style={styles.recordBtnText}>Record</Text>
+                style={styles.sensorBadgeBtn}>
+                <View style={styles.sensorPulsingDot} />
+                <Text style={styles.sensorBadgeText}>Sensors</Text>
               </Pressable>
 
               <Pressable
@@ -178,97 +185,54 @@ export default function HomeScreen() {
             <SkeletonLoader />
           ) : (
             <>
-              {/* SECTION: ACTIVITY GOAL */}
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleRow}>
-                    <View style={styles.sectionIconBadge}>
-                      <Ionicons name="pulse" size={13} color="#4FA99A" />
-                    </View>
-                    <Text style={styles.sectionTitle}>ACTIVITY & GOAL</Text>
+              {/* Athlete Welcome & Readiness Briefing */}
+              <View style={styles.welcomeRow}>
+                <View style={styles.welcomeLeft}>
+                  <View style={styles.bioSyncBadge}>
+                    <View style={styles.bioSyncDot} />
+                    <Text style={styles.bioSyncText}>BIO-SYNC OK</Text>
                   </View>
+                  <Text style={styles.welcomeTitle}>Ready to Move, {athleteFirstName}</Text>
                 </View>
 
-                <GoalBar
-                  currentDistance={activeWeeklyStats.totalDistanceKm}
-                  targetDistance={activeWeeklyStats.distanceGoalKm}
-                  streakWeeks={activeWeeklyStats.streakWeeks}
-                />
-              </View>
-
-              {/* SECTION: FAVORITES / STAT CARDS */}
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleRow}>
-                    <View style={[styles.sectionIconBadge, { backgroundColor: 'rgba(255, 107, 0, 0.12)' }]}>
-                      <Ionicons name="flame" size={13} color="#FF6B00" />
-                    </View>
-                    <Text style={styles.sectionTitle}>FAVORITES</Text>
-                  </View>
-                  <Text style={styles.sectionSubText}>{activeWeeklyStats.weekLabel}</Text>
-                </View>
-
-                <View style={styles.statsGrid}>
-                  <StatCard
-                    label="Distance"
-                    value={activeWeeklyStats.totalDistanceKm.toFixed(1)}
-                    unit="KM"
-                    deltaText={isLiveUser ? `${activeWeeklyStats.activitiesCount} sessions` : `${activeWeeklyStats.distanceChangePercent}% vs last wk`}
-                    isPositiveDelta
-                    accentColor="#FF6B00"
-                    iconName="flame-outline"
-                  />
-
-                  <StatCard
-                    label="Active Time"
-                    value={activeWeeklyStats.activeTimeFormatted}
-                    deltaText={`${activeWeeklyStats.activitiesCount} workouts`}
-                    isPositiveDelta
-                    accentColor="#00D2D3"
-                    iconName="time-outline"
-                  />
-
-                  <StatCard
-                    label="Elevation"
-                    value={activeWeeklyStats.elevationGainM}
-                    unit="M"
-                    deltaText={`${activeWeeklyStats.floorsClimbedTotal || Math.floor(activeWeeklyStats.elevationGainM / 3)} floors climbed`}
-                    isPositiveDelta
-                    accentColor="#10B981"
-                    iconName="trending-up-outline"
-                  />
+                <View style={styles.primeBadge}>
+                  <Ionicons name="flash" size={13} color="#FFFFFF" />
+                  <Text style={styles.primeBadgeText}>PRIME</Text>
                 </View>
               </View>
 
-              {/* SECTION: WEEKLY RHYTHM CHART */}
-              <View style={styles.sectionContainer}>
-                <WeeklyChart days={activeWeeklyStats.dailyActivities} />
-              </View>
+              {/* Hero Telemetry Card: Recovery Index (94% Optimal) */}
+              <ReadinessHeroCard />
 
-              {/* SECTION: WORKOUTS LIST */}
+              {/* Daily Movement Strain & Multi-Ring Tracker */}
+              <KineticStrainCard
+                currentStrain={activeWeeklyStats.totalDistanceKm > 0 ? Number(activeWeeklyStats.totalDistanceKm.toFixed(1)) : 14.8}
+                targetStrain={activeWeeklyStats.distanceGoalKm || 18.0}
+              />
+
+              {/* Quick Launch Bar */}
+              <QuickLaunchBar />
+
+              {/* Live Movement Stream Visual Banner */}
+              <FeaturedChallengeBanner />
+
+              {/* Recent Movement Sessions (Session Log // Telemetry) */}
               <View style={styles.sectionContainer}>
                 <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleRow}>
-                    <View style={[styles.sectionIconBadge, { backgroundColor: 'rgba(79, 169, 154, 0.12)' }]}>
-                      <Ionicons name="fitness" size={13} color="#4FA99A" />
-                    </View>
-                    <Text style={styles.sectionTitle}>WORKOUTS</Text>
-                  </View>
-                  <Text style={styles.sectionSubText}>{rawActivities.length} total</Text>
+                  <Text style={styles.sectionTitle}>SESSION LOG // TELEMETRY</Text>
+                  <Text style={styles.sectionSubText}>{todayFormatted}</Text>
                 </View>
 
-                {/* Filter Pills */}
-                <FilterPills selected={filter} onSelect={setFilter} counts={counts} />
+                {/* Real-Time Session Telemetry Card */}
+                <TelemetrySessionCard />
 
-                {/* Workout Cards or Empty State */}
-                {activities.length === 0 ? (
-                  <EmptyState
-                    title={filter === 'all' ? 'No Activities Yet' : `No ${filter.toUpperCase()} Workouts`}
-                    message="Every milestone begins with a single step. Start recording your workouts to build your training history."
-                    onRecordPress={() => router.push('/record' as any)}
-                    onResetFilter={filter !== 'all' ? () => setFilter('all') : undefined}
-                  />
-                ) : (
+                {/* Filter Pills for Recorded User Workouts */}
+                {rawActivities.length > 0 && (
+                  <FilterPills selected={filter} onSelect={setFilter} counts={counts} />
+                )}
+
+                {/* Real User Recorded Workouts */}
+                {activities.length > 0 && (
                   <View style={styles.activitiesList}>
                     {activities.map((activity) => (
                       <ActivityCard key={activity.id} activity={activity} />
@@ -276,6 +240,9 @@ export default function HomeScreen() {
                   </View>
                 )}
               </View>
+
+              {/* Live Biometric Sync Status Card */}
+              <BiometricSyncCard />
             </>
           )}
         </View>
@@ -306,86 +273,94 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
-  headerLeft: {
-    gap: 4,
-  },
-  datePill: {
+  brandCluster: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    backgroundColor: 'rgba(79, 169, 154, 0.1)',
+    gap: 10,
   },
-  datePillText: {
-    color: '#3D8C7F',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-  },
-  largeTitle: {
-    color: '#000000',
-    fontSize: 34,
-    lineHeight: 40,
-    fontWeight: '800',
-    letterSpacing: -1,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  recordBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#4FA99A',
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 22,
-    shadowColor: '#4FA99A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-  },
-  recordBtnPressed: {
-    transform: [{ scale: 0.96 }],
-    opacity: 0.92,
-  },
-  recordIconWrap: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  logoBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#E6F4F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  recordBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+  brandTitleCol: {
+    gap: 1,
+  },
+  brandTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  brandTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  brandStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  brandSubtitle: {
+    fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.2,
+    color: '#94A3B8',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sensorBadgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  sensorPulsingDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10B981',
+  },
+  sensorBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
   },
   avatarBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#4FA99A',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 1,
     position: 'relative',
   },
   avatarBtnPressed: {
@@ -393,8 +368,8 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   avatarBtnText: {
-    color: '#4FA99A',
-    fontSize: 14,
+    color: '#006B5D',
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
@@ -402,15 +377,74 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -1,
     right: -1,
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: '#34C759',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10B981',
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
+  welcomeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  welcomeLeft: {
+    gap: 4,
+  },
+  bioSyncBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+    alignSelf: 'flex-start',
+  },
+  bioSyncDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#10B981',
+  },
+  bioSyncText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#047857',
+    letterSpacing: 0.8,
+  },
+  welcomeTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+  },
+  primeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  primeBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.8,
+  },
   sectionContainer: {
-    gap: 10,
+    gap: 12,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -418,34 +452,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 2,
   },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  sectionIconBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    backgroundColor: 'rgba(79, 169, 154, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   sectionTitle: {
-    color: '#48484A',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
+    color: '#64748B',
     letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   sectionSubText: {
-    color: '#8E8E93',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 10,
-    flexWrap: 'wrap',
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
   },
   activitiesList: {
     gap: 12,

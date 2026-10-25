@@ -7,10 +7,17 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { usePathname } from 'expo-router';
 
-type TabIconType = 'summary' | 'explore' | 'record' | 'profile';
+export type TabIconType =
+  | 'dashboard'
+  | 'summary'
+  | 'session'
+  | 'record'
+  | 'analytics'
+  | 'explore'
+  | 'profile';
 
 interface TabButtonProps extends TabTriggerSlotProps {
   icon: TabIconType;
@@ -25,16 +32,16 @@ export default function AppTabs() {
       <TabList asChild>
         <ModernTabBar>
           <TabTrigger name="index" href="/" asChild>
-            <TabButton icon="summary" label="Summary" href="/" />
-          </TabTrigger>
-          <TabTrigger name="explore" href="/explore" asChild>
-            <TabButton icon="explore" label="Explore" href="/explore" />
+            <TabButton icon="dashboard" label="DASHBOARD" href="/" />
           </TabTrigger>
           <TabTrigger name="record" href="/record" asChild>
-            <TabButton icon="record" label="Record" href="/record" />
+            <TabButton icon="session" label="SESSION" href="/record" />
+          </TabTrigger>
+          <TabTrigger name="explore" href="/explore" asChild>
+            <TabButton icon="analytics" label="ANALYTICS" href="/explore" />
           </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
-            <TabButton icon="profile" label="Profile" href="/profile" />
+            <TabButton icon="profile" label="PROFILE" href="/profile" />
           </TabTrigger>
         </ModernTabBar>
       </TabList>
@@ -42,27 +49,12 @@ export default function AppTabs() {
   );
 }
 
-const emptySubscribe = () => () => {};
-
 export function ModernTabBar(props: TabListProps) {
-  const colorScheme = useColorScheme();
-  const mounted = React.useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
-
-  // Guarantee SSR and initial client hydration have identical styling
-  const isDark = mounted && colorScheme === 'dark';
-
   return (
     <View
       {...props}
       {...({ suppressHydrationWarning: true } as any)}
-      style={[
-        styles.tabBarContainer,
-        isDark ? styles.tabBarDark : styles.tabBarLight,
-      ]}>
+      style={[styles.tabBarContainer, styles.tabBarLight]}>
       <View style={styles.tabBarInner}>{props.children}</View>
     </View>
   );
@@ -79,9 +71,12 @@ export const TabButton = React.forwardRef<any, TabButtonProps>(function TabButto
       : pathname.startsWith(href);
   const active = Boolean(propIsFocused || isCurrent);
 
-  const activeColor = '#4FA99A';
-  const inactiveColor = '#8E8E93';
-  const color = active ? activeColor : inactiveColor;
+  const activeIconColor = '#00b8a2';
+  const activeTextColor = '#006b5d';
+  const inactiveColor = '#94a3b8';
+
+  const iconColor = active ? activeIconColor : inactiveColor;
+  const textColor = active ? activeTextColor : inactiveColor;
 
   return (
     <Pressable
@@ -91,23 +86,22 @@ export const TabButton = React.forwardRef<any, TabButtonProps>(function TabButto
       accessibilityState={{ selected: active }}
       style={({ pressed }) => [
         styles.tabButton,
-        active && styles.tabButtonActive,
+        active && styles.tabButtonActiveLight,
         pressed && styles.tabButtonPressed,
       ]}>
       <View style={[styles.tabIconWrapper, active && styles.tabIconWrapperActive]}>
-        <TabGlyph icon={icon} color={color} active={active} />
+        <TabGlyph icon={icon} color={iconColor} active={active} />
       </View>
       <Text
         numberOfLines={1}
         ellipsizeMode="tail"
         style={[
           styles.tabLabel,
-          { color },
+          { color: textColor },
           active && styles.tabLabelActive,
         ]}>
         {label}
       </Text>
-      <View style={active ? styles.activeDot : styles.inactiveDot} />
     </Pressable>
   );
 });
@@ -115,100 +109,48 @@ export const TabButton = React.forwardRef<any, TabButtonProps>(function TabButto
 function TabGlyph({
   icon,
   color,
-  active,
+  active: _active,
 }: {
   icon: TabIconType;
   color: string;
   active: boolean;
 }) {
   switch (icon) {
+    case 'dashboard':
     case 'summary':
-      return active ? (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill={color}>
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-        </svg>
-      ) : (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round">
-          <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572" />
+      // Material Symbols donut_large
+      return (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill={color}>
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6z" />
         </svg>
       );
-    case 'explore':
-      return active ? (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={color}
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <polygon
-            points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"
-            fill={color}
-            stroke={color}
-            strokeWidth="1"
-          />
-        </svg>
-      ) : (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-        </svg>
-      );
+    case 'session':
     case 'record':
-      return active ? (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke={color} strokeWidth="2.2" />
-          <circle cx="12" cy="12" r="5" fill={color} />
+      // Material Symbols bolt
+      return (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill={color}>
+          <path d="M11 21h-1l1-7H7.5c-.88 0-.33-.75-.31-.78C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-6 10.49z" />
         </svg>
-      ) : (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={color}
-          strokeWidth="2">
-          <circle cx="12" cy="12" r="10" />
-          <circle cx="12" cy="12" r="4.5" />
+      );
+    case 'analytics':
+    case 'explore':
+      // Material Symbols analytics
+      return (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill={color}>
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
         </svg>
       );
     case 'profile':
-      return active ? (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill={color}>
-          <circle cx="12" cy="7" r="4" fill={color} />
-          <path d="M12 13c-4.42 0-8 2.24-8 5v2h16v-2c0-2.76-3.58-5-8-5z" fill={color} />
+      // Material Symbols person
+      return (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill={color}>
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
         </svg>
-      ) : (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round">
-          <circle cx="12" cy="7" r="4" />
-          <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+      );
+    default:
+      return (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill={color}>
+          <circle cx="12" cy="12" r="10" />
         </svg>
       );
   }
@@ -217,105 +159,89 @@ function TabGlyph({
 const styles = StyleSheet.create({
   tabsRoot: {
     height: '100%',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#f4f8f7',
   },
   tabSlot: {
     height: '100%',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#f4f8f7',
   },
   tabBarContainer: {
     position: 'fixed' as any,
-    bottom: 12,
-    left: '2%',
-    right: '2%',
-    width: '96%',
-    maxWidth: 500,
-    height: 64,
+    bottom: 16,
+    left: '4%',
+    right: '4%',
+    width: '92%',
+    maxWidth: 480,
     marginHorizontal: 'auto' as any,
+    height: 64,
     zIndex: 1000,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: 36,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
     borderWidth: 1,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
+    shadowOpacity: 0.12,
     shadowRadius: 20,
     elevation: 10,
   },
   tabBarLight: {
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderColor: 'rgba(255, 255, 255, 0.85)',
-    backdropFilter: 'blur(30px) saturate(200%)' as any,
-  },
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderColor: 'rgba(226, 232, 240, 0.9)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+  } as any,
   tabBarDark: {
-    backgroundColor: 'rgba(24, 24, 27, 0.92)',
+    backgroundColor: 'rgba(19, 27, 46, 0.95)',
     borderColor: 'rgba(255, 255, 255, 0.12)',
-    backdropFilter: 'blur(30px) saturate(200%)' as any,
-  },
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+  } as any,
   tabBarInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     width: '100%',
     height: '100%',
-    gap: 2,
+    paddingHorizontal: 6,
   },
   tabButton: {
     flex: 1,
-    height: 56,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 0,
-    borderRadius: 22,
-    outlineStyle: 'none' as any,
-    userSelect: 'none' as any,
-    cursor: 'pointer' as any,
     gap: 2,
-  },
-  tabButtonActive: {
-    backgroundColor: 'rgba(79, 169, 154, 0.12)',
-  },
+    cursor: 'pointer',
+    transition: 'all 0.18s ease-in-out',
+  } as any,
+  tabButtonActiveLight: {
+    backgroundColor: 'rgba(0, 184, 162, 0.10)',
+  } as any,
+  tabButtonActiveDark: {
+    backgroundColor: 'rgba(0, 184, 162, 0.16)',
+  } as any,
   tabButtonPressed: {
-    opacity: 0.75,
-    transform: [{ scale: 0.93 }],
+    transform: [{ scale: 0.94 }],
   },
   tabIconWrapper: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-  },
+    transition: 'transform 0.18s ease-in-out',
+  } as any,
   tabIconWrapperActive: {
-    transform: [{ scale: 1.05 }],
+    transform: [{ scale: 1.06 }],
   },
   tabLabel: {
-    fontSize: 9.5,
+    fontSize: 10,
     lineHeight: 12,
-    fontWeight: '500',
-    letterSpacing: 0,
+    fontWeight: '600',
+    letterSpacing: 0.6,
     textAlign: 'center',
-    marginTop: 1,
-  },
+    textTransform: 'uppercase',
+    userSelect: 'none',
+  } as any,
   tabLabelActive: {
     fontWeight: '700',
-    color: '#4FA99A',
-  },
-  activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#4FA99A',
-    marginTop: 1,
-  },
-  inactiveDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'transparent',
-    marginTop: 1,
   },
 });
