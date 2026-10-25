@@ -9,47 +9,42 @@ export function SpandanLogo({ size = 'medium', showTagline = true }: SpandanLogo
   const isSmall = size === 'small';
   const isLarge = size === 'large';
 
-  const markSize = isSmall ? 28 : isLarge ? 46 : 34;
-  const textSize = isSmall ? 15 : isLarge ? 24 : 19;
-  const taglineSize = isSmall ? 8 : isLarge ? 11 : 9.5;
-  const dotScale = isSmall ? 0.8 : isLarge ? 1.3 : 1;
+  const markSize = isSmall ? 28 : isLarge ? 42 : 32;
+  const textSize = isSmall ? 16 : isLarge ? 24 : 19;
+  const taglineSize = isSmall ? 8 : isLarge ? 10.5 : 9;
+  const dotScale = isSmall ? 0.8 : isLarge ? 1.2 : 1;
 
   return (
     <View style={styles.container}>
-      {/* Athletic Kinetic Movement Brand Mark */}
+      {/* Apple Health style minimalist pulse mark */}
       <View
         style={[
           styles.markContainer,
           {
             width: markSize,
             height: markSize,
-            borderRadius: isSmall ? 8 : isLarge ? 13 : 10,
+            borderRadius: isSmall ? 8 : isLarge ? 12 : 10,
           },
         ]}>
-        <View style={styles.markInner}>
-          {/* Forward velocity movement trail */}
-          <View style={[styles.velocityTrail, { transform: [{ rotate: '45deg' }] }]} />
-          {/* Primary dynamic track arrow */}
-          <View style={styles.leadChevron}>
-            <View style={styles.chevronArmUp} />
-            <View style={styles.chevronArmDown} />
-          </View>
-          {/* Live GPS tracking node */}
-          <View style={styles.beaconDot} />
+        <View style={styles.pulseWave}>
+          <View style={styles.pulseLine} />
+          <View style={styles.pulsePeak} />
+          <View style={styles.pulseValley} />
+          <View style={styles.pulseDot} />
         </View>
       </View>
 
       {/* Brand Typography Lockup */}
       <View style={styles.textContainer}>
         <View style={styles.brandRow}>
-          <Text style={[styles.brandName, { fontSize: textSize }]}>Track</Text>
+          <Text style={[styles.brandName, { fontSize: textSize }]}>Spandan</Text>
           <View style={[styles.dotWrapper, { transform: [{ scale: dotScale }] }]}>
             <View style={styles.dotAura} />
             <View style={styles.dotCore} />
           </View>
         </View>
         {showTagline && (
-          <Text style={[styles.tagline, { fontSize: taglineSize }]}>YOUR MOVEMENT</Text>
+          <Text style={[styles.tagline, { fontSize: taglineSize }]}>ATHLETE PULSE</Text>
         )}
       </View>
     </View>
@@ -60,62 +55,55 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 9,
   },
   markContainer: {
     backgroundColor: '#4FA99A',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#4FA99A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  markInner: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+  pulseWave: {
+    width: 20,
+    height: 14,
     position: 'relative',
-  },
-  velocityTrail: {
-    position: 'absolute',
-    left: '26%',
-    width: '24%',
-    height: '24%',
-    borderRightWidth: 2.2,
-    borderTopWidth: 2.2,
-    borderColor: 'rgba(255, 255, 255, 0.45)',
-    borderRadius: 2,
-  },
-  leadChevron: {
-    position: 'absolute',
-    left: '38%',
-    width: '32%',
-    height: '48%',
     justifyContent: 'center',
   },
-  chevronArmUp: {
-    width: '100%',
-    height: 2.5,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 1.5,
-    transform: [{ rotate: '42deg' }, { translateY: -2 }],
-    transformOrigin: 'right center',
-  },
-  chevronArmDown: {
-    width: '100%',
-    height: 2.5,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 1.5,
-    transform: [{ rotate: '-42deg' }, { translateY: 2 }],
-    transformOrigin: 'right center',
-  },
-  beaconDot: {
+  pulseLine: {
     position: 'absolute',
-    right: '22%',
-    top: '32%',
+    left: 1,
+    top: 6,
+    width: 4,
+    height: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 1,
+  },
+  pulsePeak: {
+    position: 'absolute',
+    left: 5,
+    top: 1,
+    width: 2,
+    height: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 1,
+  },
+  pulseValley: {
+    position: 'absolute',
+    left: 8,
+    top: 4,
+    width: 2,
+    height: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 1,
+  },
+  pulseDot: {
+    position: 'absolute',
+    right: 2,
+    top: 5,
     width: 4,
     height: 4,
     borderRadius: 2,
@@ -127,39 +115,39 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
   },
   brandName: {
-    color: '#0F172A',
-    fontWeight: '900',
-    letterSpacing: -0.6,
+    color: '#000000',
+    fontWeight: '800',
+    letterSpacing: -0.5,
     fontFamily: Platform.select({ ios: 'System', default: 'sans-serif' }),
     includeFontPadding: false,
   },
   dotWrapper: {
-    width: 10,
-    height: 10,
+    width: 8,
+    height: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 1,
   },
   dotAura: {
     position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: 'rgba(79, 169, 154, 0.25)',
   },
   dotCore: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#4FA99A',
   },
   tagline: {
-    color: '#4FA99A',
-    fontWeight: '800',
-    letterSpacing: 2,
+    color: '#8E8E93',
+    fontWeight: '700',
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginTop: 1,
     includeFontPadding: false,

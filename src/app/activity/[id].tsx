@@ -35,7 +35,7 @@ import {
 export default function ActivityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const { user, isDemoMode, isConfigured } = useAuth();
+  const { user, isDemoMode } = useAuth();
 
   const [activity, setActivity] = useState<Activity | null>(null);
   const [routePoints, setRoutePoints] = useState<GpsCoordinate[]>([]);
@@ -440,11 +440,24 @@ export default function ActivityDetailScreen() {
               ) : (
                 <View style={styles.nativeRouteVisual}>
                   <View style={[styles.routePathLine, { borderColor: sportColor }]} />
+                  <View style={[styles.nativeRouteRibbon, { backgroundColor: `${sportColor}15` }]} />
+                  <View style={styles.nativeRoutePinsRow}>
+                    <Text style={styles.nativeRoutePin}>🟢 Start Fix</Text>
+                    <Text style={styles.nativeRoutePin}>⚡ WGS84 GPS</Text>
+                    <Text style={styles.nativeRoutePin}>🏁 Finish Fix</Text>
+                  </View>
                   <Text style={styles.routeVisualCaption}>
                     WGS84 High-Precision GPS Track Polyline
                   </Text>
                 </View>
               )}
+
+              {/* Privacy Cloaking Banner */}
+              <View style={styles.cloakedBanner}>
+                <Text style={styles.cloakedBannerText}>
+                  🛡️ Smart Cloaked • 500m start & finish perimeter masked for personal safety
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -462,8 +475,12 @@ export default function ActivityDetailScreen() {
                   </Text>
                 </View>
 
-                {splits.map((split) => (
-                  <View key={`split-${split.splitNumber}`} style={styles.splitRow}>
+                {(() => {
+                  const fastestSec = splits.length > 1 ? Math.min(...splits.map((s) => s.durationSeconds)) : -1;
+                  return splits.map((split) => {
+                    const isFastest = split.durationSeconds === fastestSec;
+                    return (
+                      <View key={`split-${split.splitNumber}`} style={[styles.splitRow, isFastest && styles.fastestSplitRow]}>
                     <View style={[styles.splitNumBadge, { backgroundColor: `${sportColor}20` }]}>
                       <Text style={[styles.splitNumText, { color: sportColor }]}>
                         {split.splitNumber}
@@ -484,7 +501,9 @@ export default function ActivityDetailScreen() {
                         : `${split.elevationDeltaM}m`}
                     </Text>
                   </View>
-                ))}
+                    );
+                  });
+                })()}
               </View>
             </View>
           )}
@@ -637,7 +656,7 @@ export default function ActivityDetailScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
   },
   scrollView: {
     flex: 1,
@@ -665,7 +684,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   notFoundTitle: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 20,
     fontWeight: '800',
   },
@@ -676,7 +695,7 @@ const styles = StyleSheet.create({
   },
   backButtonAction: {
     marginTop: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -698,7 +717,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   backNavText: {
     color: '#64748B',
@@ -727,7 +746,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   visibilityText: {
     color: '#64748B',
@@ -741,21 +760,21 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 12,
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#4FA99A',
   },
   avatarText: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -764,7 +783,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   athleteName: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -778,12 +797,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   editBtn: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   editBtnText: {
     color: '#4FA99A',
@@ -808,11 +827,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 4,
   },
   titleText: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 22,
     fontWeight: '900',
   },
@@ -828,13 +847,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 12,
   },
   telemetryItem: {
     width: '47%',
     padding: 10,
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     gap: 4,
   },
@@ -850,7 +869,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   telemetryValue: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 24,
     fontWeight: '900',
   },
@@ -859,12 +878,50 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  cloakedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(79, 169, 154, 0.1)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 169, 154, 0.25)',
+  },
+  cloakedBannerText: {
+    color: '#4FA99A',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  nativeRouteRibbon: {
+    height: 32,
+    borderRadius: 8,
+    marginVertical: 4,
+    width: '100%',
+  },
+  nativeRoutePinsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 6,
+    marginVertical: 2,
+  },
+  nativeRoutePin: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '700',
+  },
+  fastestSplitRow: {
+    backgroundColor: 'rgba(79, 169, 154, 0.1)',
+    borderRadius: 8,
+  },
   mapCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 12,
   },
   mapHeader: {
@@ -884,12 +941,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   routeVisualBox: {
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
     borderRadius: 12,
     padding: 12,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   mapMarkersRow: {
     flexDirection: 'row',
@@ -936,11 +993,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 12,
   },
   sectionHeading: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -979,7 +1036,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   splitColVal: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -988,7 +1045,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 16,
   },
   kudosRow: {
@@ -999,13 +1056,13 @@ const styles = StyleSheet.create({
   kudosBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   kudosBtnActive: {
     backgroundColor: 'rgba(79, 169, 154, 0.15)',
@@ -1033,14 +1090,14 @@ const styles = StyleSheet.create({
   },
   commentTextInput: {
     flex: 1,
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 13,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   sendCommentBtn: {
     backgroundColor: '#4FA99A',
@@ -1071,20 +1128,20 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   commentAvatarText: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 12,
     fontWeight: '800',
   },
   commentBody: {
     flex: 1,
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     padding: 10,
     gap: 4,
@@ -1095,7 +1152,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   commentAuthor: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -1122,7 +1179,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 16,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
@@ -1131,7 +1188,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalTitle: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 18,
     fontWeight: '800',
     textAlign: 'center',
@@ -1146,14 +1203,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   textInput: {
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   typeSelector: {
     flexDirection: 'row',
@@ -1161,12 +1218,12 @@ const styles = StyleSheet.create({
   },
   typeBtn: {
     flex: 1,
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   typeBtnText: {
     color: '#64748B',
@@ -1183,12 +1240,12 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   cancelBtnText: {
     color: '#64748B',

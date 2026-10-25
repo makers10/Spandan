@@ -1,6 +1,6 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://unistyl.es/), etc.
+ * Spandan Design System Tokens - Apple Health Minimalist Theme
+ * Clean, spacious, high-legibility interface with native iOS aesthetic.
  */
 
 import '@/global.css';
@@ -9,40 +9,44 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#132A26',
-    background: '#F7FAF9',
-    backgroundElement: '#E8F5F2',
-    backgroundSelected: '#D2ECE6',
-    textSecondary: '#6B8782',
+    text: '#000000',
+    textSecondary: '#8E8E93',
+    textTertiary: '#AEAEB2',
+    background: '#F2F2F7',
+    backgroundElement: '#E5E5EA',
+    backgroundSelected: '#D1D1D6',
     card: '#FFFFFF',
-    cardBorder: '#E3ECE9',
+    cardBorder: 'rgba(0, 0, 0, 0.04)',
     tint: '#4FA99A',
     primary: '#4FA99A',
     primaryHover: '#3D8C7F',
-    primarySubtle: '#E8F5F2',
+    primarySubtle: 'rgba(79, 169, 154, 0.12)',
     accentTeal: '#4FA99A',
     accentOrange: '#FF6B00',
     accentCyan: '#00D2D3',
     accentEmerald: '#10B981',
     accentAmber: '#F59E0B',
+    separator: '#E5E5EA',
   },
   dark: {
     text: '#FFFFFF',
-    background: '#0B1514',
-    backgroundElement: '#122220',
-    backgroundSelected: '#1B312E',
-    textSecondary: '#8CA7A2',
-    card: '#122220',
-    cardBorder: '#1F3A36',
+    textSecondary: '#8E8E93',
+    textTertiary: '#636366',
+    background: '#000000',
+    backgroundElement: '#1C1C1E',
+    backgroundSelected: '#2C2C2E',
+    card: '#1C1C1E',
+    cardBorder: 'rgba(255, 255, 255, 0.06)',
     tint: '#4FA99A',
     primary: '#4FA99A',
     primaryHover: '#5EBDB0',
-    primarySubtle: 'rgba(79, 169, 154, 0.15)',
+    primarySubtle: 'rgba(79, 169, 154, 0.2)',
     accentTeal: '#4FA99A',
     accentOrange: '#FF6B00',
     accentCyan: '#00D2D3',
     accentEmerald: '#10B981',
     accentAmber: '#F59E0B',
+    separator: '#38383A',
   },
 } as const;
 
@@ -50,13 +54,9 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
@@ -66,10 +66,10 @@ export const Fonts = Platform.select({
     mono: 'monospace',
   },
   web: {
-    sans: 'var(--font-display)',
+    sans: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     serif: 'var(--font-serif)',
     rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
+    mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
   },
 });
 
@@ -78,10 +78,10 @@ export const Spacing = {
   one: 4,
   two: 8,
   three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
+  four: 20,
+  five: 28,
+  six: 40,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const BottomTabInset = Platform.select({ ios: 90, android: 104, default: 96 }) ?? 96;
+export const MaxContentWidth = 720;

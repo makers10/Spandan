@@ -15,10 +15,10 @@ const SpandanDarkTheme = {
   colors: {
     ...DarkTheme.colors,
     primary: '#4FA99A',
-    background: '#0B1514',
-    card: '#122220',
+    background: '#000000',
+    card: '#1C1C1E',
     text: '#FFFFFF',
-    border: '#1F3A36',
+    border: '#2C2C2E',
   },
 };
 
@@ -27,21 +27,22 @@ const SpandanLightTheme = {
   colors: {
     ...DefaultTheme.colors,
     primary: '#4FA99A',
-    background: '#F7FAF9',
+    background: '#F2F2F7',
     card: '#FFFFFF',
-    text: '#132A26',
-    border: '#E3ECE9',
+    text: '#000000',
+    border: 'rgba(0, 0, 0, 0.04)',
   },
 };
 
 export default function TabLayout() {
-  // Use SpandanLightTheme as default for fresh Soft Teal & white/soft-grey aesthetic
-  const theme = SpandanLightTheme;
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const theme = isDark ? SpandanDarkTheme : SpandanLightTheme;
 
   return (
     <AuthProvider>
       <ThemeProvider value={theme}>
-        <StatusBar style="dark" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <AnimatedSplashOverlay />
         <AppTabs />
         <AuthModal />

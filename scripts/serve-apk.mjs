@@ -36,7 +36,6 @@ const server = http.createServer((req, res) => {
 
   const apkExists = fs.existsSync(APK_PATH);
   const sizeMb = apkExists ? (fs.statSync(APK_PATH).size / (1024 * 1024)).toFixed(1) : 0;
-  const ip = getLocalIp();
 
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(`

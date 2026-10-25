@@ -21,37 +21,36 @@ export function StatCard({
   iconSymbol,
 }: StatCardProps) {
   return (
-    <View style={[styles.card, { borderLeftColor: accentColor, borderLeftWidth: 3 }]}>
+    <View style={styles.card}>
+      {/* Apple Health Top Header with Category Icon */}
       <View style={styles.topRow}>
-        <Text style={styles.label}>{label.toUpperCase()}</Text>
-        {iconSymbol && (
-          <View style={[styles.iconBadge, { backgroundColor: `${accentColor}20` }]}>
-            <Text style={[styles.iconText, { color: accentColor }]}>{iconSymbol}</Text>
-          </View>
-        )}
+        <View style={styles.categoryCluster}>
+          {iconSymbol && (
+            <View style={[styles.iconBadge, { backgroundColor: `${accentColor}18` }]}>
+              <Text style={[styles.iconText, { color: accentColor }]}>{iconSymbol}</Text>
+            </View>
+          )}
+          <Text style={styles.label}>{label.toUpperCase()}</Text>
+        </View>
       </View>
 
+      {/* Main Metric Value */}
       <View style={styles.valueRow}>
-        <Text style={styles.value}>{value}</Text>
+        <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
         {unit && <Text style={styles.unit}>{unit}</Text>}
       </View>
 
+      {/* Apple Health Trend Footer */}
       {deltaText && (
         <View style={styles.deltaRow}>
-          <View
+          <Text
             style={[
-              styles.deltaBadge,
-              { backgroundColor: isPositiveDelta ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)' },
+              styles.deltaText,
+              { color: isPositiveDelta ? '#34C759' : '#8E8E93' },
             ]}>
-            <Text
-              style={[
-                styles.deltaText,
-                { color: isPositiveDelta ? '#22C55E' : '#EF4444' },
-              ]}>
-              {isPositiveDelta ? '▲ ' : '▼ '}
-              {deltaText}
-            </Text>
-          </View>
+            {isPositiveDelta ? '↑ ' : '↓ '}
+            {deltaText}
+          </Text>
         </View>
       )}
     </View>
@@ -61,68 +60,67 @@ export function StatCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    padding: 16,
     flex: 1,
     minWidth: 140,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+  categoryCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
   },
   label: {
-    color: '#64748B',
+    color: '#8E8E93',
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   iconBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
   valueRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 4,
+    gap: 3,
   },
   value: {
-    color: '#0F172A',
-    fontSize: 26,
+    color: '#000000',
+    fontSize: 28,
     fontWeight: '800',
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
   unit: {
-    color: '#64748B',
+    color: '#8E8E93',
     fontSize: 13,
     fontWeight: '600',
   },
   deltaRow: {
     marginTop: 6,
-    flexDirection: 'row',
-  },
-  deltaBadge: {
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
   },
   deltaText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

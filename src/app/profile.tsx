@@ -14,7 +14,6 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
-import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { getMockAthleteProfile } from '@/data/mock-fitness-data';
 import { useAuth } from '@/context/auth-context';
@@ -24,7 +23,7 @@ import { authService } from '@/services/auth-service';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, profile, isDemoMode, isConfigured, signOut, refreshProfile, openAuthModal } = useAuth();
+  const { user, profile, isDemoMode, signOut, refreshProfile, openAuthModal } = useAuth();
 
   const [realStats, setRealStats] = useState<{
     totalActivities: number;
@@ -172,14 +171,17 @@ export default function ProfileScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.contentWrapper}>
-          {/* Header */}
+          {/* Apple Large Title Navigation Header */}
           <View style={styles.headerBar}>
-            <SpandanLogo size="medium" />
+            <View style={styles.headerLeft}>
+              <Text style={styles.subtitleHeader}>ACCOUNT</Text>
+              <Text style={styles.largeTitle}>Profile</Text>
+            </View>
 
             <View style={styles.headerRightActions}>
               {isLiveUser && (
                 <Pressable onPress={() => setShowEditModal(true)} style={styles.editProfileHeaderBtn}>
-                  <Text style={styles.editProfileHeaderText}>Edit Profile</Text>
+                  <Text style={styles.editProfileHeaderText}>Edit</Text>
                 </Pressable>
               )}
 
@@ -191,7 +193,7 @@ export default function ProfileScreen() {
                 <Pressable
                   onPress={() => openAuthModal('login')}
                   style={styles.signInHeaderBtn}>
-                  <Text style={styles.signInHeaderText}>Sign In / Join</Text>
+                  <Text style={styles.signInHeaderText}>Sign In</Text>
                 </Pressable>
               )}
             </View>
@@ -377,7 +379,7 @@ export default function ProfileScreen() {
           {/* Sign Out Action at Bottom for Live Users */}
           {isLiveUser && (
             <Pressable onPress={handleSignOut} style={styles.signOutBottomBtn}>
-              <Text style={styles.signOutBottomBtnText}>Sign Out of Track your movement</Text>
+              <Text style={styles.signOutBottomBtnText}>Sign Out of Spandan</Text>
             </Pressable>
           )}
         </View>
@@ -464,7 +466,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
   },
   scrollView: {
     flex: 1,
@@ -482,21 +484,40 @@ const styles = StyleSheet.create({
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
+    alignItems: 'flex-end',
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  headerLeft: {
+    gap: 2,
+  },
+  subtitleHeader: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  largeTitle: {
+    color: '#000000',
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+    paddingBottom: 2,
   },
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 4,
   },
   editProfileHeaderBtn: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   editProfileHeaderText: {
     color: '#4FA99A',
@@ -504,12 +525,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   signOutHeaderBtn: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   signOutHeaderText: {
     color: '#EF4444',
@@ -569,7 +590,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 16,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
@@ -586,14 +607,14 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#4FA99A',
   },
   avatarLargeText: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 22,
     fontWeight: '900',
   },
@@ -607,7 +628,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   athleteName: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 18,
     fontWeight: '800',
   },
@@ -651,7 +672,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   socialVal: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 18,
     fontWeight: '800',
   },
@@ -665,7 +686,7 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   sectionTitle: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -681,7 +702,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 4,
   },
   allTimeLabel: {
@@ -696,7 +717,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   allTimeVal: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 22,
     fontWeight: '900',
   },
@@ -710,7 +731,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 12,
   },
   prefRow: {
@@ -724,7 +745,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   prefTitle: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -734,11 +755,11 @@ const styles = StyleSheet.create({
   },
   unitToggleGroup: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     borderRadius: 8,
     padding: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   unitBtn: {
     paddingHorizontal: 12,
@@ -771,7 +792,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 12,
   },
   prIcon: {
@@ -782,7 +803,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   prEvent: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -803,7 +824,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 8,
   },
   gearTopRow: {
@@ -812,7 +833,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gearName: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -823,7 +844,7 @@ const styles = StyleSheet.create({
   },
   gearTrack: {
     height: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -864,7 +885,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 16,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
@@ -873,7 +894,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalTitle: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 18,
     fontWeight: '800',
     textAlign: 'center',
@@ -888,14 +909,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   textInput: {
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   modalActions: {
     flexDirection: 'row',
@@ -904,12 +925,12 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   cancelBtnText: {
     color: '#64748B',

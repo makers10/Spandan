@@ -21,6 +21,7 @@
     "expo-system-ui": "~58.0.6",
     "expo-task-manager": "~58.0.12",
     "expo-web-browser": "~58.0.6",
+    "moti": "^0.30.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.0",
@@ -35,7 +36,8 @@
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "ui-ux-pro-max-cli": "^2.15.0"
   },
   "scripts": {
     "start": "expo start",

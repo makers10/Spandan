@@ -9,13 +9,7 @@
  */
 
 import assert from 'node:assert';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
 
 console.log('🚀 Starting Spandan Phase 1 Automated Test Suite: Edge Cases, Streaks, RLS & Cloaking...\n');
 

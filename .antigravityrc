@@ -1,0 +1,10 @@
+{
+  "agent": {
+    "skillsPath": "./.agents/skills",
+    "alwaysLoad": [
+      "ui-ux-pro-max",
+      "antigravity-design-expert"
+    ],
+    "systemInstructions": "Adhere strictly to the React Native layouts and styling paradigms defined in the loaded local skills."
+  }
+}

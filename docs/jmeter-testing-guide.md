@@ -24,7 +24,7 @@ Spandan utilizes Supabase PostgREST for direct, low-latency relational queries g
 +-------------------------------------------------------------------------+
 |                         PostgreSQL Database                             |
 |  - RLS Policies (Owner / Followers / Public / Unblocked)                |
-|  - Indexed GPS Tracks (activity_points)                                 |
+|  - Indexed GPS Telemetry JSONB & PostGIS LineString (gps_telemetry, route_path) |
 |  - High-concurrency Kudos & Comments Counters                           |
 +-------------------------------------------------------------------------+
 ```

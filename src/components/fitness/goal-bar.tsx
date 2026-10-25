@@ -12,30 +12,39 @@ export function GoalBar({ currentDistance, targetDistance, streakWeeks }: GoalBa
   const remaining = Math.max(0, targetDistance - currentDistance).toFixed(1);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.card}>
+      {/* Apple Health Card Header */}
       <View style={styles.header}>
-        <View style={styles.titleGroup}>
-          <Text style={styles.title}>Weekly Goal</Text>
-          <Text style={styles.subTitle}>
-            {currentDistance.toFixed(1)} / {targetDistance.toFixed(0)} km
-          </Text>
+        <View style={styles.categoryCluster}>
+          <View style={styles.iconBadge}>
+            <Text style={styles.iconText}>🎯</Text>
+          </View>
+          <Text style={styles.categoryTitle}>WEEKLY GOAL</Text>
         </View>
 
-        <View style={styles.streakBadge}>
-          <Text style={styles.streakEmoji}>🔥</Text>
-          <Text style={styles.streakText}>{streakWeeks} Wk Streak</Text>
+        <View style={styles.streakPill}>
+          <Text style={styles.streakText}>🔥 {streakWeeks} Wk Streak</Text>
         </View>
       </View>
 
-      {/* Progress Track */}
+      {/* Main Metric Value */}
+      <View style={styles.metricRow}>
+        <View style={styles.valueGroup}>
+          <Text style={styles.currentValue}>{currentDistance.toFixed(1)}</Text>
+          <Text style={styles.targetValue}>/ {targetDistance.toFixed(0)} KM</Text>
+        </View>
+        <Text style={styles.percentText}>{percentage}%</Text>
+      </View>
+
+      {/* Apple Continuous Rounded Progress Bar */}
       <View style={styles.track}>
         <View style={[styles.progress, { width: `${percentage}%` }]} />
       </View>
 
+      {/* Footer Details */}
       <View style={styles.footer}>
-        <Text style={styles.percentText}>{percentage}% Completed</Text>
         <Text style={styles.remainingText}>
-          {remaining === '0.0' ? '🎉 Goal achieved!' : `${remaining} km remaining`}
+          {remaining === '0.0' ? '🎉 Goal achieved this week' : `${remaining} km to reach your goal`}
         </Text>
       </View>
     </View>
@@ -43,62 +52,89 @@ export function GoalBar({ currentDistance, targetDistance, streakWeeks }: GoalBa
 }
 
 const styles = StyleSheet.create({
-  container: {
+  card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  titleGroup: {
-    gap: 2,
-  },
-  title: {
-    color: '#0F172A',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  subTitle: {
-    color: '#64748B',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  streakBadge: {
+  categoryCluster: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(79, 169, 154, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(79, 169, 154, 0.3)',
-    gap: 4,
+    gap: 7,
   },
-  streakEmoji: {
-    fontSize: 13,
+  iconBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(79, 169, 154, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconText: {
+    fontSize: 11,
+  },
+  categoryTitle: {
+    color: '#8E8E93',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  streakPill: {
+    backgroundColor: '#F2F2F7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
   },
   streakText: {
-    color: '#4FA99A',
-    fontSize: 12,
+    color: '#8E8E93',
+    fontSize: 11,
     fontWeight: '700',
+  },
+  metricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 10,
+  },
+  valueGroup: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  currentValue: {
+    color: '#000000',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+  },
+  targetValue: {
+    color: '#8E8E93',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  percentText: {
+    color: '#4FA99A',
+    fontSize: 16,
+    fontWeight: '800',
   },
   track: {
     height: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E5E5EA',
     borderRadius: 4,
     overflow: 'hidden',
-    position: 'relative',
   },
   progress: {
     height: '100%',
@@ -106,18 +142,10 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginTop: 8,
   },
-  percentText: {
-    color: '#4FA99A',
-    fontSize: 12,
-    fontWeight: '700',
-  },
   remainingText: {
-    color: '#64748B',
+    color: '#8E8E93',
     fontSize: 12,
     fontWeight: '500',
   },

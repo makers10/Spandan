@@ -23,6 +23,11 @@ if ($env:JAVA_HOME -and (Test-Path "$env:JAVA_HOME\bin\java.exe")) {
     java -version
 }
 
+if (-not (Test-Path "$rootDir\android")) {
+    Write-Output "==> Android native project not found. Running expo prebuild..."
+    npx expo prebuild --platform android --no-install
+}
+
 Set-Location -Path "$rootDir\android"
 Write-Output "==> Building Release APK via Gradle..."
 .\gradlew.bat assembleRelease --no-daemon --console=plain

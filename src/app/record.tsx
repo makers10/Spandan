@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { ActivityType, ActivityVisibility } from '@/data/mock-fitness-data';
 import { useAuth } from '@/context/auth-context';
@@ -33,7 +32,7 @@ type GpsStatus = 'idle' | 'checking' | 'acquiring' | 'locked' | 'paused' | 'deni
 
 export default function RecordScreen() {
   const insets = useSafeAreaInsets();
-  const { user, isDemoMode, isConfigured } = useAuth();
+  const { user, isDemoMode } = useAuth();
 
   // Sport selector
   const [selectedSport, setSelectedSport] = useState<ActivityType | 'hike'>('run');
@@ -476,10 +475,15 @@ export default function RecordScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.contentWrapper}>
-          {/* Header */}
+          {/* Apple Large Title Navigation Header */}
           <View style={styles.headerBar}>
-            <SpandanLogo size="medium" />
-            {renderGpsBadge()}
+            <View style={styles.headerLeft}>
+              <Text style={styles.subtitleHeader}>WORKOUT</Text>
+              <Text style={styles.largeTitle}>Record</Text>
+            </View>
+            <View style={styles.headerRight}>
+              {renderGpsBadge()}
+            </View>
           </View>
 
           {/* Feedback/Save Status Banner */}
@@ -644,7 +648,7 @@ export default function RecordScreen() {
             </Text>
             <Text style={styles.authNoticeText}>
               {isLiveUser
-                ? `Logged in as ${user?.email}. Finished sessions will be saved directly into your Supabase activities and activity_points tables with ordered GPS coordinates.`
+                ? `Logged in as ${user?.email}. Finished sessions will be saved directly into your Supabase activities table with compressed GPS telemetry and PostGIS route path.`
                 : 'You are currently in Demo Mode. Finished activities calculate real device GPS telemetry, but will not persist to PostgreSQL until you sign in.'}
             </Text>
           </View>
@@ -676,7 +680,7 @@ export default function RecordScreen() {
               <View style={styles.webNoticeCard}>
                 <Text style={styles.webNoticeTitle}>🌐 Web Browser GPS Notice</Text>
                 <Text style={styles.webNoticeText}>
-                  Web browsers suspend location tracking when this browser tab is inactive or mobile screens lock. To record runs with your screen locked, use Track your movement on Android with native foreground service background tracking.
+                  Web browsers suspend location tracking when this browser tab is inactive or mobile screens lock. To record runs with your screen locked, use Spandan on Android with native foreground service background tracking.
                 </Text>
               </View>
             )}
@@ -766,7 +770,7 @@ export default function RecordScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
   },
   scrollView: {
     flex: 1,
@@ -784,8 +788,29 @@ const styles = StyleSheet.create({
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
+    alignItems: 'flex-end',
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  headerLeft: {
+    gap: 2,
+  },
+  headerRight: {
+    marginBottom: 4,
+  },
+  subtitleHeader: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  largeTitle: {
+    color: '#000000',
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+    paddingBottom: 2,
   },
   gpsStatusBadge: {
     flexDirection: 'row',
@@ -834,7 +859,7 @@ const styles = StyleSheet.create({
     borderColor: '#4FA99A',
   },
   saveStatusText: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
@@ -872,11 +897,11 @@ const styles = StyleSheet.create({
   },
   sportSelector: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     borderRadius: 14,
     padding: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 6,
   },
   sportBtn: {
@@ -899,14 +924,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   sportLabelSelected: {
-    color: '#0F172A',
+    color: '#000000',
   },
   hudContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     alignItems: 'center',
     gap: 16,
     shadowColor: '#000000',
@@ -926,7 +951,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   timerValue: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 54,
     fontWeight: '900',
     letterSpacing: 2,
@@ -957,7 +982,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   hudVal: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 24,
     fontWeight: '800',
   },
@@ -983,7 +1008,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 8,
   },
   routePreviewHeader: {
@@ -1008,7 +1033,7 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   routeTrackCoords: {
     color: '#64748B',
@@ -1079,7 +1104,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 4,
   },
   authNoticeTitle: {
@@ -1098,11 +1123,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 12,
   },
   prefHeading: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 15,
     fontWeight: '700',
   },
@@ -1118,7 +1143,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   prefTitle: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1127,12 +1152,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   togglePill: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   togglePillActive: {
     backgroundColor: '#4FA99A',
@@ -1157,7 +1182,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 16,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
@@ -1166,7 +1191,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalTitle: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 18,
     fontWeight: '800',
     textAlign: 'center',
@@ -1203,10 +1228,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 15,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   modalActions: {
     flexDirection: 'row',
@@ -1215,12 +1240,12 @@ const styles = StyleSheet.create({
   },
   discardBtn: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   discardBtnText: {
     color: '#64748B',
@@ -1256,7 +1281,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   visBtnActive: {
     backgroundColor: '#FFFFFF',
@@ -1271,11 +1296,11 @@ const styles = StyleSheet.create({
     color: '#4FA99A',
   },
   webNoticeCard: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     borderRadius: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 4,
     marginTop: 4,
   },

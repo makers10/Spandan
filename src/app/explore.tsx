@@ -11,8 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { SpandanLogo } from '@/components/fitness/spandan-logo';
+import { router } from 'expo-router';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { Activity, getMockActivities } from '@/data/mock-fitness-data';
 import { ActivityCard } from '@/components/fitness/activity-card';
@@ -76,7 +75,9 @@ const POPULAR_SEGMENTS: SegmentItem[] = [
 
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
-  const { user, isDemoMode, isConfigured } = useAuth();
+  const { user, profile, isDemoMode } = useAuth();
+  const isLiveUser = Boolean(user && !isDemoMode);
+  const displayAvatar = isLiveUser ? profile?.avatar_text || user?.email?.substring(0, 2).toUpperCase() || 'AV' : 'AV';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'feed' | 'athletes' | 'segments'>('feed');
@@ -90,7 +91,6 @@ export default function ExploreScreen() {
   const [isAthletesLoading, setIsAthletesLoading] = useState(false);
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
 
-  const isLiveUser = Boolean(user && !isDemoMode);
 
   // Load Community Feed
   useEffect(() => {
@@ -217,10 +217,17 @@ export default function ExploreScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.contentWrapper}>
-          {/* Header */}
+          {/* Apple Large Title Navigation Header */}
           <View style={styles.headerBar}>
-            <SpandanLogo size="medium" />
-            <Text style={styles.headerTitle}>Explore Community</Text>
+            <View style={styles.headerLeft}>
+              <Text style={styles.subtitleHeader}>COMMUNITY</Text>
+              <Text style={styles.largeTitle}>Explore</Text>
+            </View>
+            <Pressable
+              onPress={() => router.push('/profile' as any)}
+              style={styles.avatarBtn}>
+              <Text style={styles.avatarBtnText}>{displayAvatar}</Text>
+            </Pressable>
           </View>
 
           {/* Search Bar */}
@@ -235,7 +242,7 @@ export default function ExploreScreen() {
                   ? 'Search community workouts...'
                   : 'Search segments, routes, climbs...'
               }
-              placeholderTextColor="#64748B"
+              placeholderTextColor="#8E8E93"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -364,7 +371,7 @@ export default function ExploreScreen() {
                 </View>
                 <Text style={styles.challengeTitle}>100K Movement Odyssey</Text>
                 <Text style={styles.challengeDesc}>
-                  Ride 100 km this month and earn the official Track your movement Finisher digital badge.
+                  Ride 100 km this month and earn the official Spandan Finisher digital badge.
                 </Text>
                 <View style={styles.challengeFooter}>
                   <Text style={styles.challengeStats}>👥 1,842 Athletes Joined</Text>
@@ -423,7 +430,7 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
   },
   scrollView: {
     flex: 1,
@@ -441,23 +448,53 @@ const styles = StyleSheet.create({
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
+    alignItems: 'flex-end',
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  headerTitle: {
-    color: '#64748B',
+  headerLeft: {
+    gap: 2,
+  },
+  subtitleHeader: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  largeTitle: {
+    color: '#000000',
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+    paddingBottom: 2,
+  },
+  avatarBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 1,
+    marginBottom: 4,
+  },
+  avatarBtnText: {
+    color: '#4FA99A',
     fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 0.8,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: '#E5E5EA',
+    borderRadius: 10,
     paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    height: 38,
   },
   searchIcon: {
     fontSize: 14,
@@ -465,40 +502,39 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 14,
     paddingVertical: 12,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 4,
+    backgroundColor: 'rgba(118, 118, 128, 0.12)',
+    borderRadius: 9,
+    padding: 2,
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 7,
+    borderRadius: 7,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   tabItemActive: {
     backgroundColor: '#FFFFFF',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
   },
   tabText: {
-    color: '#64748B',
+    color: '#8E8E93',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   tabTextActive: {
-    color: '#4FA99A',
+    color: '#000000',
+    fontWeight: '700',
   },
   feedSection: {
     gap: 14,
@@ -525,13 +561,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   emptyIcon: {
     fontSize: 32,
   },
   emptyTitle: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -548,21 +584,21 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 12,
   },
   athleteAvatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#4FA99A',
   },
   athleteAvatarText: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -571,7 +607,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   athleteRowName: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -595,9 +631,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   followBtnActive: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
   },
   followBtnText: {
     color: '#FFFFFF',
@@ -620,7 +656,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 10,
   },
   challengeBadge: {
@@ -636,7 +672,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   challengeTitle: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 18,
     fontWeight: '800',
   },
@@ -675,7 +711,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionHeading: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -692,7 +728,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 0, 0, 0.04)',
     gap: 8,
   },
   segTopRow: {
@@ -716,7 +752,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   segDistance: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -730,7 +766,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   segName: {
-    color: '#0F172A',
+    color: '#000000',
     fontSize: 15,
     fontWeight: '700',
   },
@@ -751,7 +787,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   viewRouteBtn: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EEEEF0',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,

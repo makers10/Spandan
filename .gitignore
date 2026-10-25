@@ -50,3 +50,6 @@ example
 # generated native folders
 /ios
 /android
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.agents

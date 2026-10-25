@@ -11,7 +11,6 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
-import { SpandanLogo } from '@/components/fitness/spandan-logo';
 import { StatCard } from '@/components/fitness/stat-card';
 import { GoalBar } from '@/components/fitness/goal-bar';
 import { WeeklyChart } from '@/components/fitness/weekly-chart';
@@ -31,12 +30,13 @@ import {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { user, profile, isDemoMode, isConfigured, openAuthModal } = useAuth();
+  const { user, profile, isDemoMode, openAuthModal } = useAuth();
 
   const [filter, setFilter] = useState<FilterValue>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [simulateEmpty, setSimulateEmpty] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showDevDrawer, setShowDevDrawer] = useState(false);
 
   // Data states
   const [liveActivities, setLiveActivities] = useState<Activity[]>([]);
@@ -89,7 +89,7 @@ export default function HomeScreen() {
         console.warn('Failed to refresh user activities from Supabase:', err.message);
       }
     } else {
-      await new Promise((r) => setTimeout(r, 800));
+      await new Promise((r) => setTimeout(r, 600));
     }
     setRefreshing(false);
   };
@@ -132,6 +132,12 @@ export default function HomeScreen() {
     ? profile?.avatar_text || athleteDisplayName.substring(0, 2).toUpperCase()
     : 'AV';
 
+  const todayFormatted = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  }).toUpperCase();
+
   const bottomPadding = (insets.bottom || 16) + BottomTabInset + Spacing.four;
 
   return (
@@ -144,197 +150,195 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#FF6B00"
-            colors={['#FF6B00']}
+            tintColor="#4FA99A"
+            colors={['#4FA99A']}
           />
         }>
         <View style={styles.contentWrapper}>
-          {/* Top Brand Bar */}
+          {/* Apple Health Large Title Navigation Header */}
           <View style={styles.headerBar}>
-            <SpandanLogo size="medium" showTagline />
+            <View style={styles.headerLeft}>
+              <Text style={styles.dateHeader}>{todayFormatted}</Text>
+              <Text style={styles.largeTitle}>Summary</Text>
+            </View>
 
-            <View style={styles.headerActions}>
-              {/* Auth / Cloud Sync Status Pill */}
-              {isLiveUser ? (
-                <View style={styles.cloudBadge}>
-                  <View style={styles.cloudDot} />
-                  <Text style={styles.cloudBadgeText}>Active Athlete</Text>
-                </View>
-              ) : (
-                <Pressable
-                  onPress={() => openAuthModal('login')}
-                  style={styles.demoModeBadge}>
-                  <Text style={styles.demoBadgeText}>Demo Mode • Sign In</Text>
-                </Pressable>
-              )}
-
+            <View style={styles.headerRight}>
               <Pressable
                 onPress={() => router.push('/record' as any)}
-                style={({ pressed }) => [styles.recordQuickBtn, pressed && styles.pressed]}>
-                <Text style={styles.recordQuickBtnText}>+ Record</Text>
+                style={({ pressed }) => [styles.recordBtn, pressed && styles.pressed]}>
+                <Text style={styles.recordBtnText}>+ Record</Text>
               </Pressable>
 
               <Pressable
                 onPress={() => router.push('/profile' as any)}
-                style={styles.profileAvatarMini}>
-                <Text style={styles.profileAvatarText}>{athleteAvatar}</Text>
+                style={styles.avatarBtn}>
+                <Text style={styles.avatarBtnText}>{athleteAvatar}</Text>
               </Pressable>
             </View>
           </View>
 
-          {/* Athlete Greeting */}
-          <View style={styles.greetingSection}>
-            <Text style={styles.greetingTitle}>Welcome back, {athleteDisplayName}</Text>
-            <Text style={styles.greetingSub}>
-              {isLiveUser
-                ? `Signed in as ${user?.email}. Your cloud training sessions are secured with Row Level Security.`
-                : 'Viewing in Safe Demo Mode (Mock Data). Real workouts sync to your Supabase PostgreSQL database when signed in.'}
-            </Text>
-          </View>
-
-          {/* Interactive State Simulator Controls (For Milestone Review) */}
-          <View style={styles.simulatorBanner}>
-            <View style={styles.simLabelRow}>
-              <Text style={styles.simLabel}>DEMO & STATE CONTROLS:</Text>
-            </View>
-            <View style={styles.simButtonsRow}>
-              <Pressable
-                onPress={handleSimulateLoadingToggle}
-                style={({ pressed }) => [
-                  styles.simBtn,
-                  isLoading && styles.simBtnActive,
-                  pressed && styles.pressed,
-                ]}>
-                <Text style={styles.simBtnText}>
-                  {isLoading ? '⏳ Loading...' : '🔄 Test Loading'}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => setSimulateEmpty((prev) => !prev)}
-                style={({ pressed }) => [
-                  styles.simBtn,
-                  simulateEmpty && styles.simBtnActive,
-                  pressed && styles.pressed,
-                ]}>
-                <Text style={styles.simBtnText}>
-                  {simulateEmpty ? '✅ Restore Data' : '📭 Test Empty State'}
-                </Text>
-              </Pressable>
-
-              {!isLiveUser && (
-                <Pressable
-                  onPress={() => openAuthModal('login')}
-                  style={({ pressed }) => [styles.simBtnOrange, pressed && styles.pressed]}>
-                  <Text style={styles.simBtnOrangeText}>🔐 Authenticate</Text>
-                </Pressable>
-              )}
-            </View>
-          </View>
+          {/* Cloud Sync / Demo State Notice */}
+          {!isLiveUser && (
+            <Pressable onPress={() => openAuthModal('login')} style={styles.demoNoticeRow}>
+              <Text style={styles.demoNoticeText}>
+                ⚡ Viewing Demo Mode with sample workouts. <Text style={styles.demoNoticeLink}>Sign in to sync cloud data</Text>
+              </Text>
+            </Pressable>
+          )}
 
           {/* Loading State or Full Dashboard */}
           {isLoading ? (
             <SkeletonLoader />
           ) : (
             <>
-              {/* Weekly Performance Stats Section */}
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Weekly Overview</Text>
-                <Text style={styles.weekLabel}>{activeWeeklyStats.weekLabel}</Text>
-              </View>
+              {/* SECTION: ACTIVITY GOAL */}
+              <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>ACTIVITY & GOAL</Text>
+                </View>
 
-              {/* Goal Progress Banner */}
-              <GoalBar
-                currentDistance={activeWeeklyStats.totalDistanceKm}
-                targetDistance={activeWeeklyStats.distanceGoalKm}
-                streakWeeks={activeWeeklyStats.streakWeeks}
-              />
-
-              {/* Summary Metrics Cards Grid */}
-              <View style={styles.statsGrid}>
-                <StatCard
-                  label="Distance"
-                  value={activeWeeklyStats.totalDistanceKm.toFixed(1)}
-                  unit="km"
-                  deltaText={isLiveUser ? `${activeWeeklyStats.activitiesCount} logged` : `${activeWeeklyStats.distanceChangePercent}% vs last wk`}
-                  isPositiveDelta
-                  accentColor="#FF6B00"
-                  iconSymbol="🏃"
-                />
-
-                <StatCard
-                  label="Active Time"
-                  value={activeWeeklyStats.activeTimeFormatted}
-                  deltaText={`${activeWeeklyStats.activitiesCount} activities`}
-                  isPositiveDelta
-                  accentColor="#00D2D3"
-                  iconSymbol="⏱️"
-                />
-
-                <StatCard
-                  label="Elevation"
-                  value={activeWeeklyStats.elevationGainM}
-                  unit="m"
-                  deltaText={`${activeWeeklyStats.caloriesBurned} kcal`}
-                  isPositiveDelta
-                  accentColor="#10B981"
-                  iconSymbol="⛰️"
+                <GoalBar
+                  currentDistance={activeWeeklyStats.totalDistanceKm}
+                  targetDistance={activeWeeklyStats.distanceGoalKm}
+                  streakWeeks={activeWeeklyStats.streakWeeks}
                 />
               </View>
 
-              {/* Weekly Rhythm Day-by-Day Chart */}
-              <WeeklyChart days={activeWeeklyStats.dailyActivities} />
+              {/* SECTION: FAVORITES / STAT CARDS */}
+              <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>FAVORITES</Text>
+                  <Text style={styles.sectionSubText}>{activeWeeklyStats.weekLabel}</Text>
+                </View>
 
-              {/* Recent Workouts Feed Header & Filter Pills */}
-              <View style={styles.feedHeaderRow}>
-                <View>
-                  <Text style={styles.sectionTitle}>
-                    {isLiveUser ? 'Your Workouts (Supabase DB)' : 'Recent Workouts (Sample Data)'}
-                  </Text>
-                  <Text style={styles.feedSubTitle}>
-                    {isLiveUser
-                      ? 'Securely retrieved for your authenticated user ID'
-                      : 'Activities from demo training partners'}
-                  </Text>
+                <View style={styles.statsGrid}>
+                  <StatCard
+                    label="Distance"
+                    value={activeWeeklyStats.totalDistanceKm.toFixed(1)}
+                    unit="KM"
+                    deltaText={isLiveUser ? `${activeWeeklyStats.activitiesCount} sessions` : `${activeWeeklyStats.distanceChangePercent}% vs last wk`}
+                    isPositiveDelta
+                    accentColor="#FF6B00"
+                    iconSymbol="🏃"
+                  />
+
+                  <StatCard
+                    label="Active Time"
+                    value={activeWeeklyStats.activeTimeFormatted}
+                    deltaText={`${activeWeeklyStats.activitiesCount} workouts`}
+                    isPositiveDelta
+                    accentColor="#00D2D3"
+                    iconSymbol="⏱️"
+                  />
+
+                  <StatCard
+                    label="Elevation"
+                    value={activeWeeklyStats.elevationGainM}
+                    unit="M"
+                    deltaText={`${activeWeeklyStats.caloriesBurned} kcal`}
+                    isPositiveDelta
+                    accentColor="#10B981"
+                    iconSymbol="⛰️"
+                  />
                 </View>
               </View>
 
-              {/* Filter Pills */}
-              <FilterPills selected={filter} onSelect={setFilter} counts={counts} />
+              {/* SECTION: WEEKLY RHYTHM CHART */}
+              <View style={styles.sectionContainer}>
+                <WeeklyChart days={activeWeeklyStats.dailyActivities} />
+              </View>
 
-              {/* Workout Cards or Empty State */}
-              {activities.length === 0 ? (
-                <EmptyState
-                  title={
-                    simulateEmpty
-                      ? 'No Activities (Empty State Test)'
-                      : isLiveUser
-                      ? 'No Activities Recorded Yet'
-                      : `No ${filter} Workouts Yet`
-                  }
-                  message={
-                    simulateEmpty
-                      ? 'You are currently viewing the simulated empty state. Click "Restore Data" above to return to sample workouts.'
-                      : isLiveUser
-                      ? 'You have not recorded any workouts yet. Tap "Record" to log your first stride or ride to Supabase!'
-                      : `No workouts found matching "${filter}". Record your next stride or check another category.`
-                  }
-                  onRecordPress={() => router.push('/record' as any)}
-                  onResetFilter={
-                    simulateEmpty
-                      ? () => setSimulateEmpty(false)
-                      : filter !== 'all'
-                      ? () => setFilter('all')
-                      : undefined
-                  }
-                />
-              ) : (
-                <View style={styles.activitiesList}>
-                  {activities.map((activity) => (
-                    <ActivityCard key={activity.id} activity={activity} />
-                  ))}
+              {/* SECTION: WORKOUTS LIST */}
+              <View style={styles.sectionContainer}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>WORKOUTS</Text>
+                  <Text style={styles.sectionSubText}>{rawActivities.length} total</Text>
                 </View>
-              )}
+
+                {/* Filter Pills */}
+                <FilterPills selected={filter} onSelect={setFilter} counts={counts} />
+
+                {/* Workout Cards or Empty State */}
+                {activities.length === 0 ? (
+                  <EmptyState
+                    title={
+                      simulateEmpty
+                        ? 'No Activities'
+                        : isLiveUser
+                        ? 'No Activities Yet'
+                        : `No ${filter} Workouts`
+                    }
+                    message={
+                      simulateEmpty
+                        ? 'Simulated empty state active. Use developer options below to restore data.'
+                        : isLiveUser
+                        ? 'Tap "Record" to log your first workout session to Supabase.'
+                        : `No workouts found matching "${filter}". Record your next session or choose another filter.`
+                    }
+                    onRecordPress={() => router.push('/record' as any)}
+                    onResetFilter={
+                      simulateEmpty
+                        ? () => setSimulateEmpty(false)
+                        : filter !== 'all'
+                        ? () => setFilter('all')
+                        : undefined
+                    }
+                  />
+                ) : (
+                  <View style={styles.activitiesList}>
+                    {activities.map((activity) => (
+                      <ActivityCard key={activity.id} activity={activity} />
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Minimalist Developer / Testing Options (Foldable) */}
+              <View style={styles.devContainer}>
+                <Pressable
+                  onPress={() => setShowDevDrawer((prev) => !prev)}
+                  style={styles.devToggleBtn}>
+                  <Text style={styles.devToggleText}>
+                    Developer Sandbox Options {showDevDrawer ? '▲' : '▼'}
+                  </Text>
+                </Pressable>
+
+                {showDevDrawer && (
+                  <View style={styles.devRow}>
+                    <Pressable
+                      onPress={handleSimulateLoadingToggle}
+                      style={({ pressed }) => [
+                        styles.devBtn,
+                        isLoading && styles.devBtnActive,
+                        pressed && styles.pressed,
+                      ]}>
+                      <Text style={styles.devBtnText}>
+                        {isLoading ? 'Loading...' : 'Test Skeleton Loading'}
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => setSimulateEmpty((prev) => !prev)}
+                      style={({ pressed }) => [
+                        styles.devBtn,
+                        simulateEmpty && styles.devBtnActive,
+                        pressed && styles.pressed,
+                      ]}>
+                      <Text style={styles.devBtnText}>
+                        {simulateEmpty ? 'Restore Workouts' : 'Test Empty State'}
+                      </Text>
+                    </Pressable>
+
+                    {!isLiveUser && (
+                      <Pressable
+                        onPress={() => openAuthModal('login')}
+                        style={({ pressed }) => [styles.devBtnPrimary, pressed && styles.pressed]}>
+                        <Text style={styles.devBtnPrimaryText}>Sign In Modal</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                )}
+              </View>
             </>
           )}
         </View>
@@ -346,7 +350,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F2F2F7',
   },
   scrollView: {
     flex: 1,
@@ -354,196 +358,171 @@ const styles = StyleSheet.create({
   scrollContent: {
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
-    paddingTop: Platform.select({ web: Spacing.four, default: Spacing.two }),
+    paddingTop: Platform.select({ web: Spacing.four, default: Spacing.three }),
   },
   contentWrapper: {
     width: '100%',
     maxWidth: MaxContentWidth,
-    gap: 18,
+    gap: 20,
   },
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    flexWrap: 'wrap',
-    gap: 10,
+    alignItems: 'flex-end',
+    paddingBottom: 4,
   },
-  headerActions: {
+  headerLeft: {
+    gap: 2,
+  },
+  dateHeader: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  largeTitle: {
+    color: '#000000',
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+  },
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    marginBottom: 4,
   },
-  cloudBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.3)',
-    gap: 5,
-  },
-  cloudDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#22C55E',
-  },
-  cloudBadgeText: {
-    color: '#22C55E',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  demoModeBadge: {
-    backgroundColor: 'rgba(255, 107, 0, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 107, 0, 0.3)',
-  },
-  demoBadgeText: {
-    color: '#FF6B00',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  recordQuickBtn: {
-    backgroundColor: '#FF6B00',
+  recordBtn: {
+    backgroundColor: '#4FA99A',
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 18,
-    shadowColor: '#FF6B00',
+    shadowColor: '#4FA99A',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 2,
   },
-  recordQuickBtnText: {
+  recordBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  profileAvatarMini: {
+  avatarBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F1F5F4',
-    borderWidth: 1.5,
-    borderColor: '#4FA99A',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  profileAvatarText: {
-    color: '#0F172A',
-    fontSize: 12,
+  avatarBtnText: {
+    color: '#4FA99A',
+    fontSize: 13,
     fontWeight: '800',
   },
-  greetingSection: {
-    gap: 4,
-  },
-  greetingTitle: {
-    color: '#0F172A',
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  greetingSub: {
-    color: '#64748B',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  simulatorBanner: {
+  demoNoticeRow: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 8,
+    borderColor: 'rgba(0, 0, 0, 0.04)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  simLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  simLabel: {
-    color: '#64748B',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  simButtonsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  simBtn: {
-    backgroundColor: '#F1F5F4',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  simBtnActive: {
-    borderColor: '#4FA99A',
-    backgroundColor: 'rgba(79, 169, 154, 0.15)',
-  },
-  simBtnText: {
-    color: '#475569',
+  demoNoticeText: {
+    color: '#636366',
     fontSize: 12,
+    fontWeight: '500',
+  },
+  demoNoticeLink: {
+    color: '#4FA99A',
     fontWeight: '700',
   },
-  simBtnOrange: {
-    backgroundColor: '#4FA99A',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  simBtnOrangeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
+  sectionContainer: {
+    gap: 10,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginTop: 4,
+    paddingHorizontal: 2,
   },
   sectionTitle: {
-    color: '#0F172A',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  weekLabel: {
-    color: '#64748B',
+    color: '#8E8E93',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  sectionSubText: {
+    color: '#AEAEB2',
+    fontSize: 12,
+    fontWeight: '500',
   },
   statsGrid: {
     flexDirection: 'row',
     gap: 10,
     flexWrap: 'wrap',
   },
-  feedHeaderRow: {
-    marginTop: 6,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  activitiesList: {
+    gap: 12,
+  },
+  devContainer: {
+    marginTop: 10,
+    paddingVertical: 10,
     alignItems: 'center',
   },
-  feedSubTitle: {
-    color: '#64748B',
-    fontSize: 13,
-    marginTop: 2,
+  devToggleBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
-  activitiesList: {
-    gap: 16,
+  devToggleText: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  devRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+    marginTop: 10,
+    justifyContent: 'center',
+  },
+  devBtn: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  devBtnActive: {
+    backgroundColor: '#E5E5EA',
+  },
+  devBtnText: {
+    color: '#636366',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  devBtnPrimary: {
+    backgroundColor: '#4FA99A',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  devBtnPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   pressed: {
     opacity: 0.75,
