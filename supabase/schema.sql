@@ -36,7 +36,7 @@ create table if not exists public.profiles (
 -- ====================================================================
 create table if not exists public.activities (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
   title text not null,
   type text not null check (type in ('run', 'ride', 'walk')),
   distance_km numeric(8, 2) not null check (distance_km >= 0),

@@ -1,7 +1,8 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { LogBox, useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
@@ -9,6 +10,12 @@ import { AuthModal } from '@/components/fitness/auth-modal';
 import { AuthProvider } from '@/context/auth-context';
 
 SplashScreen.preventAutoHideAsync();
+
+// Silence benign third-party library warnings
+LogBox.ignoreLogs([
+  '[Reanimated] Dependencies should only be used on the web',
+  'SafeAreaView has been deprecated',
+]);
 
 const AppDarkTheme = {
   ...DarkTheme,
@@ -40,13 +47,15 @@ export default function TabLayout() {
   const theme = isDark ? AppDarkTheme : AppLightTheme;
 
   return (
-    <AuthProvider>
-      <ThemeProvider value={theme}>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        <AnimatedSplashOverlay />
-        <AppTabs />
-        <AuthModal />
-      </ThemeProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <ThemeProvider value={theme}>
+          <StatusBar style={isDark ? 'light' : 'dark'} />
+          <AnimatedSplashOverlay />
+          <AppTabs />
+          <AuthModal />
+        </ThemeProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

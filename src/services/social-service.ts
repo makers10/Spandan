@@ -165,13 +165,31 @@ export const socialService = {
 
     const { data, error } = await supabase
       .from('activity_comments')
-      .select('*, profiles(full_name, avatar_text)')
+      .select('*')
       .eq('activity_id', activityId)
       .order('created_at', { ascending: true });
 
     if (error || !data) {
       console.warn('Error fetching comments:', error?.message);
       return [];
+    }
+
+    const userIds = Array.from(new Set(data.map((item: any) => item.user_id).filter(Boolean)));
+    const profileMap = new Map<string, { full_name?: string; avatar_text?: string }>();
+
+    if (userIds.length > 0) {
+      try {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_text')
+          .in('id', userIds);
+
+        if (profiles) {
+          for (const p of profiles) {
+            profileMap.set(p.id, p);
+          }
+        }
+      } catch {}
     }
 
     const now = new Date();
@@ -185,8 +203,9 @@ export const socialService = {
           ? `${Math.floor(diffMins / 60)}h ago`
           : `${Math.floor(diffMins / 1440)}d ago`;
 
-      const userName = item.profiles?.full_name || 'Athlete';
-      const userAvatar = item.profiles?.avatar_text || userName.substring(0, 2).toUpperCase();
+      const profile = profileMap.get(item.user_id);
+      const userName = profile?.full_name || 'Athlete';
+      const userAvatar = profile?.avatar_text || userName.substring(0, 2).toUpperCase();
 
       return {
         id: item.id,
@@ -228,7 +247,7 @@ export const socialService = {
         user_id: userId,
         comment_text: trimmed,
       })
-      .select('*, profiles(full_name, avatar_text)')
+      .select('*')
       .single();
 
     if (error) {
@@ -236,8 +255,19 @@ export const socialService = {
       throw error;
     }
 
-    const userName = data.profiles?.full_name || 'You';
-    const userAvatar = data.profiles?.avatar_text || 'ME';
+    let userName = 'You';
+    let userAvatar = 'ME';
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_text')
+        .eq('id', userId)
+        .single();
+      if (profile) {
+        userName = profile.full_name || 'You';
+        userAvatar = profile.avatar_text || 'ME';
+      }
+    } catch {}
 
     return {
       id: data.id,

@@ -39,7 +39,6 @@ export const ACTIVITY_FEED_COLUMNS = [
   'polyline_preview',
   'visibility',
   'created_at',
-  'profiles:profiles(full_name, avatar_text)',
 ].join(', ');
 
 export interface CreateActivityInput {
@@ -323,8 +322,34 @@ export const activityService = {
         return [];
       }
 
-      if (!data) return [];
-      return data.map((item) => mapDatabaseRowToActivity(item));
+      if (!data || data.length === 0) return [];
+
+      // Query author profiles safely by user_id
+      const rawActivities = data as any[];
+      const userIds = Array.from(new Set(rawActivities.map((item: any) => item.user_id).filter(Boolean)));
+      const profileMap = new Map<string, { full_name?: string; avatar_text?: string }>();
+
+      if (userIds.length > 0) {
+        try {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_text')
+            .in('id', userIds);
+
+          if (profiles) {
+            for (const p of profiles as any[]) {
+              profileMap.set(p.id, p);
+            }
+          }
+        } catch {
+          // Graceful fallback to default athlete info
+        }
+      }
+
+      return rawActivities.map((item: any) => {
+        const profile = profileMap.get(item.user_id);
+        return mapDatabaseRowToActivity({ ...item, profiles: profile });
+      });
     } catch (err: any) {
       console.warn('Error querying social feed:', err.message);
       return [];
@@ -483,7 +508,7 @@ export const activityService = {
       .update(payload)
       .eq('id', activityId)
       .eq('user_id', userId)
-      .select('*, profiles(full_name, avatar_text)')
+      .select('*')
       .single();
 
     if (error) {
