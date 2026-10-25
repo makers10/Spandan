@@ -79,6 +79,7 @@ runTest('Edge Case: Negative elevation (descent) does not count as upward climbe
 // Test 3: Motion Sensor Step Gating (Anti-Elevator Protection)
 // -------------------------------------------------------------
 runTest('Step Gating: Elevation with 0 steps taken yields 0 credited floors (elevator rejection)', () => {
+  assert.strictEqual(MIN_STEPS_PER_FLOOR, 8);
   // 30 meters elevation (10 floors) but 0 physical steps taken (elevator ride)
   const result = calculateFloorsFromElevation(30.0, 0);
   assert.strictEqual(result.floors, 0);
@@ -100,6 +101,7 @@ runTest('Step Gating: Partial step count caps credited floors to physical effort
 // Test 4: Anti-Elevator Velocity Filter
 // -------------------------------------------------------------
 runTest('Elevator Filter: Rapid ascent (> 1.8 m/s) with minimal steps flags elevator', () => {
+  assert.strictEqual(MAX_NATURAL_ASCENT_RATE_MPS, 1.8);
   const isElevator = isElevatorAscent(2.5, 1);
   assert.strictEqual(isElevator, true);
 });
