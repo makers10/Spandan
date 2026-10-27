@@ -28,6 +28,33 @@ if (-not (Test-Path "$rootDir\android")) {
     npx expo prebuild --platform android --no-install
 }
 
+# Windows MAX_PATH fix for react-native-reanimated CMake/Ninja:
+$reanimatedAndroidDir = "$rootDir\node_modules\react-native-reanimated\android"
+$reanimatedCommonDir = "$rootDir\node_modules\react-native-reanimated\Common"
+$reanimatedJunction = "$reanimatedAndroidDir\Common"
+$reanimatedCMake = "$reanimatedAndroidDir\CMakeLists.txt"
+
+if ((Test-Path $reanimatedAndroidDir) -and (Test-Path $reanimatedCommonDir)) {
+    if (-not (Test-Path $reanimatedJunction)) {
+        Write-Output "==> Setting up Common NTFS junction for react-native-reanimated..."
+        New-Item -ItemType Junction -Path $reanimatedJunction -Target $reanimatedCommonDir -Force | Out-Null
+    }
+    if (Test-Path $reanimatedCMake) {
+        $cmakeText = Get-Content $reanimatedCMake -Raw
+        if ($cmakeText -match '\$\{CMAKE_SOURCE_DIR\}/\.\./Common') {
+            Write-Output "==> Patching react-native-reanimated CMakeLists.txt to prevent Windows MAX_PATH overflow..."
+            $cmakeText = $cmakeText.Replace('set(COMMON_CPP_DIR "${CMAKE_SOURCE_DIR}/../Common/cpp")', 'set(COMMON_CPP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Common/cpp")')
+            $cmakeText = $cmakeText.Replace('set(NATIVEVIEW_DIR "${CMAKE_SOURCE_DIR}/../Common/NativeView")', 'set(NATIVEVIEW_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Common/NativeView")')
+            $cmakeText = $cmakeText.Replace('"../Common/cpp/reanimated/*.cpp"', '"Common/cpp/reanimated/*.cpp"')
+            $cmakeText = $cmakeText.Replace('"../Common/NativeView/react/renderer/components/rnreanimated/*.cpp"', '"Common/NativeView/react/renderer/components/rnreanimated/*.cpp"')
+            $cmakeText = $cmakeText.Replace('file(GLOB_RECURSE REANIMATED_COMMON_CPP_SOURCES CONFIGURE_DEPENDS', 'file(GLOB_RECURSE REANIMATED_COMMON_CPP_SOURCES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"')
+            $cmakeText = $cmakeText.Replace('file(GLOB_RECURSE REANIMATED_ANDROID_CPP_SOURCES CONFIGURE_DEPENDS', 'file(GLOB_RECURSE REANIMATED_ANDROID_CPP_SOURCES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"')
+            $cmakeText = $cmakeText.Replace('file(GLOB_RECURSE REANIMATED_NATIVEVIEW_CPP_SOURCES CONFIGURE_DEPENDS', 'file(GLOB_RECURSE REANIMATED_NATIVEVIEW_CPP_SOURCES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"')
+            Set-Content -Path $reanimatedCMake -Value $cmakeText -NoNewline
+        }
+    }
+}
+
 Set-Location -Path "$rootDir\android"
 Write-Output "==> Building Release APK via Gradle..."
 .\gradlew.bat assembleRelease --no-daemon --console=plain
