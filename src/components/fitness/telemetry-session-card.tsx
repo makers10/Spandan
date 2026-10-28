@@ -15,15 +15,15 @@ interface TelemetrySessionCardProps {
 }
 
 export function TelemetrySessionCard({
-  title = 'Morning Hill Sprints',
-  time = '06:42 AM',
-  efficiencyScore = 'Score 9.2/10 EFF',
-  tag = 'ANAEROBIC',
-  distanceKm = 5.4,
-  pace = '4:18',
-  calories = 482,
-  maxHr = 179,
-  peakSpeed = '18.4 km/h PEAK',
+  title = 'Recent Workout',
+  time = '--:--',
+  efficiencyScore = 'GPS Session',
+  tag = 'SESSION',
+  distanceKm = 0.0,
+  pace = '--:--',
+  calories = 0,
+  maxHr = 0,
+  peakSpeed = '0.0 km/h',
 }: TelemetrySessionCardProps) {
   return (
     <View style={styles.card}>

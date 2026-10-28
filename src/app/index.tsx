@@ -116,7 +116,7 @@ export default function HomeScreen() {
 
   const athleteFirstName = isLiveUser
     ? (profile?.full_name || user?.email?.split('@')[0] || 'Athlete').split(' ')[0]
-    : 'Alex';
+    : 'Athlete';
 
   const athleteAvatar = isLiveUser
     ? profile?.avatar_text || athleteDisplayName.substring(0, 2).toUpperCase()
@@ -202,11 +202,14 @@ export default function HomeScreen() {
               </View>
 
               {/* Hero Telemetry Card: Recovery Index (94% Optimal) */}
-              <ReadinessHeroCard />
+              <ReadinessHeroCard
+                score={activeWeeklyStats.totalDistanceKm > 0 ? Math.min(100, Math.round((activeWeeklyStats.totalDistanceKm / (activeWeeklyStats.distanceGoalKm || 30)) * 100)) : 0}
+                statusLabel={activeWeeklyStats.totalDistanceKm > 0 ? 'ACTIVE' : 'READY'}
+              />
 
               {/* Daily Movement Strain & Multi-Ring Tracker */}
               <KineticStrainCard
-                currentStrain={activeWeeklyStats.totalDistanceKm > 0 ? Number(activeWeeklyStats.totalDistanceKm.toFixed(1)) : 14.8}
+                currentStrain={activeWeeklyStats.totalDistanceKm > 0 ? Number(activeWeeklyStats.totalDistanceKm.toFixed(1)) : 0.0}
                 targetStrain={activeWeeklyStats.distanceGoalKm || 18.0}
               />
 
@@ -224,7 +227,27 @@ export default function HomeScreen() {
                 </View>
 
                 {/* Real-Time Session Telemetry Card */}
-                <TelemetrySessionCard />
+                {rawActivities.length > 0 ? (
+                  <TelemetrySessionCard
+                    title={rawActivities[0].title}
+                    time={rawActivities[0].timeAgo}
+                    efficiencyScore={rawActivities[0].location || 'Outdoor Session'}
+                    tag={rawActivities[0].type.toUpperCase()}
+                    distanceKm={rawActivities[0].distanceKm}
+                    pace={rawActivities[0].paceOrSpeedFormatted}
+                    calories={rawActivities[0].calories}
+                    maxHr={rawActivities[0].maxHeartRate || 0}
+                    peakSpeed={`${rawActivities[0].paceOrSpeedFormatted} ${rawActivities[0].type === 'ride' ? 'km/h' : '/km'}`}
+                  />
+                ) : (
+                  <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 20, marginVertical: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                    <Ionicons name="footsteps-outline" size={28} color="#006B5D" style={{ marginBottom: 6 }} />
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A' }}>No Sessions Recorded Yet</Text>
+                    <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center', marginTop: 4 }}>
+                      All telemetry starts from zero. Tap SESSION below to begin your first workout!
+                    </Text>
+                  </View>
+                )}
 
                 {/* Filter Pills for Recorded User Workouts */}
                 {rawActivities.length > 0 && (

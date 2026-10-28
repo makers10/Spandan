@@ -191,7 +191,7 @@ export default function ActivityDetailScreen() {
 
   // Display splits with delta, effort, and peak sprint flag
   const displaySplits = useMemo(() => {
-    const baseSplits = splits.length > 1 ? splits : generateSyntheticSplits(activity);
+    const baseSplits = splits;
     if (baseSplits.length === 0) return [];
 
     const avgSec = baseSplits.reduce((acc, s) => acc + s.durationSeconds, 0) / baseSplits.length;
@@ -249,11 +249,11 @@ export default function ActivityDetailScreen() {
     }
 
     return {
-      elevationPolygonPoints: '0,55 25,48 55,50 85,38 120,44 155,20 190,26 225,12 260,34 295,22 320,38 340,32 340,70 0,70',
-      elevationPolylinePoints: '0,55 25,48 55,50 85,38 120,44 155,20 190,26 225,12 260,34 295,22 320,38 340,32',
-      apexPoint: { x: 225, y: 12 },
-      peakElevationM: activity?.elevationMeters ? Math.round(activity.elevationMeters * 0.6) : 84,
-    };
+        elevationPolygonPoints: '',
+        elevationPolylinePoints: '',
+        apexPoint: { x: 170, y: 35 },
+        peakElevationM: activity?.elevationMeters || 0,
+      };
   }, [routePoints, activity]);
 
   // Handle Share telemetry

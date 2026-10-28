@@ -28,53 +28,16 @@ export default function ExploreScreen() {
 
   // Dynamic values based on timeframe
   const metrics = useMemo(() => {
-    switch (timeframe) {
-      case 'day':
-        return {
-          movementQuality: 94,
-          grade: 'GRADE A+',
-          trend: '+1.8% VS YEST',
-          gct: '208',
-          oscillation: '6.5',
-          acuteRatio: '1.08',
-          progression: 'OPTIMAL LOAD',
-          weeklyAU: [280, 0, 0, 0, 0, 0, 0],
-        };
-      case 'month':
-        return {
-          movementQuality: 91,
-          grade: 'GRADE A',
-          trend: '+6.5% VS L-MO',
-          gct: '215',
-          oscillation: '7.0',
-          acuteRatio: '1.18',
-          progression: 'PROGRESSIVE OVERLOAD',
-          weeklyAU: [450, 480, 520, 590, 410, 530, 0],
-        };
-      case 'season':
-        return {
-          movementQuality: 93,
-          grade: 'GRADE A+',
-          trend: '+8.4% VS BASE',
-          gct: '210',
-          oscillation: '6.7',
-          acuteRatio: '1.12',
-          progression: 'PEAK TRAINING',
-          weeklyAU: [490, 530, 480, 590, 520, 510, 0],
-        };
-      case 'week':
-      default:
-        return {
-          movementQuality: 92,
-          grade: 'GRADE A+',
-          trend: '+4.2% VS L-WK',
-          gct: '212',
-          oscillation: '6.8',
-          acuteRatio: '1.14',
-          progression: 'SAFE PROGRESSION',
-          weeklyAU: [320, 410, 140, 590, 380, 510, 0],
-        };
-    }
+    return {
+      movementQuality: 0,
+      grade: 'PENDING',
+      trend: 'NO SESSIONS YET',
+      gct: '--',
+      oscillation: '--',
+      acuteRatio: '0.0',
+      progression: 'READY TO TRAIN',
+      weeklyAU: [0, 0, 0, 0, 0, 0, 0],
+    };
   }, [timeframe]);
 
   const handleExportReport = async () => {
@@ -112,8 +75,8 @@ export default function ExploreScreen() {
             aria-label="Sensor Status"
             onPress={() =>
               Alert.alert(
-                'Biometric Sensors Connected',
-                'IMU 6-Axis Motion Sensor: Calibrated\nGround Reaction Force Array: Active\nOptical Pulse Sensor: Synced'
+                'Device Sensors',
+'GNSS GPS: Ready\nHardware Pedometer: Ready\nExternal Biometric Sensors: None Connected'
               )
             }
             style={({ pressed }) => [styles.sensorBtn, pressed && styles.btnPressed]}>
@@ -141,12 +104,12 @@ export default function ExploreScreen() {
           <View style={styles.statusContextRow}>
             <View style={styles.syncedPill}>
               <View style={styles.pulseDot} />
-              <Text style={styles.syncedText}>BIO-TELEMETRY {'//'} SYNCED</Text>
+              <Text style={styles.syncedText}>DEVICE SENSORS // ACTIVE</Text>
             </View>
 
             <View style={styles.imuPill}>
               <Ionicons name="flash" size={13} color="#0d9488" style={{ marginRight: 4 }} />
-              <Text style={styles.imuText}>IMU 6-AXIS CALIBRATED</Text>
+              <Text style={styles.imuText}>GNSS & MOTION READY</Text>
             </View>
           </View>
 
@@ -282,19 +245,19 @@ export default function ExploreScreen() {
                   <Ionicons name="scale-outline" size={16} color="#0f766e" />
                   <Text style={styles.symmetryTitle}>Kinetic Symmetry</Text>
                 </View>
-                <Text style={styles.symmetryPillText}>99.6% SYMMETRIC</Text>
+                <Text style={styles.symmetryPillText}>REQUIRES RUNNING POD</Text>
               </View>
 
               {/* Bilateral Percentage Readout */}
               <View style={styles.bilateralRow}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Text style={styles.lrPrefix}>L:</Text>
-                  <Text style={styles.lrVal}>49.8%</Text>
+                  <Text style={styles.lrVal}>--%</Text>
                 </View>
                 <View style={styles.symmetryDot} />
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Text style={styles.lrPrefix}>R:</Text>
-                  <Text style={[styles.lrVal, { color: '#0d9488' }]}>50.2%</Text>
+                  <Text style={[styles.lrVal, { color: '#0d9488' }]}>--%</Text>
                 </View>
               </View>
 
@@ -313,7 +276,7 @@ export default function ExploreScreen() {
                   </View>
                   <View>
                     <Text style={styles.footSideLabel}>Left Foot</Text>
-                    <Text style={styles.footTypeVal}>Midfoot (68%)</Text>
+                    <Text style={styles.footTypeVal}>--</Text>
                   </View>
                 </View>
 
@@ -323,7 +286,7 @@ export default function ExploreScreen() {
                   </View>
                   <View>
                     <Text style={styles.footSideLabel}>Right Foot</Text>
-                    <Text style={styles.footTypeVal}>Midfoot (71%)</Text>
+                    <Text style={styles.footTypeVal}>--</Text>
                   </View>
                 </View>
               </View>
@@ -361,13 +324,13 @@ export default function ExploreScreen() {
               {/* Chart Columns */}
               <View style={styles.columnsRow}>
                 {[
-                  { day: 'M', au: 320, h: 56, isPeak: false },
-                  { day: 'T', au: 410, h: 76, isPeak: false },
-                  { day: 'W', au: 140, h: 32, isPeak: false, isRest: true },
-                  { day: 'T', au: 590, h: 108, isPeak: true },
-                  { day: 'F', au: 380, h: 68, isPeak: false },
-                  { day: 'S', au: 510, h: 94, isPeak: false, isTeal: true },
-                  { day: 'S', au: 0, h: 16, isPeak: false, isPending: true },
+                  { day: 'M', au: 0, h: 4, isPeak: false, isPending: true, isTeal: false, isRest: false },
+                  { day: 'T', au: 0, h: 4, isPeak: false, isPending: true, isTeal: false, isRest: false },
+                  { day: 'W', au: 0, h: 4, isPeak: false, isPending: true, isTeal: false, isRest: false },
+                  { day: 'T', au: 0, h: 4, isPeak: false, isPending: true, isTeal: false, isRest: false },
+                  { day: 'F', au: 0, h: 4, isPeak: false, isPending: true, isTeal: false, isRest: false },
+                  { day: 'S', au: 0, h: 4, isPeak: false, isPending: true, isTeal: false, isRest: false },
+                  { day: 'S', au: 0, h: 4, isPeak: false, isPending: true, isTeal: false, isRest: false },
                 ].map((item, idx) => (
                   <View key={`day-${idx}`} style={styles.barCol}>
                     <Text
@@ -432,45 +395,12 @@ export default function ExploreScreen() {
               <Text style={styles.capsSubLabel}>ALGO V4.8</Text>
             </View>
 
-            {/* Critical Insight 1 */}
-            <View style={styles.insightItem}>
-              <View style={styles.insightTop}>
-                <View style={styles.driftBadge}>
-                  <Text style={styles.driftBadgeText}>FORM DRIFT DETECTED</Text>
-                </View>
-                <Text style={styles.insightRangeText}>KM 7.2 — KM 10.0</Text>
-              </View>
-              <Text style={styles.insightBodyText}>
-                Slight degradation in vertical recoil observed after km 7: Ground contact time
-                increased by <Text style={{ color: '#0f766e', fontWeight: '800' }}>+18ms</Text>,
-                accompanied by lower plantar stiffness.
-              </Text>
-              <View style={styles.correctiveBox}>
-                <Ionicons name="barbell-outline" size={17} color="#0f766e" style={{ marginTop: 2 }} />
-                <Text style={styles.correctiveText}>
-                  <Text style={{ fontWeight: '800', color: '#0f172a' }}>
-                    Corrective Intervention:{' '}
-                  </Text>
-                  Program 3 sets of eccentric calf loading and 80m cadenced strides at 182 SPM prior
-                  to Saturday long tempo.
-                </Text>
-              </View>
-            </View>
-
-            {/* Secondary Positive Insight 2 */}
-            <View style={styles.insightItem}>
-              <View style={styles.insightTop}>
-                <View style={[styles.driftBadge, { backgroundColor: '#ccfbf1', borderColor: '#99f6e4' }]}>
-                  <Text style={[styles.driftBadgeText, { color: '#004d43' }]}>
-                    CADENCE LOCK STABILITY
-                  </Text>
-                </View>
-                <Text style={styles.insightRangeText}>Z3 CRUISE</Text>
-              </View>
-              <Text style={styles.insightBodyText}>
-                Step frequency held unwavering at{' '}
-                <Text style={{ fontWeight: '800', color: '#0f172a' }}>178 ± 1.4 SPM</Text> across all
-                interval climbs. Energy leakage reduced by 3.8%.
+            {/* Kinetic Insights Content */}
+            <View style={{ padding: 18, alignItems: 'center' }}>
+              <Ionicons name="bulb-outline" size={24} color="#006B5D" style={{ marginBottom: 6 }} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#0F172A' }}>No Biomechanical Insights Yet</Text>
+              <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center', marginTop: 4 }}>
+                Log outdoor running and movement sessions to generate personalized stride, cadence, and form insights.
               </Text>
             </View>
           </View>
@@ -485,55 +415,16 @@ export default function ExploreScreen() {
                 <Text style={styles.cardHeadingMain}>Movement Milestones</Text>
               </View>
               <Text style={[styles.capsSubLabel, { color: '#0d9488', fontWeight: '800' }]}>
-                NEW ALL-TIME PR
+                RECORDS
               </Text>
             </View>
 
-            <View style={{ gap: 8 }}>
-              {/* Milestone 1 */}
-              <View style={styles.milestoneItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={[styles.milestoneIconWrap, { backgroundColor: '#e6fbf7' }]}>
-                    <Ionicons name="timer-outline" size={20} color="#0f766e" />
-                  </View>
-                  <View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={styles.milestoneCategory}>STRIDE VELOCITY</Text>
-                      <View style={styles.newRecordPill}>
-                        <Text style={styles.newRecordText}>NEW RECORD</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.milestoneTitle}>Fastest 5K Stride Velocity</Text>
-                    <Text style={styles.milestoneSub}>Splits average 4:02/km @ 1.42m stride length</Text>
-                  </View>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.milestoneScore}>20:14</Text>
-                  <Text style={styles.milestoneDiff}>-32s vs prev</Text>
-                </View>
-              </View>
-
-              {/* Milestone 2 */}
-              <View style={styles.milestoneItem}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={[styles.milestoneIconWrap, { backgroundColor: '#fff7ed' }]}>
-                    <Ionicons name="flash-outline" size={20} color="#ea580c" />
-                  </View>
-                  <View>
-                    <Text style={styles.milestoneCategory}>FORCE GENERATION</Text>
-                    <Text style={styles.milestoneTitle}>Peak Power Output</Text>
-                    <Text style={styles.milestoneSub}>Sprint uphill transition at km 4.8</Text>
-                  </View>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.milestoneScore}>
-                    410<Text style={{ fontSize: 12, color: '#94a3b8' }}>W</Text>
-                  </Text>
-                  <Text style={[styles.milestoneDiff, { color: '#0d9488', fontWeight: '800' }]}>
-                    +24W PEAK
-                  </Text>
-                </View>
-              </View>
+            <View style={{ padding: 18, alignItems: 'center' }}>
+              <Ionicons name="ribbon-outline" size={24} color="#006B5D" style={{ marginBottom: 6 }} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#0F172A' }}>No Milestones Yet</Text>
+              <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center', marginTop: 4 }}>
+                Personal records and sprint velocity milestones will be unlocked as you complete activities.
+              </Text>
             </View>
           </View>
 

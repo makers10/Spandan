@@ -11,13 +11,13 @@ export function BiometricSyncCard() {
         </View>
 
         <View style={styles.textGroup}>
-          <Text style={styles.sensorTitle}>Pulse Sensor 01</Text>
-          <Text style={styles.sensorSub}>Optical PPG 100Hz • 98% Battery</Text>
+          <Text style={styles.sensorTitle}>Device Hardware Stack</Text>
+          <Text style={styles.sensorSub}>GNSS GPS & Pedometer Sensors</Text>
         </View>
       </View>
 
       <View style={styles.syncedBadge}>
-        <Text style={styles.syncedText}>SYNCED</Text>
+        <Text style={styles.syncedText}>READY</Text>
       </View>
     </View>
   );

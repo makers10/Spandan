@@ -10,11 +10,11 @@ interface KineticStrainCardProps {
 }
 
 export function KineticStrainCard({
-  currentStrain = 14.8,
-  targetStrain = 18.0,
-  kineticForceKn = 710,
-  activeDurationMinutes = 68,
-  targetDurationMinutes = 90,
+  currentStrain = 0.0,
+  targetStrain = 30.0,
+  kineticForceKn = 0,
+  activeDurationMinutes = 0,
+  targetDurationMinutes = 60,
 }: KineticStrainCardProps) {
   return (
     <View style={styles.card}>

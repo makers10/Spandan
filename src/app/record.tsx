@@ -77,13 +77,13 @@ export default function RecordScreen() {
   const [movingSeconds, setMovingSeconds] = useState<number>(0);
   const [distanceKm, setDistanceKm] = useState<number>(0);
 
-  const [elevationGainM, setElevationGainM] = useState<number>(184);
-  const [currentPaceOrSpeed, setCurrentPaceOrSpeed] = useState<string>('3:55');
+  const [elevationGainM, setElevationGainM] = useState<number>(0);
+  const [currentPaceOrSpeed, setCurrentPaceOrSpeed] = useState<string>('--:--');
 
   // Live Biometrics Telemetry
-  const [liveHeartRate, setLiveHeartRate] = useState<number>(164);
-  const [liveCadence, setLiveCadence] = useState<number>(178);
-  const [livePower, setLivePower] = useState<number>(340);
+  const [liveHeartRate, setLiveHeartRate] = useState<number | null>(null);
+  const [liveCadence, setLiveCadence] = useState<number>(0);
+  const [livePower, setLivePower] = useState<number | null>(null);
   const [audioCueActive, setAudioCueActive] = useState<boolean>(true);
 
   // Laps / Splits Record
@@ -136,6 +136,19 @@ export default function RecordScreen() {
         unsubscribeGpsRef.current();
         unsubscribeGpsRef.current = null;
       }
+    };
+  }, []);
+
+  // Subscribe to floor service for real pedometer cadence and barometric elevation
+  useEffect(() => {
+    const unsubscribe = floorService.subscribe((metrics) => {
+      setLiveCadence(metrics.cadenceSpm);
+      if (metrics.totalBarometricGainM > 0) {
+        setElevationGainM(Math.round(metrics.totalBarometricGainM));
+      }
+    });
+    return () => {
+      unsubscribe();
     };
   }, []);
 
@@ -211,44 +224,26 @@ export default function RecordScreen() {
         );
         setMovingSeconds(movingSec);
 
-        // Advance distance (from real GPS or simulated kinetic pace)
+        // Advance distance strictly from legitimate GPS points
         const gpsDistance = calculateTrackDistanceKm(routePointsRef.current);
+        setDistanceKm(gpsDistance);
 
-        setDistanceKm((prevDist) => {
-          if (gpsDistance > prevDist) {
-            return gpsDistance;
-          }
-          // Steady realistic runner pace (~3.8m per second) or cyclist pace (~8.5m per second)
-          const incrementKm = selectedSport === 'ride' ? 0.0078 : 0.0039;
-          return Number((prevDist + incrementKm).toFixed(3));
-        });
+        // Feed real distance and moving time to floorService for accurate cadence
+        floorService.ingestDistanceAndSpeed(gpsDistance, selectedSport, movingSec);
 
-        // Compute current pace
-        const currentDist = Math.max(0.05, distanceKm);
-        if (selectedSport === 'ride') {
-          setCurrentPaceOrSpeed(calculateSpeed(currentDist, movingSec));
+        // Compute pace/speed based strictly on actual GPS movement
+        if (gpsDistance <= 0 || movingSec <= 0) {
+          setCurrentPaceOrSpeed(selectedSport === 'ride' ? '0.0' : '--:--');
+        } else if (selectedSport === 'ride') {
+          setCurrentPaceOrSpeed(calculateSpeed(gpsDistance, movingSec));
         } else {
-          setCurrentPaceOrSpeed(calculatePace(currentDist, movingSec));
+          setCurrentPaceOrSpeed(calculatePace(gpsDistance, movingSec));
         }
-
-        // Fluctuate biometric sensors realistically around athletic targets
-        setLiveHeartRate((prev) => {
-          const delta = Math.floor(Math.random() * 3) - 1;
-          return Math.min(182, Math.max(148, prev + delta));
-        });
-        setLiveCadence((prev) => {
-          const delta = Math.floor(Math.random() * 3) - 1;
-          return Math.min(186, Math.max(170, prev + delta));
-        });
-        setLivePower((prev) => {
-          const delta = (Math.floor(Math.random() * 5) - 2) * 3;
-          return Math.min(380, Math.max(290, prev + delta));
-        });
       }, 1000);
     }
 
     return () => clearInterval(timer);
-  }, [recordingState, startTimeMs, pausedDurationMs, selectedSport, distanceKm]);
+  }, [recordingState, startTimeMs, pausedDurationMs, selectedSport]);
 
   // Request location permission explicitly
   const handleRequestPermission = async () => {
@@ -278,10 +273,15 @@ export default function RecordScreen() {
     setPausedDurationMs(0);
     setPauseStartMs(null);
     setDistanceKm(0);
-    setElevationGainM(184);
+    setElevationGainM(0);
+    setCurrentPaceOrSpeed(selectedSport === 'ride' ? '0.0' : '--:--');
+    setLiveHeartRate(null);
+    setLiveCadence(0);
+    setLivePower(null);
     setLapSplits([]);
     setRecordingState('recording');
     setGpsStatus('acquiring');
+    floorService.reset();
     floorService.requestPedometerPermission().catch(() => {});
     floorService.startTracking();
 
@@ -399,7 +399,7 @@ export default function RecordScreen() {
 
     try {
       const pts = routePointsRef.current;
-      const finalDist = Math.max(0.1, Number(distanceKm.toFixed(2)));
+      const finalDist = Number(distanceKm.toFixed(2));
       const finalSec = Math.max(1, movingSeconds);
       const formattedDuration = formatDuration(finalSec);
       const paceVal =
@@ -410,13 +410,13 @@ export default function RecordScreen() {
       const polylineSvg =
         pts.length >= 2
           ? generateSvgPathFromCoordinates(pts, 320, 80, 8)
-          : 'M 20 60 Q 90 20 160 55 T 300 25';
+          : '';
 
       let newActivityId = `activity-${Date.now()}`;
 
       if (isLiveUser && user) {
         const saved = await activityService.createActivity(user.id, {
-          title: activityTitle.trim() || `${selectedSport.toUpperCase()} Kinetic Session`,
+          title: activityTitle.trim() || `${selectedSport.toUpperCase()} Session`,
           type: selectedSport === 'hike' ? 'walk' : selectedSport,
           distanceKm: finalDist,
           durationSeconds: finalSec,
@@ -425,15 +425,15 @@ export default function RecordScreen() {
           paceOrSpeedLabel: speedOrPaceLabel,
           elevationMeters: elevationGainM,
 
-          calories: Math.max(20, Math.round(finalDist * 65)),
-          location: 'Kinetic Telemetry Corridor',
+          calories: finalDist > 0 ? Math.max(1, Math.round(finalDist * 65)) : 0,
+          location: 'Tracked Session',
 
           polylinePreview: polylineSvg,
           visibility: activityVisibility,
           routePoints: pts,
-          avgHeartRate: liveHeartRate,
-          maxHeartRate: liveHeartRate + 14,
-          cadenceOrSteps: `${liveCadence} SPM`,
+          avgHeartRate: liveHeartRate || undefined,
+          maxHeartRate: liveHeartRate ? liveHeartRate + 14 : undefined,
+          cadenceOrSteps: liveCadence > 0 ? `${liveCadence} SPM` : undefined,
         });
 
         if (saved && saved.id) {
@@ -482,6 +482,9 @@ export default function RecordScreen() {
 
   // Heart rate zone breakdown calculation
   const hrZone = useMemo(() => {
+    if (liveHeartRate === null || liveHeartRate === undefined || liveHeartRate === 0) {
+      return { name: 'NO SENSOR', label: 'DISCONNECTED' };
+    }
     if (liveHeartRate >= 172) return { name: 'ZONE 5', label: 'MAXIMAL' };
     if (liveHeartRate >= 155) return { name: 'ZONE 4', label: 'THRESHOLD' };
     if (liveHeartRate >= 140) return { name: 'ZONE 3', label: 'AEROBIC' };
@@ -614,7 +617,7 @@ export default function RecordScreen() {
                 <View style={styles.pingDotOuter} />
                 <View style={styles.pingDotCore} />
               </View>
-              <Text style={styles.liveTelemetryText}>LIVE TELEMETRY {'//'} ACT-04</Text>
+              <Text style={styles.liveTelemetryText}>LIVE TELEMETRY</Text>
             </View>
 
             <Pressable
@@ -639,7 +642,7 @@ export default function RecordScreen() {
                     : 'RTK 5/5 FIXED'
                   : gpsStatus === 'acquiring'
                   ? 'ACQUIRING...'
-                  : 'RTK 5/5 FIXED'}
+                  : 'GPS READY'}
               </Text>
             </Pressable>
           </View>
@@ -658,41 +661,32 @@ export default function RecordScreen() {
                     pointerEvents: 'none',
                   }}
                   dangerouslySetInnerHTML={{
-                    __html: `
-                      <svg width="100%" height="100%" viewBox="0 0 380 256" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%;">
-                        <defs>
-                          <pattern id="tactical-grid-light" width="24" height="24" patternUnits="userSpaceOnUse">
-                            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#94a3b8" stroke-opacity="0.3" stroke-width="0.75" />
-                          </pattern>
-                          <filter id="teal-glow" x="-25%" y="-25%" width="150%" height="150%">
-                            <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#00b8a2" flood-opacity="0.45" />
-                          </filter>
-                          <linearGradient id="traceGradientLight" x1="0%" y1="100%" x2="100%" y2="0%">
-                            <stop offset="0%" stop-color="#0284c7" stop-opacity="0.7" />
-                            <stop offset="55%" stop-color="#00b8a2" stop-opacity="1" />
-                            <stop offset="100%" stop-color="#00b8a2" stop-opacity="1" />
-                          </linearGradient>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#tactical-grid-light)" />
-                        <path d="M 30 220 C 70 190, 80 140, 140 160 C 200 180, 210 110, 270 90 C 310 75, 330 95, 350 45" filter="url(#teal-glow)" stroke="url(#traceGradientLight)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
-                        <path d="M 30 220 C 70 190, 80 140, 140 160 C 200 180, 210 110, 270 90 C 310 75, 330 95, 350 45" stroke="#ffffff" stroke-width="1.75" stroke-linecap="round" />
-                        <circle cx="30" cy="220" r="5" fill="#0284c7" />
-                        <circle cx="30" cy="220" r="2" fill="#ffffff" />
-                        <circle cx="350" cy="45" r="24" stroke="#00b8a2" stroke-width="1.25" stroke-dasharray="3 3" opacity="0.6" />
-                        <circle cx="350" cy="45" r="9" fill="#00b8a2" fill-opacity="0.25" />
-                        <circle cx="350" cy="45" r="4.5" fill="#00b8a2" />
-                        <circle cx="350" cy="45" r="1.5" fill="#ffffff" />
-                      </svg>
-                    `,
+                    __html: routePoints.length >= 2
+                      ? `<svg width="100%" height="100%" viewBox="0 0 380 256" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%;">
+                          <defs>
+                            <pattern id="tactical-grid-light" width="24" height="24" patternUnits="userSpaceOnUse">
+                              <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#94a3b8" stroke-opacity="0.3" stroke-width="0.75" />
+                            </pattern>
+                          </defs>
+                          <rect width="100%" height="100%" fill="url(#tactical-grid-light)" />
+                          <path d="${generateSvgPathFromCoordinates(routePoints, 380, 256, 12)}" stroke="#00b8a2" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>`
+                      : `<svg width="100%" height="100%" viewBox="0 0 380 256" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%;">
+                          <defs>
+                            <pattern id="tactical-grid-light" width="24" height="24" patternUnits="userSpaceOnUse">
+                              <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#94a3b8" stroke-opacity="0.3" stroke-width="0.75" />
+                            </pattern>
+                          </defs>
+                          <rect width="100%" height="100%" fill="url(#tactical-grid-light)" />
+                          <text x="50%" y="50%" text-anchor="middle" fill="#94a3b8" font-size="12" font-weight="600" letter-spacing="1">GPS READY • WAITING FOR MOVEMENT</text>
+                        </svg>`,
                   }}
                 />
               ) : (
                 <View style={styles.nativeGridContainer}>
                   <View style={styles.nativeGridLine1} />
                   <View style={styles.nativeGridLine2} />
-                  <View style={styles.nativeRoutePath} />
-                  <View style={styles.nativePinOrigin} />
-                  <View style={styles.nativePinTarget} />
+                  {routePoints.length >= 2 && <View style={styles.nativeRoutePath} />}
                 </View>
               )}
             </View>
@@ -709,16 +703,16 @@ export default function RecordScreen() {
 
             <View style={styles.mapTopRightHUD}>
               <Ionicons name="navigate" size={14} color="#00b8a2" style={{ marginRight: 3 }} />
-              <Text style={styles.bearingText}>SE 142°</Text>
+              <Text style={styles.bearingText}>--°</Text>
             </View>
 
-            {/* Live Pace Differential Overlay Indicator (Bottom HUD) */}
+            {/* Live Telemetry Overlay Indicator (Bottom HUD) */}
             <View style={styles.mapBottomBar}>
               <View style={styles.bottomBarLeft}>
-                <Ionicons name="trending-up" size={16} color="#0d9488" style={{ marginRight: 5 }} />
+                <Ionicons name="navigate-outline" size={16} color="#0d9488" style={{ marginRight: 5 }} />
                 <Text style={styles.targetDiffText}>
-                  +0.12 KM/H VS TARGET{routePoints.length > 0 ? ` • ${routePoints.length} PTS` : ''}
-
+                  {gpsStatus === 'locked' ? (gpsAccuracy ? `GPS ±${gpsAccuracy}M` : 'GPS LOCKED') : gpsStatus.toUpperCase()}
+                  {routePoints.length > 0 ? ` • ${routePoints.length} PTS` : ''}
                 </Text>
               </View>
               <View style={styles.bottomBarRight}>
@@ -757,13 +751,13 @@ export default function RecordScreen() {
                 <View style={styles.metricRow}>
                   <Text style={styles.metricValLarge}>{currentPaceOrSpeed}</Text>
                   <Text style={styles.metricUnitSub}>
-                    {selectedSport === 'ride' ? '/KMH' : '/KM'}
+                    {selectedSport === 'ride' ? 'KM/H' : '/KM'}
                   </Text>
                 </View>
                 <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: '78%', backgroundColor: '#00b8a2' }]} />
+                  <View style={[styles.progressFill, { width: currentPaceOrSpeed !== '--:--' && currentPaceOrSpeed !== '0.0' ? '70%' : '0%', backgroundColor: '#00b8a2' }]} />
                 </View>
-                <Text style={styles.tileFooterText}>Target: 4:05 min/km</Text>
+                <Text style={styles.tileFooterText}>{distanceKm > 0 ? 'Live GPS Pace' : 'Stationary'}</Text>
               </View>
 
               {/* Tile 2: Live Heart Rate */}
@@ -775,16 +769,16 @@ export default function RecordScreen() {
                   </View>
                 </View>
                 <View style={styles.metricRow}>
-                  <Text style={styles.metricValLarge}>{liveHeartRate}</Text>
+                  <Text style={styles.metricValLarge}>{liveHeartRate !== null ? liveHeartRate : '--'}</Text>
                   <Text style={styles.metricUnitSub}>BPM</Text>
                 </View>
                 {/* 5-Segment Zone Bar */}
                 <View style={styles.zoneBarsRow}>
-                  <View style={[styles.zoneBarSegment, { backgroundColor: '#fbbf24' }]} />
-                  <View style={[styles.zoneBarSegment, { backgroundColor: '#fbbf24' }]} />
-                  <View style={[styles.zoneBarSegment, { backgroundColor: '#fb923c' }]} />
-                  <View style={[styles.zoneBarSegment, { backgroundColor: '#f97316' }]} />
-                  <View style={[styles.zoneBarSegment, { backgroundColor: '#e2e8f0' }]} />
+                  <View style={[styles.zoneBarSegment, { backgroundColor: liveHeartRate && liveHeartRate >= 120 ? '#fbbf24' : '#e2e8f0' }]} />
+                  <View style={[styles.zoneBarSegment, { backgroundColor: liveHeartRate && liveHeartRate >= 140 ? '#fbbf24' : '#e2e8f0' }]} />
+                  <View style={[styles.zoneBarSegment, { backgroundColor: liveHeartRate && liveHeartRate >= 155 ? '#fb923c' : '#e2e8f0' }]} />
+                  <View style={[styles.zoneBarSegment, { backgroundColor: liveHeartRate && liveHeartRate >= 172 ? '#f97316' : '#e2e8f0' }]} />
+                  <View style={[styles.zoneBarSegment, { backgroundColor: liveHeartRate && liveHeartRate >= 185 ? '#ef4444' : '#e2e8f0' }]} />
                 </View>
                 <View style={styles.zoneFooterRow}>
                   <View style={styles.zonePill}>
@@ -809,9 +803,9 @@ export default function RecordScreen() {
                   <Text style={styles.metricUnitSub}>SPM</Text>
                 </View>
                 <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: '89%', backgroundColor: '#0284c7' }]} />
+                  <View style={[styles.progressFill, { width: `${Math.min(100, Math.round((liveCadence / 180) * 100))}%`, backgroundColor: '#0284c7' }]} />
                 </View>
-                <Text style={styles.tileFooterText}>Stride: 1.44m avg</Text>
+                <Text style={styles.tileFooterText}>{liveCadence > 0 ? 'Pedometer Active' : 'Stationary'}</Text>
               </View>
 
               {/* Tile 4: Power Output */}
@@ -823,54 +817,59 @@ export default function RecordScreen() {
                   </View>
                 </View>
                 <View style={styles.metricRow}>
-                  <Text style={styles.metricValLarge}>{livePower}</Text>
+                  <Text style={styles.metricValLarge}>{livePower !== null ? livePower : '--'}</Text>
                   <Text style={styles.metricUnitSub}>WATTS</Text>
                 </View>
                 <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: '68%', backgroundColor: '#10b981' }]} />
+                  <View style={[styles.progressFill, { width: livePower ? `${Math.min(100, Math.round((livePower / 400) * 100))}%` : '0%', backgroundColor: '#10b981' }]} />
                 </View>
                 <Text style={styles.tileFooterText}>
-                  Effort: {(livePower / 70).toFixed(1)} W/kg
-
+                  {livePower !== null ? `Effort: ${(livePower / 70).toFixed(1)} W/kg` : 'No Power Meter'}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* 6. Biomechanics Sensor Telemetry Cluster */}
+          {/* 6. Hardware Sensor Telemetry Cluster */}
           <View style={styles.sensorClusterCard}>
             <View style={styles.sensorClusterHeader}>
-              <Text style={styles.sensorClusterTitle}>BIOMETRIC HARDWARE STACK</Text>
+              <Text style={styles.sensorClusterTitle}>HARDWARE SENSOR STACK</Text>
               <View style={styles.sensorStatusBadge}>
-                <View style={styles.sensorDotActive} />
-                <Text style={styles.sensorBadgeText}>3 SYNCED</Text>
+                <View style={[styles.sensorDotActive, gpsStatus !== 'locked' && { backgroundColor: '#f59e0b' }]} />
+                <Text style={styles.sensorBadgeText}>
+                  {gpsStatus === 'locked' ? 'GPS LOCKED' : gpsStatus.toUpperCase()}
+                </Text>
               </View>
             </View>
 
             <View style={styles.sensorGrid}>
-              {/* Chest Strap */}
+              {/* GNSS GPS */}
               <View style={styles.sensorCard}>
                 <View style={styles.sensorCardTop}>
-                  <Ionicons name="heart-circle-outline" size={15} color="#0f766e" style={{ marginRight: 4 }} />
-                  <Text style={styles.sensorCategoryCaps}>CHEST</Text>
+                  <Ionicons name="navigate-circle-outline" size={15} color="#0f766e" style={{ marginRight: 4 }} />
+                  <Text style={styles.sensorCategoryCaps}>GNSS</Text>
                 </View>
-                <Text style={styles.sensorDeviceName}>Polar H10</Text>
+                <Text style={styles.sensorDeviceName}>Device GPS</Text>
                 <View style={styles.sensorBatteryRow}>
-                  <View style={styles.sensorDotSmall} />
-                  <Text style={styles.sensorDetailText}>94% Batt</Text>
+                  <View style={[styles.sensorDotSmall, gpsStatus !== 'locked' && { backgroundColor: '#f59e0b' }]} />
+                  <Text style={styles.sensorDetailText}>
+                    {gpsStatus === 'locked' ? (gpsAccuracy ? `±${gpsAccuracy}m Accuracy` : 'Locked') : gpsStatus === 'acquiring' ? 'Acquiring...' : 'Standby'}
+                  </Text>
                 </View>
               </View>
 
-              {/* Shoe Pod */}
+              {/* Pedometer */}
               <View style={styles.sensorCard}>
                 <View style={styles.sensorCardTop}>
-                  <Ionicons name="git-commit-outline" size={15} color="#0f766e" style={{ marginRight: 4 }} />
-                  <Text style={styles.sensorCategoryCaps}>STRYDE</Text>
+                  <Ionicons name="footsteps-outline" size={15} color="#0f766e" style={{ marginRight: 4 }} />
+                  <Text style={styles.sensorCategoryCaps}>MOTION</Text>
                 </View>
-                <Text style={styles.sensorDeviceName}>Pod L-Cal</Text>
+                <Text style={styles.sensorDeviceName}>Pedometer</Text>
                 <View style={styles.sensorBatteryRow}>
-                  <View style={styles.sensorDotSmall} />
-                  <Text style={styles.sensorDetailText}>Calibrated</Text>
+                  <View style={[styles.sensorDotSmall, liveCadence === 0 && { backgroundColor: '#94a3b8' }]} />
+                  <Text style={styles.sensorDetailText}>
+                    {liveCadence > 0 ? `${liveCadence} SPM` : 'Stationary'}
+                  </Text>
                 </View>
               </View>
 

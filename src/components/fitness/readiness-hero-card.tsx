@@ -11,11 +11,11 @@ interface ReadinessHeroCardProps {
 }
 
 export function ReadinessHeroCard({
-  score = 94,
-  statusLabel = 'OPTIMAL',
-  hrvMs = 78,
-  restingHrBpm = 48,
-  sleepScorePercent = 89,
+  score = 0,
+  statusLabel = 'READY',
+  hrvMs,
+  restingHrBpm,
+  sleepScorePercent,
 }: ReadinessHeroCardProps) {
   return (
     <View style={styles.card}>
@@ -29,9 +29,7 @@ export function ReadinessHeroCard({
               <Text style={styles.badgeText}>{statusLabel}</Text>
             </View>
           </View>
-          <Text style={styles.description}>
-            Neuromuscular fatigue low. High intensity capacity verified.
-          </Text>
+          <Text style={styles.description}>{score > 0 ? 'Recovery index calculated from recorded sessions.' : 'Record your first session to track recovery and readiness.'}</Text>
         </View>
 
         {/* Concentric Radial Gauge */}
@@ -49,28 +47,28 @@ export function ReadinessHeroCard({
         <View style={styles.vitalCell}>
           <Text style={styles.vitalLabel}>HRV R-R</Text>
           <View style={styles.vitalValRow}>
-            <Text style={styles.vitalValue}>{hrvMs}</Text>
+            <Text style={styles.vitalValue}>{hrvMs !== undefined ? hrvMs : '--'}</Text>
             <Text style={styles.vitalUnit}>ms</Text>
           </View>
-          <Text style={styles.vitalTrendGreen}>+12% vs 7D</Text>
+          <Text style={styles.vitalTrendGreen}>{hrvMs !== undefined ? '+0% vs 7D' : 'No Sensor'}</Text>
         </View>
 
         <View style={styles.vitalCell}>
           <Text style={styles.vitalLabel}>RESTING HR</Text>
           <View style={styles.vitalValRow}>
-            <Text style={styles.vitalValue}>{restingHrBpm}</Text>
+            <Text style={styles.vitalValue}>{restingHrBpm !== undefined ? restingHrBpm : '--'}</Text>
             <Text style={styles.vitalUnit}>bpm</Text>
           </View>
-          <Text style={styles.vitalTrendTeal}>Trained</Text>
+          <Text style={styles.vitalTrendTeal}>{restingHrBpm !== undefined ? 'Trained' : 'Requires HRM'}</Text>
         </View>
 
         <View style={styles.vitalCell}>
           <Text style={styles.vitalLabel}>SLEEP QUAL</Text>
           <View style={styles.vitalValRow}>
-            <Text style={styles.vitalValue}>{sleepScorePercent}</Text>
+            <Text style={styles.vitalValue}>{sleepScorePercent !== undefined ? sleepScorePercent : '--'}</Text>
             <Text style={styles.vitalUnit}>%</Text>
           </View>
-          <Text style={styles.vitalTrendMuted}>7h 48m</Text>
+          <Text style={styles.vitalTrendMuted}>{sleepScorePercent !== undefined ? 'Logged' : 'No Wearable'}</Text>
         </View>
       </View>
     </View>

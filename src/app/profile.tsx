@@ -173,7 +173,7 @@ export default function ProfileScreen() {
 
   // Goal calculations
   const weeklyGoalKm = profile?.weekly_distance_goal_km || 50;
-  const currentWeeklyKm = Math.min(weeklyGoalKm, activeStats.totalDistanceKm % weeklyGoalKm || 14.2);
+  const currentWeeklyKm = activeStats.totalDistanceKm > 0 ? Number((activeStats.totalDistanceKm).toFixed(1)) : 0;
   const goalPercent = Math.min(100, Math.round((currentWeeklyKm / weeklyGoalKm) * 100));
 
   // Find PRs from real activities if present
@@ -272,15 +272,15 @@ export default function ProfileScreen() {
             <View style={styles.hardwareBadgeRow}>
               <View style={styles.hardwareChip}>
                 <Ionicons name="heart-circle" size={14} color="#00b8a2" />
-                <Text style={styles.hardwareChipText}>POLAR H10 // 94%</Text>
+                <Text style={styles.hardwareChipText}>GNSS GPS // READY</Text>
               </View>
               <View style={styles.hardwareChip}>
                 <Ionicons name="hardware-chip" size={13} color="#00b8a2" />
-                <Text style={styles.hardwareChipText}>IMU 6-AXIS // RTK</Text>
+                <Text style={styles.hardwareChipText}>MOTION // PEDOMETER</Text>
               </View>
               <View style={styles.hardwareChip}>
                 <Ionicons name="shield-checkmark" size={13} color="#006b5d" />
-                <Text style={styles.hardwareChipText}>BIO-LINKED</Text>
+                <Text style={styles.hardwareChipText}>LOCAL SYNC</Text>
               </View>
             </View>
 
@@ -463,8 +463,8 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.trophyDetails}>
                 <Text style={styles.trophyCategory}>STRIDE VELOCITY // 5K</Text>
-                <Text style={styles.trophyRecord}>20:14</Text>
-                <Text style={styles.trophySub}>Splits average 4:02/km @ 1.42m stride</Text>
+                <Text style={styles.trophyRecord}>{activities.some(a => a.distanceKm >= 5) ? 'Recorded' : '--:--'}</Text>
+                <Text style={styles.trophySub}>{activities.some(a => a.distanceKm >= 5) ? '5K milestone verified' : 'No 5K record yet'}</Text>
               </View>
               <View style={styles.trophyBadge}>
                 <Text style={styles.trophyBadgeText}>PR</Text>
@@ -478,7 +478,7 @@ export default function ProfileScreen() {
               <View style={styles.trophyDetails}>
                 <Text style={styles.trophyCategory}>LONGEST SINGLE SESSION</Text>
                 <Text style={styles.trophyRecord}>
-                  {longestRun > 0 ? `${longestRun.toFixed(1)} ${distanceUnit}` : `21.1 ${distanceUnit}`}
+                  {longestRun > 0 ? `${longestRun.toFixed(1)} ${distanceUnit}` : `0.0 ${distanceUnit}`}
                 </Text>
                 <Text style={styles.trophySub}>High endurance sustained strain</Text>
               </View>
@@ -493,8 +493,8 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.trophyDetails}>
                 <Text style={styles.trophyCategory}>PEAK KINETIC POWER</Text>
-                <Text style={styles.trophyRecord}>410 WATTS</Text>
-                <Text style={styles.trophySub}>Sprint uphill transition effort</Text>
+                <Text style={styles.trophyRecord}>-- W</Text>
+                <Text style={styles.trophySub}>Requires Bluetooth power meter</Text>
               </View>
               <View style={styles.trophyBadge}>
                 <Text style={styles.trophyBadgeText}>PEAK</Text>

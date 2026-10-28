@@ -181,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const athleteName = fullName?.trim() || 'Alex Varma';
+      const athleteName = fullName?.trim() || 'Athlete';
       const athleteEmail = email?.trim() || 'athlete@trackyourmovement.app';
       const athleteId = 'athlete-active-local';
 
@@ -201,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         username: athleteName.toLowerCase().replace(/\s+/g, '_'),
         avatar_text: athleteName.substring(0, 2).toUpperCase(),
         bio: 'Athlete on Track your movement. Logging miles and reaching new milestones.',
-        city: 'Mumbai, India',
+        city: 'India',
         weekly_distance_goal_km: 50,
         unit_preference: 'metric',
       };
@@ -209,69 +209,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.setItem('@track_local_user', JSON.stringify(localUser));
       await AsyncStorage.setItem('@track_local_profile', JSON.stringify(localProfile));
 
-      // Seed starter activities if not already present
+      // Initialize empty activity cache if not already present
       const activitiesKey = `@track_local_activities_${athleteId}`;
       const existingActs = await AsyncStorage.getItem(activitiesKey);
-      if (!existingActs || JSON.parse(existingActs).length === 0) {
-        const starterActivities = [
-          {
-            id: `local-act-starter-1`,
-            userId: athleteId,
-            title: 'Morning Tempo Run',
-            type: 'run',
-            athlete: {
-              name: athleteName,
-              avatar: athleteName.substring(0, 2).toUpperCase(),
-              badge: 'ACTIVE',
-            },
-            date: 'Yesterday',
-            timeAgo: '1d ago',
-            location: 'Marine Promenade Loop',
-            distanceKm: 6.8,
-            durationFormatted: '33:10',
-            durationSeconds: 1990,
-            paceOrSpeedFormatted: '4:52',
-            paceOrSpeedLabel: 'Avg Pace',
-            elevationMeters: 45,
-            calories: 440,
-            avgHeartRate: 156,
-            maxHeartRate: 174,
-            kudosCount: 6,
-            hasKudoed: false,
-            commentsCount: 2,
-            visibility: 'public',
-            createdAtIso: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: `local-act-starter-2`,
-            userId: athleteId,
-            title: 'Sunset Coastal Ride',
-            type: 'ride',
-            athlete: {
-              name: athleteName,
-              avatar: athleteName.substring(0, 2).toUpperCase(),
-              badge: 'ACTIVE',
-            },
-            date: '3 days ago',
-            timeAgo: '3d ago',
-            location: 'Coastal Highway Circuit',
-            distanceKm: 21.4,
-            durationFormatted: '52:15',
-            durationSeconds: 3135,
-            paceOrSpeedFormatted: '24.6 km/h',
-            paceOrSpeedLabel: 'Avg Speed',
-            elevationMeters: 165,
-            calories: 590,
-            avgHeartRate: 138,
-            maxHeartRate: 162,
-            kudosCount: 9,
-            hasKudoed: true,
-            commentsCount: 1,
-            visibility: 'public',
-            createdAtIso: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          },
-        ];
-        await AsyncStorage.setItem(activitiesKey, JSON.stringify(starterActivities));
+      if (!existingActs) {
+        await AsyncStorage.setItem(activitiesKey, JSON.stringify([]));
       }
 
       setUser(localUser);
