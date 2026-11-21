@@ -54,19 +54,25 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    sans: 'system-ui',
+    sans: 'GoogleSans_400Regular',
+    sansMedium: 'GoogleSans_500Medium',
+    sansBold: 'GoogleSans_700Bold',
     serif: 'ui-serif',
     rounded: 'ui-rounded',
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'normal',
+    sans: 'GoogleSans_400Regular',
+    sansMedium: 'GoogleSans_500Medium',
+    sansBold: 'GoogleSans_700Bold',
     serif: 'serif',
     rounded: 'normal',
     mono: 'monospace',
   },
   web: {
-    sans: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    sans: "'Google Sans', 'GoogleSans_400Regular', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    sansMedium: "'Google Sans', 'GoogleSans_500Medium', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    sansBold: "'Google Sans', 'GoogleSans_700Bold', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     serif: 'var(--font-serif)',
     rounded: 'var(--font-rounded)',
     mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',

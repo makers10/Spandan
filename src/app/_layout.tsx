@@ -3,13 +3,22 @@ import * as SplashScreen from 'expo-splash-screen';
 import { LogBox, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  useFonts,
+  GoogleSans_400Regular,
+  GoogleSans_500Medium,
+  GoogleSans_600SemiBold,
+  GoogleSans_700Bold,
+} from '@expo-google-fonts/google-sans';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
 import { AuthModal } from '@/components/fitness/auth-modal';
 import { AuthProvider } from '@/context/auth-context';
+import { applyGlobalFont } from '@/utils/apply-global-font';
 
 SplashScreen.preventAutoHideAsync();
+applyGlobalFont();
 
 // Silence benign third-party library warnings
 LogBox.ignoreLogs([
@@ -30,6 +39,23 @@ const SpandanLightTheme = {
 };
 
 export default function TabLayout() {
+  const [fontsLoaded] = useFonts({
+    GoogleSans_400Regular,
+    GoogleSans_500Medium,
+    GoogleSans_600SemiBold,
+    GoogleSans_700Bold,
+    'Google Sans': GoogleSans_400Regular,
+    'GoogleSans': GoogleSans_400Regular,
+    'GoogleSans-Regular': GoogleSans_400Regular,
+    'GoogleSans-Medium': GoogleSans_500Medium,
+    'GoogleSans-SemiBold': GoogleSans_600SemiBold,
+    'GoogleSans-Bold': GoogleSans_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <SafeAreaProvider style={styles.root}>
       <AuthProvider>
