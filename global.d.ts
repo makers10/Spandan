@@ -1,3 +1,5 @@
+/// <reference types="expo/types" />
+
 // CSS & Asset type definitions
 declare module '*.css' {
   const content: string;
