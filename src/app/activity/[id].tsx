@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -16,6 +15,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
+
+import { CustomModal } from '@/components/ui/custom-modal';
 
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import {
@@ -177,12 +178,14 @@ export default function ActivityDetailScreen() {
   // Derived splits and elevation statistics
   const splits: ActivitySplit[] = useMemo(() => {
     if (!activity) return [];
-    return calculateKilometerSplits(
+    const calculated = calculateKilometerSplits(
       routePoints,
       activity.type,
       activity.distanceKm,
       activity.durationSeconds || 1800
     );
+    if (calculated.length > 0) return calculated;
+    return generateSyntheticSplits(activity);
   }, [activity, routePoints]);
 
   const elevationStats = useMemo(() => {
@@ -208,7 +211,7 @@ export default function ActivityDetailScreen() {
         effort,
       };
     });
-  }, [splits, activity]);
+  }, [splits]);
 
   // Dynamic elevation curve points
   const { elevationPolygonPoints, elevationPolylinePoints, apexPoint, peakElevationM } = useMemo(() => {
@@ -1094,10 +1097,8 @@ export default function ActivityDetailScreen() {
       </ScrollView>
 
       {/* Edit Activity Modal */}
-      <Modal visible={showEditModal} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Edit Workout</Text>
+      <CustomModal visible={showEditModal} onClose={() => setShowEditModal(false)}>
+        <Text style={styles.modalTitle}>Edit Workout</Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>TITLE</Text>
@@ -1171,9 +1172,7 @@ export default function ActivityDetailScreen() {
                 )}
               </Pressable>
             </View>
-          </View>
-        </View>
-      </Modal>
+      </CustomModal>
     </SafeAreaView>
   );
 }

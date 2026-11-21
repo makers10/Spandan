@@ -39,50 +39,41 @@ export function isElevatorAscent(ascentRateMps: number, stepCountDuringAscent: n
  * Calculates total completed floors and remaining meter progression from elevation and steps.
  */
 export function calculateFloorsFromElevation(
-  elevationMeters: number,
-  stepsTaken?: number
+  elevationMeters: number, stepsTaken?: number
 ): { floors: number; remainderMeters: number } {
-  if (!elevationMeters || elevationMeters <= 0) {
-    return { floors: 0, remainderMeters: 0 };
-  }
-
+  if (!elevationMeters || elevationMeters <= 0) return { floors: 0, remainderMeters: 0 };
   const rawFloors = Math.floor(elevationMeters / METERS_PER_FLOOR);
   const remainderMeters = Math.round((elevationMeters % METERS_PER_FLOOR) * 10) / 10;
-
-  // If steps are provided, ensure step gate is satisfied (MIN_STEPS_PER_FLOOR per floor)
   if (typeof stepsTaken === 'number') {
-    const maxFloorsAllowedBySteps = Math.floor(stepsTaken / MIN_STEPS_PER_FLOOR);
-    const floors = Math.min(rawFloors, Math.max(0, maxFloorsAllowedBySteps));
+    const floors = Math.min(rawFloors, Math.max(0, Math.floor(stepsTaken / MIN_STEPS_PER_FLOOR)));
     return { floors, remainderMeters };
   }
-
   return { floors: rawFloors, remainderMeters };
 }
 
-/**
- * Standard human stride lengths in meters across activities:
- * - Walking: ~0.75m per step (~1,333 steps/km)
- * - Running: ~0.88m per step (~1,136 steps/km)
- * - Hiking: ~0.70m per step (~1,428 steps/km)
- * - Cycling: 0 (wheel rotation, not foot steps)
- */
 export const STRIDE_LENGTH_METERS: Record<string, number> = {
-  walk: 0.75,
-  run: 0.88,
-  hike: 0.70,
-  ride: 0,
+  walk: 0.75, run: 0.88, hike: 0.70, ride: 0,
 };
 
 /**
  * Calculates estimated physical foot steps from distance and sport type.
- * Used when hardware pedometer sensor is missing (web browser) or delayed.
  */
 export function estimateStepsFromDistance(distanceKm: number, sport: string): number {
   if (!distanceKm || distanceKm <= 0) return 0;
   const stride = STRIDE_LENGTH_METERS[sport.toLowerCase()] || 0.75;
-  if (stride <= 0) return 0; // Cycling does not produce foot steps
-  const totalMeters = distanceKm * 1000;
-  return Math.round(totalMeters / stride);
+  if (stride <= 0) return 0;
+  return Math.round((distanceKm * 1000) / stride);
+}
+
+/**
+ * Calculates estimated distance (km) from physical foot steps and sport type.
+ * Enables live indoor/walking distance advancement even when GPS is weak or zero.
+ */
+export function estimateDistanceFromSteps(steps: number, sport: string): number {
+  if (!steps || steps <= 0) return 0;
+  const stride = STRIDE_LENGTH_METERS[sport.toLowerCase()] || 0.75;
+  if (stride <= 0) return 0;
+  return Number(((steps * stride) / 1000).toFixed(3));
 }
 
 /**
@@ -91,5 +82,5 @@ export function estimateStepsFromDistance(distanceKm: number, sport: string): nu
 export function calculateCadenceSpm(steps: number, movingSeconds: number): number {
   if (!steps || steps <= 0 || !movingSeconds || movingSeconds < 5) return 0;
   const spm = Math.round((steps / movingSeconds) * 60);
-  return Math.min(260, Math.max(0, spm)); // human cadence ceiling ~260 SPM
+  return Math.min(260, Math.max(0, spm));
 }

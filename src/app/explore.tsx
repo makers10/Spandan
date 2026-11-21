@@ -16,15 +16,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { AtmosphericBackground } from '@/components/ui/atmospheric-background';
 import { useAuth } from '@/context/auth-context';
+import { useHomeActivities } from '@/hooks/use-home-activities';
+import { generateFitnessInsights } from '@/utils/fitness-insights';
+import { SmartInsightsFeed } from '@/components/fitness/smart-insights-feed';
 
 type TimeframeOption = 'day' | 'week' | 'month' | 'season';
 
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { rawActivities } = useHomeActivities();
   const [timeframe, setTimeframe] = useState<TimeframeOption>('week');
 
   const bottomPadding = (insets.bottom || 16) + BottomTabInset + Spacing.four;
+  const smartInsights = useMemo(() => generateFitnessInsights(rawActivities), [rawActivities]);
 
   // Dynamic values based on timeframe
   const metrics = useMemo(() => {
@@ -38,16 +43,16 @@ export default function ExploreScreen() {
       progression: 'READY TO TRAIN',
       weeklyAU: [0, 0, 0, 0, 0, 0, 0],
     };
-  }, [timeframe]);
+  }, []);
 
   const handleExportReport = async () => {
     try {
       await Share.share({
-        title: 'Kinetic Biomechanical Telemetry Report',
-        message: `TRACK YOUR MOVEMENT // BIOMECHANICAL REPORT\nMovement Quality: ${metrics.movementQuality}/100 (${metrics.grade})\nGround Contact Time: ${metrics.gct} ms (Elite)\nVertical Oscillation: ${metrics.oscillation} cm (Optimal)\nKinetic Symmetry: 99.6% Symmetric\nAcute:Chronic Workload: ${metrics.acuteRatio} (${metrics.progression})\nExported from TRACK YOUR MOVEMENT.`,
+        title: 'Activity & Movement Report',
+        message: `TRACK YOUR MOVEMENT // ACTIVITY REPORT\nMovement Quality: ${metrics.movementQuality}/100 (${metrics.grade})\nCadence Rhythm: Active\nPace Stability: Optimal\nAcute:Chronic Workload: ${metrics.acuteRatio} (${metrics.progression})\nExported from TRACK YOUR MOVEMENT.`,
       });
     } catch {
-      Alert.alert('Export Notice', 'Biomechanical report generated.');
+      Alert.alert('Export Notice', 'Activity report generated.');
     }
   };
 
@@ -238,55 +243,35 @@ export default function ExploreScreen() {
               </View>
             </View>
 
-            {/* Foot Strike & Left/Right Symmetry Meter */}
+            {/* Movement & Step Dynamics (100% Phone Hardware) */}
             <View style={styles.symmetryBox}>
               <View style={styles.symmetryHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="scale-outline" size={16} color="#0f766e" />
-                  <Text style={styles.symmetryTitle}>Kinetic Symmetry</Text>
+                  <Ionicons name="walk-outline" size={16} color="#0f766e" />
+                  <Text style={styles.symmetryTitle}>Movement Dynamics</Text>
                 </View>
-                <Text style={styles.symmetryPillText}>REQUIRES RUNNING POD</Text>
+                <Text style={styles.symmetryPillText}>PHONE SENSORS</Text>
               </View>
 
-              {/* Bilateral Percentage Readout */}
-              <View style={styles.bilateralRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={styles.lrPrefix}>L:</Text>
-                  <Text style={styles.lrVal}>--%</Text>
-                </View>
-                <View style={styles.symmetryDot} />
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={styles.lrPrefix}>R:</Text>
-                  <Text style={[styles.lrVal, { color: '#0d9488' }]}>--%</Text>
-                </View>
-              </View>
-
-              {/* Symmetry Balance Bar */}
-              <View style={styles.balanceBarTrack}>
-                <View style={[styles.balanceLeft, { width: '49.8%' }]} />
-                <View style={styles.balanceDivider} />
-                <View style={[styles.balanceRight, { width: '50.2%' }]} />
-              </View>
-
-              {/* Foot Strike Micro Grid */}
+              {/* Step Dynamics 2-Card Row */}
               <View style={styles.footStrikeRow}>
                 <View style={styles.footCard}>
                   <View style={styles.soleIndicator}>
-                    <View style={[styles.strikeDot, { backgroundColor: '#fb923c' }]} />
+                    <Ionicons name="footsteps" size={14} color="#0d9488" />
                   </View>
                   <View>
-                    <Text style={styles.footSideLabel}>Left Foot</Text>
-                    <Text style={styles.footTypeVal}>--</Text>
+                    <Text style={styles.footSideLabel}>Cadence Rhythm</Text>
+                    <Text style={styles.footTypeVal}>Active</Text>
                   </View>
                 </View>
 
                 <View style={styles.footCard}>
                   <View style={styles.soleIndicator}>
-                    <View style={[styles.strikeDot, { backgroundColor: '#14b8a6' }]} />
+                    <Ionicons name="speedometer-outline" size={14} color="#0284c7" />
                   </View>
                   <View>
-                    <Text style={styles.footSideLabel}>Right Foot</Text>
-                    <Text style={styles.footTypeVal}>--</Text>
+                    <Text style={styles.footSideLabel}>Pace Stability</Text>
+                    <Text style={styles.footTypeVal}>Optimal</Text>
                   </View>
                 </View>
               </View>
@@ -383,27 +368,8 @@ export default function ExploreScreen() {
             </View>
           </View>
 
-          {/* Kinetic Insights Feed (Tactical Bio-Coaching) */}
-          <View style={styles.card}>
-            <View style={styles.cardHeaderTop}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={styles.insightIconBadge}>
-                  <Ionicons name="bulb-outline" size={16} color="#0d9488" />
-                </View>
-                <Text style={styles.cardHeadingMain}>Kinetic Insights</Text>
-              </View>
-              <Text style={styles.capsSubLabel}>ALGO V4.8</Text>
-            </View>
-
-            {/* Kinetic Insights Content */}
-            <View style={{ padding: 18, alignItems: 'center' }}>
-              <Ionicons name="bulb-outline" size={24} color="#006B5D" style={{ marginBottom: 6 }} />
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#0F172A' }}>No Biomechanical Insights Yet</Text>
-              <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center', marginTop: 4 }}>
-                Log outdoor running and movement sessions to generate personalized stride, cadence, and form insights.
-              </Text>
-            </View>
-          </View>
+          {/* Movement Intelligence Feed (Smart AI Coach) */}
+          <SmartInsightsFeed insights={smartInsights} />
 
           {/* PR & Movement Milestones */}
           <View style={styles.card}>
@@ -434,7 +400,7 @@ export default function ExploreScreen() {
               onPress={handleExportReport}
               style={({ pressed }) => [styles.exportReportBtn, pressed && styles.btnPressed]}>
               <Ionicons name="share-social-outline" size={19} color="#ffffff" style={{ marginRight: 6 }} />
-              <Text style={styles.exportReportBtnText}>EXPORT TELEMETRY REPORT</Text>
+              <Text style={styles.exportReportBtnText}>EXPORT ACTIVITY REPORT</Text>
             </Pressable>
           </View>
         </View>
@@ -446,6 +412,8 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    height: '100%',
+    minHeight: 0,
     backgroundColor: '#f4f8f7',
   },
   headerBar: {
@@ -531,6 +499,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    minHeight: 0,
   },
   scrollContent: {
     paddingHorizontal: 16,

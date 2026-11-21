@@ -73,8 +73,8 @@ export function calculateTrackDistanceKm(
     return 0;
   }
 
-  const minDeltaKm = (options.minDeltaMeters ?? 1.5) / 1000;
-  const maxAccuracy = options.maxAcceptableAccuracyM ?? 35;
+  const minDeltaKm = (options.minDeltaMeters ?? 1.0) / 1000;
+  const maxAccuracy = options.maxAcceptableAccuracyM ?? 65;
 
   let totalDistanceKm = 0;
   let prevPoint: GpsCoordinate | null = null;

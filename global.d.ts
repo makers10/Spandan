@@ -1,17 +1,9 @@
-/// <reference types="expo/types" />
-
-// CSS & CSS Module type definitions for web and native builds
+// CSS & Asset type definitions
 declare module '*.css' {
   const content: string;
   export default content;
 }
 
-declare module '*.module.css' {
-  const classes: { readonly [key: string]: string };
-  export default classes;
-}
-
-// Asset declarations
 declare module '*.png' {
   const value: any;
   export default value;

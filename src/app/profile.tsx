@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { CustomModal } from '@/components/ui/custom-modal';
 import { Ionicons } from '@expo/vector-icons';
 
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
@@ -489,12 +489,14 @@ export default function ProfileScreen() {
 
             <View style={styles.trophyCard}>
               <View style={styles.trophyIconBox}>
-                <Ionicons name="flash" size={20} color="#006b5d" />
+                <Ionicons name="trending-up-outline" size={20} color="#006b5d" />
               </View>
               <View style={styles.trophyDetails}>
-                <Text style={styles.trophyCategory}>PEAK KINETIC POWER</Text>
-                <Text style={styles.trophyRecord}>-- W</Text>
-                <Text style={styles.trophySub}>Requires Bluetooth power meter</Text>
+                <Text style={styles.trophyCategory}>MAX ELEVATION GAIN</Text>
+                <Text style={styles.trophyRecord}>
+                  {activeStats.elevationTotalM > 0 ? `${activeStats.elevationTotalM} M` : '0 M'}
+                </Text>
+                <Text style={styles.trophySub}>Barometer & GPS vertical climb</Text>
               </View>
               <View style={styles.trophyBadge}>
                 <Text style={styles.trophyBadgeText}>PEAK</Text>
@@ -529,10 +531,8 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* Edit Profile Modal */}
-      <Modal visible={showEditModal} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeaderRow}>
+      <CustomModal visible={showEditModal} onClose={() => setShowEditModal(false)}>
+        <View style={styles.modalHeaderRow}>
               <View style={styles.modalTitleGroup}>
                 <Text style={styles.modalEyebrow}>ATHLETE CONFIGURATION</Text>
                 <Text style={styles.modalTitle}>Edit Profile Dossier</Text>
@@ -607,9 +607,7 @@ export default function ProfileScreen() {
                 )}
               </Pressable>
             </View>
-          </View>
-        </View>
-      </Modal>
+      </CustomModal>
     </SafeAreaView>
   );
 }
@@ -617,10 +615,13 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    height: '100%',
+    minHeight: 0,
     backgroundColor: '#f4f8f7',
   },
   scrollView: {
     flex: 1,
+    minHeight: 0,
   },
   scrollContent: {
     alignItems: 'center',

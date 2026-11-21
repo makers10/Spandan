@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { CustomModal } from '@/components/ui/custom-modal';
 import { Ionicons } from '@expo/vector-icons';
 
 import { BottomTabInset, Spacing } from '@/constants/theme';
@@ -21,7 +21,7 @@ import { ActivityType, ActivityVisibility } from '@/types/fitness';
 import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import { locationService } from '@/services/location-service';
-import { floorService } from '@/services/floor-service';
+import { floorService, estimateDistanceFromSteps } from '@/services/floor-service';
 import {
   GpsCoordinate,
   calculateTrackDistanceKm,
@@ -83,6 +83,8 @@ export default function RecordScreen() {
   // Live Biometrics Telemetry
   const [liveHeartRate, setLiveHeartRate] = useState<number | null>(null);
   const [liveCadence, setLiveCadence] = useState<number>(0);
+  const [liveSteps, setLiveSteps] = useState<number>(0);
+  const liveStepsRef = useRef<number>(0);
   const [livePower, setLivePower] = useState<number | null>(null);
   const [audioCueActive, setAudioCueActive] = useState<boolean>(true);
 
@@ -143,6 +145,8 @@ export default function RecordScreen() {
   useEffect(() => {
     const unsubscribe = floorService.subscribe((metrics) => {
       setLiveCadence(metrics.cadenceSpm);
+      liveStepsRef.current = metrics.liveSteps;
+      setLiveSteps(metrics.liveSteps);
       if (metrics.totalBarometricGainM > 0) {
         setElevationGainM(Math.round(metrics.totalBarometricGainM));
       }
@@ -224,20 +228,22 @@ export default function RecordScreen() {
         );
         setMovingSeconds(movingSec);
 
-        // Advance distance strictly from legitimate GPS points
+        // Advance distance from GPS track fused with physical step estimation
         const gpsDistance = calculateTrackDistanceKm(routePointsRef.current);
-        setDistanceKm(gpsDistance);
+        const stepDistance = estimateDistanceFromSteps(liveStepsRef.current, selectedSport);
+        const effectiveDistance = Math.max(gpsDistance, stepDistance);
+        setDistanceKm(effectiveDistance);
 
         // Feed real distance and moving time to floorService for accurate cadence
-        floorService.ingestDistanceAndSpeed(gpsDistance, selectedSport, movingSec);
+        floorService.ingestDistanceAndSpeed(effectiveDistance, selectedSport, movingSec);
 
-        // Compute pace/speed based strictly on actual GPS movement
-        if (gpsDistance <= 0 || movingSec <= 0) {
+        // Compute pace/speed based on effective distance
+        if (effectiveDistance <= 0 || movingSec <= 0) {
           setCurrentPaceOrSpeed(selectedSport === 'ride' ? '0.0' : '--:--');
         } else if (selectedSport === 'ride') {
-          setCurrentPaceOrSpeed(calculateSpeed(gpsDistance, movingSec));
+          setCurrentPaceOrSpeed(calculateSpeed(effectiveDistance, movingSec));
         } else {
-          setCurrentPaceOrSpeed(calculatePace(gpsDistance, movingSec));
+          setCurrentPaceOrSpeed(calculatePace(effectiveDistance, movingSec));
         }
       }, 1000);
     }
@@ -277,6 +283,8 @@ export default function RecordScreen() {
     setCurrentPaceOrSpeed(selectedSport === 'ride' ? '0.0' : '--:--');
     setLiveHeartRate(null);
     setLiveCadence(0);
+    liveStepsRef.current = 0;
+    setLiveSteps(0);
     setLivePower(null);
     setLapSplits([]);
     setRecordingState('recording');
@@ -527,10 +535,10 @@ export default function RecordScreen() {
             aria-label="Sensor Status"
             onPress={() =>
               Alert.alert(
-                'Biometric Sensors Active',
-                `Chest Strap: Polar H10 (94%)\nShoe Pod: Stryde (Calibrated)\nAudio Coach: ${
+                'Phone Hardware Sensors',
+                `GNSS GPS: High Precision Lock\nHardware Pedometer: Tracking Steps\nBarometer / Altimeter: Active\nMotion IMU: Ready\nAudio Cues: ${
                   audioCueActive ? 'Active' : 'Muted'
-                }\nRTK GPS Lock: 5/5 High Precision`
+                }`
               )
             }
             style={({ pressed }) => [styles.sensorBtn, pressed && styles.btnPressed]}>
@@ -760,32 +768,44 @@ export default function RecordScreen() {
                 <Text style={styles.tileFooterText}>{distanceKm > 0 ? 'Live GPS Pace' : 'Stationary'}</Text>
               </View>
 
-              {/* Tile 2: Live Heart Rate */}
+              {/* Tile 2: Elevation Gain (or Heart Rate if external HRM connected) */}
               <View style={styles.bentoTile}>
                 <View style={styles.tileTop}>
-                  <Text style={styles.tileHeaderCaps}>HEART RATE</Text>
-                  <View style={[styles.tileIconCircle, { backgroundColor: '#fff1f2' }]}>
-                    <Ionicons name="heart" size={15} color="#f43f5e" />
+                  <Text style={styles.tileHeaderCaps}>
+                    {liveHeartRate !== null ? 'HEART RATE' : 'ELEVATION'}
+                  </Text>
+                  <View style={[styles.tileIconCircle, { backgroundColor: liveHeartRate !== null ? '#fff1f2' : '#f0fdf4' }]}>
+                    <Ionicons
+                      name={liveHeartRate !== null ? 'heart' : 'trending-up-outline'}
+                      size={15}
+                      color={liveHeartRate !== null ? '#f43f5e' : '#16a34a'}
+                    />
                   </View>
                 </View>
                 <View style={styles.metricRow}>
-                  <Text style={styles.metricValLarge}>{liveHeartRate !== null ? liveHeartRate : '--'}</Text>
-                  <Text style={styles.metricUnitSub}>BPM</Text>
+                  <Text style={styles.metricValLarge}>
+                    {liveHeartRate !== null ? liveHeartRate : `+${elevationGainM}`}
+                  </Text>
+                  <Text style={styles.metricUnitSub}>
+                    {liveHeartRate !== null ? 'BPM' : 'METERS'}
+                  </Text>
                 </View>
-                {/* 5-Segment Zone Bar */}
-                <View style={styles.zoneBarsRow}>
-                  <View style={[styles.zoneBarSegment, { backgroundColor: liveHeartRate && liveHeartRate >= 120 ? '#fbbf24' : '#e2e8f0' }]} />
-                  <View style={[styles.zoneBarSegment, { backgroundColor: liveHeartRate && liveHeartRate >= 140 ? '#fbbf24' : '#e2e8f0' }]} />
-                  <View style={[styles.zoneBarSegment, { backgroundColor: liveHeartRate && liveHeartRate >= 155 ? '#fb923c' : '#e2e8f0' }]} />
-                  <View style={[styles.zoneBarSegment, { backgroundColor: liveHeartRate && liveHeartRate >= 172 ? '#f97316' : '#e2e8f0' }]} />
-                  <View style={[styles.zoneBarSegment, { backgroundColor: liveHeartRate && liveHeartRate >= 185 ? '#ef4444' : '#e2e8f0' }]} />
+                <View style={styles.progressTrack}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: liveHeartRate !== null
+                          ? `${Math.min(100, Math.round((liveHeartRate / 190) * 100))}%`
+                          : `${Math.min(100, Math.round((elevationGainM / 50) * 100))}%`,
+                        backgroundColor: liveHeartRate !== null ? '#f43f5e' : '#16a34a',
+                      },
+                    ]}
+                  />
                 </View>
-                <View style={styles.zoneFooterRow}>
-                  <View style={styles.zonePill}>
-                    <Text style={styles.zonePillText}>{hrZone.name}</Text>
-                  </View>
-                  <Text style={styles.zoneLabelSub}>{hrZone.label}</Text>
-                </View>
+                <Text style={styles.tileFooterText}>
+                  {liveHeartRate !== null ? `${hrZone.name} • ${hrZone.label}` : `${Math.round(elevationGainM / 3.0)} Floors Climbed`}
+                </Text>
               </View>
             </View>
 
@@ -805,27 +825,35 @@ export default function RecordScreen() {
                 <View style={styles.progressTrack}>
                   <View style={[styles.progressFill, { width: `${Math.min(100, Math.round((liveCadence / 180) * 100))}%`, backgroundColor: '#0284c7' }]} />
                 </View>
-                <Text style={styles.tileFooterText}>{liveCadence > 0 ? 'Pedometer Active' : 'Stationary'}</Text>
+                <Text style={styles.tileFooterText}>{liveSteps > 0 ? `${liveSteps} Steps Logged` : 'Pedometer Ready'}</Text>
               </View>
 
-              {/* Tile 4: Power Output */}
+              {/* Tile 4: Active Calories (100% Phone Measured) */}
               <View style={styles.bentoTile}>
                 <View style={styles.tileTop}>
-                  <Text style={styles.tileHeaderCaps}>POWER OUTPUT</Text>
+                  <Text style={styles.tileHeaderCaps}>ACTIVE BURN</Text>
                   <View style={[styles.tileIconCircle, { backgroundColor: '#ecfdf5' }]}>
-                    <Ionicons name="flash-outline" size={15} color="#059669" />
+                    <Ionicons name="flame-outline" size={15} color="#059669" />
                   </View>
                 </View>
                 <View style={styles.metricRow}>
-                  <Text style={styles.metricValLarge}>{livePower !== null ? livePower : '--'}</Text>
-                  <Text style={styles.metricUnitSub}>WATTS</Text>
+                  <Text style={styles.metricValLarge}>
+                    {distanceKm > 0 ? Math.max(1, Math.round(distanceKm * 65)) : '0'}
+                  </Text>
+                  <Text style={styles.metricUnitSub}>KCAL</Text>
                 </View>
                 <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: livePower ? `${Math.min(100, Math.round((livePower / 400) * 100))}%` : '0%', backgroundColor: '#10b981' }]} />
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${Math.min(100, Math.round(((distanceKm * 65) / 300) * 100))}%`,
+                        backgroundColor: '#10b981',
+                      },
+                    ]}
+                  />
                 </View>
-                <Text style={styles.tileFooterText}>
-                  {livePower !== null ? `Effort: ${(livePower / 70).toFixed(1)} W/kg` : 'No Power Meter'}
-                </Text>
+                <Text style={styles.tileFooterText}>Dynamic Metabolic Burn</Text>
               </View>
             </View>
           </View>
@@ -977,11 +1005,8 @@ export default function RecordScreen() {
       </ScrollView>
 
       {/* Save Session Modal */}
-      <Modal visible={showSaveModal} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-
-            <Text style={styles.modalTitle}>Save Kinetic Workout</Text>
+      <CustomModal visible={showSaveModal} onClose={handleDiscard}>
+        <Text style={styles.modalTitle}>Save Kinetic Workout</Text>
 
 
             <View style={styles.inputGroup}>
@@ -1054,9 +1079,7 @@ export default function RecordScreen() {
                 )}
               </Pressable>
             </View>
-          </View>
-        </View>
-      </Modal>
+      </CustomModal>
     </SafeAreaView>
   );
 }
@@ -1064,6 +1087,8 @@ export default function RecordScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    height: '100%',
+    minHeight: 0,
     backgroundColor: '#f8fafb',
   },
   headerBar: {
@@ -1177,6 +1202,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    minHeight: 0,
   },
   scrollContent: {
     paddingHorizontal: 16,

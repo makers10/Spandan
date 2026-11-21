@@ -158,11 +158,15 @@ function TabGlyph({
 
 const styles = StyleSheet.create({
   tabsRoot: {
+    flex: 1,
     height: '100%',
+    minHeight: 0,
     backgroundColor: '#f4f8f7',
   },
   tabSlot: {
+    flex: 1,
     height: '100%',
+    minHeight: 0,
     backgroundColor: '#f4f8f7',
   },
   tabBarContainer: {

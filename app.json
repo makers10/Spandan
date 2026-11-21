@@ -54,7 +54,8 @@
           "isAndroidForegroundServiceEnabled": true
         }
       ],
-      "expo-image"
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

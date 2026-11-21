@@ -1,41 +1,40 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# AGENTS.md — Track your movement (Spandan)
 
-## Expo has changed — do not trust your training data
+Primary instruction file for all software engineering agents working on this project.
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+## 1. Project Purpose & Architecture
+`Track your movement` is a high-performance, mobile-first fitness tracking application (walking, running, cycling, floor climbing) featuring phone sensor fusion (GPS, Pedometer, Barometer), offline athlete storage, and dynamic movement intelligence.
+- **Frontend / Routing:** Expo SDK 58, React Native 0.88, React 19, Expo Router (`src/app/`).
+- **Backend & Cloud:** Supabase (PostgreSQL, Row Level Security, GoTrue Auth) with local AsyncStorage fallback.
+- **Hardware Telemetry:** Phone-native sensors only. 0% external device dependencies.
 
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
+## 2. Progressive Context Loading (Token Efficiency)
+Always start with `AGENTS.md`. Never load all documentation or skills at once:
+- **Frontend tasks:** `AGENTS.md` → `.antigravity/skills/frontend/SKILL.md` → `docs/ARCHITECTURE.md`
+- **Backend / Data:** `AGENTS.md` → `.antigravity/skills/backend/SKILL.md` → `docs/DATABASE.md`
+- **Bugs / Fixes:** `AGENTS.md` → `.antigravity/skills/debugging/SKILL.md` → relevant source files
+- **Features:** `AGENTS.md` → `.antigravity/workflows/feature.md` → relevant skills
 
-## Commands
+## 3. Critical Rules
+1. **100-Line Limit:** Every created or refactored file MUST remain $\le 100$ lines (split styles/helpers cleanly).
+2. **Never Break Native:** Never edit `android/` or `ios/` manually; configure native behavior via `app.json`.
+3. **No External Hardware Blockers:** Always prefer phone-native sensors (GPS, pedometer, barometer).
+4. **Security & Secrets:** Never commit `.env` or credentials. All client requests use publishable anon key only.
+5. **Validation Baseline:** Run lint, typecheck, and test suite before declaring any task complete.
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
-
+## 4. Important Commands
 ```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+npx expo start        # Start Metro dev server
+npx tsc --noEmit      # Full TypeScript typecheck (must exit 0)
+npm test              # Run all 7 automated test suites (must pass 100%)
+npx expo lint         # Run ESLint across codebase
+npx expo install --fix# Resolve SDK-compatible versions
 ```
 
-Run lint and typecheck before declaring any task done.
-
-## Navigation & Routing
-
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
-
-## Building with EAS
-
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
-
-## Rules
-
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+## 5. Definition of Done
+A task is complete ONLY when:
+- Requirements are met with minimal, clean code.
+- Every touched or created file is $\le 100$ lines.
+- `npx tsc --noEmit` exits code 0 with 0 errors.
+- `npm test` passes 100% across all suites.
+- Git diff contains no accidental files or secrets.

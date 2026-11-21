@@ -28,6 +28,7 @@ import {
   isElevatorAscent,
   calculateFloorsFromElevation,
   estimateStepsFromDistance,
+  estimateDistanceFromSteps,
   calculateCadenceSpm,
 } from '@/utils/floor-math';
 
@@ -39,6 +40,7 @@ export {
   isElevatorAscent,
   calculateFloorsFromElevation,
   estimateStepsFromDistance,
+  estimateDistanceFromSteps,
   calculateCadenceSpm,
 };
 

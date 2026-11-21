@@ -1,6 +1,6 @@
 import { DefaultTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { LogBox } from 'react-native';
+import { LogBox, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -31,15 +31,25 @@ const SpandanLightTheme = {
 
 export default function TabLayout() {
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={styles.root}>
       <AuthProvider>
         <ThemeProvider value={SpandanLightTheme}>
-          <StatusBar style="dark" />
-          <AnimatedSplashOverlay />
-          <AppTabs />
-          <AuthModal />
+          <View style={styles.root}>
+            <StatusBar style="dark" />
+            <AnimatedSplashOverlay />
+            <AppTabs />
+            <AuthModal />
+          </View>
         </ThemeProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    height: '100%',
+    minHeight: 0,
+  },
+});
