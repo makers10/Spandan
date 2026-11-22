@@ -9,6 +9,7 @@
 import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { GpsCoordinate, isValidCoordinate } from '@/utils/geo';
 
 export const TRACK_BACKGROUND_LOCATION_TASK = 'TRACK_BACKGROUND_LOCATION_TASK';
@@ -322,18 +323,31 @@ export const locationService = {
    */
   async startBackgroundTracking(
     onLocation: (fix: GpsCoordinate) => void,
-    onError: (err: string) => void
+    onError?: (err: string) => void
   ): Promise<boolean> {
-    if (Platform.OS === 'web') {
-      onError('Background tracking is unsupported on Web. Browser tabs pause execution when backgrounded.');
+    if (Platform.OS === 'web') return false;
+
+    // Expo Go does not allow background foreground service tasks
+    if (
+      Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+      Constants.appOwnership === 'expo'
+    ) {
       return false;
     }
 
     try {
-      // Check if task is already running
-      const isRegistered = await TaskManager.isTaskRegisteredAsync(TRACK_BACKGROUND_LOCATION_TASK);
       backgroundListeners.add(onLocation);
 
+      // Verify or request background location permissions
+      const bgPerm = await Location.getBackgroundPermissionsAsync().catch(() => null);
+      if (!bgPerm || bgPerm.status !== Location.PermissionStatus.GRANTED) {
+        const req = await Location.requestBackgroundPermissionsAsync().catch(() => null);
+        if (!req || req.status !== Location.PermissionStatus.GRANTED) {
+          return false;
+        }
+      }
+
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(TRACK_BACKGROUND_LOCATION_TASK);
       if (isRegistered) {
         return true;
       }
@@ -345,15 +359,15 @@ export const locationService = {
         foregroundService: {
           notificationTitle: 'Track your movement',
           notificationBody: 'Recording your GPS workout in the background',
-          notificationColor: '#4FA99A',
+          notificationColor: '#00b8a2',
         },
         pausesUpdatesAutomatically: false,
       });
 
       return true;
     } catch (err: any) {
-      console.warn('Failed to start native background location:', err.message);
-      onError(`Background location setup failed: ${err.message}`);
+      console.warn('Native background location updates unavailable:', err.message);
+      if (onError) onError(err.message);
       return false;
     }
   },

@@ -319,7 +319,7 @@ export default function RecordScreen() {
         unsubscribeGpsRef.current = unsubscribe;
 
         if (locationService.isBackgroundSupported()) {
-          locationService.startBackgroundTracking(handleLocationFix, handleLocationError).catch(() => {});
+          locationService.startBackgroundTracking(handleLocationFix).catch(() => {});
         }
       } catch {
         setGpsStatus('locked');
