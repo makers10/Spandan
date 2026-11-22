@@ -1,0 +1,61 @@
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
+    marginBottom: 12,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  titleCaps: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: 0.6,
+  },
+  livePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' },
+  liveText: { fontSize: 10, fontWeight: '800', color: '#047857' },
+  contentRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  ringBox: {
+    width: 108,
+    height: 108,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  legendCol: { flex: 1, gap: 8 },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  legendLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+    letterSpacing: 0.3,
+  },
+  legendValRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
+  legendVal: { fontSize: 13, fontWeight: '800', color: '#0f172a' },
+  legendTarget: { fontSize: 10, fontWeight: '600', color: '#94a3b8' },
+});

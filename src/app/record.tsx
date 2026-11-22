@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +21,9 @@ import { useAuth } from '@/context/auth-context';
 import { activityService } from '@/services/activity-service';
 import { locationService } from '@/services/location-service';
 import { floorService, estimateDistanceFromSteps } from '@/services/floor-service';
+import { MovementModeSlider } from '@/components/fitness/movement-mode-slider';
+import { OverleapSessionMap } from '@/components/fitness/overleap-map';
+import { SessionActivityRing } from '@/components/fitness/session-activity-ring';
 import {
   GpsCoordinate,
   calculateTrackDistanceKm,
@@ -55,8 +57,8 @@ export default function RecordScreen() {
   const insets = useSafeAreaInsets();
   const { user, isDemoMode } = useAuth();
 
-  // Sport & Session Configuration
-  const [selectedSport, setSelectedSport] = useState<ActivityType | 'hike'>('run');
+  // Sport & Session Configuration (34+ Movement Modes)
+  const [selectedSport, setSelectedSport] = useState<string>('run');
   const [activityVisibility, setActivityVisibility] = useState<ActivityVisibility>('public');
 
   // Tracking State Machine
@@ -85,7 +87,6 @@ export default function RecordScreen() {
   const [liveCadence, setLiveCadence] = useState<number>(0);
   const [liveSteps, setLiveSteps] = useState<number>(0);
   const liveStepsRef = useRef<number>(0);
-  const [livePower, setLivePower] = useState<number | null>(null);
   const [audioCueActive, setAudioCueActive] = useState<boolean>(true);
 
   // Laps / Splits Record
@@ -285,7 +286,6 @@ export default function RecordScreen() {
     setLiveCadence(0);
     liveStepsRef.current = 0;
     setLiveSteps(0);
-    setLivePower(null);
     setLapSplits([]);
     setRecordingState('recording');
     setGpsStatus('acquiring');
@@ -410,11 +410,15 @@ export default function RecordScreen() {
       const finalDist = Number(distanceKm.toFixed(2));
       const finalSec = Math.max(1, movingSeconds);
       const formattedDuration = formatDuration(finalSec);
+      const isWheelSport = ['ride', 'mountain_bike', 'gravel_bike', 'indoor_cycling', 'ebike', 'skating', 'skateboard'].includes(selectedSport);
+      const isWalkSport = ['walk', 'hike', 'stairs'].includes(selectedSport);
+      const mappedType: ActivityType = isWheelSport ? 'ride' : isWalkSport ? 'walk' : 'run';
+
       const paceVal =
-        selectedSport === 'ride'
+        isWheelSport
           ? calculateSpeed(finalDist, finalSec)
           : calculatePace(finalDist, finalSec);
-      const speedOrPaceLabel = selectedSport === 'ride' ? 'Avg Speed' : 'Avg Pace';
+      const speedOrPaceLabel = isWheelSport ? 'Avg Speed' : 'Avg Pace';
       const polylineSvg =
         pts.length >= 2
           ? generateSvgPathFromCoordinates(pts, 320, 80, 8)
@@ -425,7 +429,7 @@ export default function RecordScreen() {
       if (isLiveUser && user) {
         const saved = await activityService.createActivity(user.id, {
           title: activityTitle.trim() || `${selectedSport.toUpperCase()} Session`,
-          type: selectedSport === 'hike' ? 'walk' : selectedSport,
+          type: mappedType,
           distanceKm: finalDist,
           durationSeconds: finalSec,
           durationFormatted: formattedDuration,
@@ -587,36 +591,19 @@ export default function RecordScreen() {
             </Pressable>
           )}
 
-          {/* Sport Selector Pills (Idle State) */}
-          {recordingState === 'idle' && (
-            <View style={styles.sportSelectorRow}>
-              {[
-                { type: 'run' as const, label: 'Run', icon: 'fitness-outline' as const },
-                { type: 'ride' as const, label: 'Ride', icon: 'bicycle-outline' as const },
-                { type: 'walk' as const, label: 'Walk', icon: 'walk-outline' as const },
-                { type: 'hike' as const, label: 'Hike', icon: 'trail-sign-outline' as const },
-              ].map((s) => {
-                const isSelected = selectedSport === s.type;
-                return (
-                  <Pressable
-                    key={s.type}
-                    onPress={() => setSelectedSport(s.type)}
-                    style={[styles.sportPill, isSelected && styles.sportPillActive]}>
-                    <Ionicons
-                      name={s.icon}
-                      size={15}
-                      color={isSelected ? '#ffffff' : '#64748b'}
-                      style={{ marginRight: 4 }}
-                    />
-                    <Text
-                      style={[styles.sportPillText, isSelected && styles.sportPillTextActive]}>
-                      {s.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
+          {/* 30+ Movement Mode Carousel Slider */}
+          <MovementModeSlider
+            selectedModeId={selectedSport}
+            onSelectMode={(mode) => {
+              setSelectedSport(mode.id);
+              if (mode.metricType === 'speed') {
+                setCurrentPaceOrSpeed('0.0');
+              } else {
+                setCurrentPaceOrSpeed('--:--');
+              }
+            }}
+            disabled={recordingState !== 'idle'}
+          />
 
           {/* 2. Live Status & Telemetry Head-Up Banner */}
           <View style={styles.telemetryStatusBanner}>
@@ -655,80 +642,26 @@ export default function RecordScreen() {
             </Pressable>
           </View>
 
-          {/* 3. Primary Dynamic Kinetic Map HUD */}
-          <View style={styles.mapHudCard}>
-            {/* Tactical Grid Background & Polyline Trace */}
-            <View style={styles.gridCanvas}>
-              {Platform.OS === 'web' ? (
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                  }}
-                  dangerouslySetInnerHTML={{
-                    __html: routePoints.length >= 2
-                      ? `<svg width="100%" height="100%" viewBox="0 0 380 256" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%;">
-                          <defs>
-                            <pattern id="tactical-grid-light" width="24" height="24" patternUnits="userSpaceOnUse">
-                              <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#94a3b8" stroke-opacity="0.3" stroke-width="0.75" />
-                            </pattern>
-                          </defs>
-                          <rect width="100%" height="100%" fill="url(#tactical-grid-light)" />
-                          <path d="${generateSvgPathFromCoordinates(routePoints, 380, 256, 12)}" stroke="#00b8a2" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>`
-                      : `<svg width="100%" height="100%" viewBox="0 0 380 256" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%;">
-                          <defs>
-                            <pattern id="tactical-grid-light" width="24" height="24" patternUnits="userSpaceOnUse">
-                              <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#94a3b8" stroke-opacity="0.3" stroke-width="0.75" />
-                            </pattern>
-                          </defs>
-                          <rect width="100%" height="100%" fill="url(#tactical-grid-light)" />
-                          <text x="50%" y="50%" text-anchor="middle" fill="#94a3b8" font-size="12" font-weight="600" letter-spacing="1">GPS READY • WAITING FOR MOVEMENT</text>
-                        </svg>`,
-                  }}
-                />
-              ) : (
-                <View style={styles.nativeGridContainer}>
-                  <View style={styles.nativeGridLine1} />
-                  <View style={styles.nativeGridLine2} />
-                  {routePoints.length >= 2 && <View style={styles.nativeRoutePath} />}
-                </View>
-              )}
-            </View>
+          {/* 3. Primary Dynamic Overleap Map HUD */}
+          <OverleapSessionMap
+            routePoints={routePoints}
+            distanceKm={distanceKm}
+            paceOrSpeed={currentPaceOrSpeed}
+            elevationM={elevationGainM}
+            bearing={142}
+            gpsAccuracy={gpsAccuracy}
+            splitNum={currentSplitNum}
+          />
 
-
-            {/* Map Overlay Telemetry Info (Top Corners) */}
-            <View style={styles.mapTopLeftHUD}>
-              <Text style={styles.hudCapsSub}>SPLIT {String(currentSplitNum).padStart(2, '0')} {'//'} LAP</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-                <Text style={styles.hudBigDist}>{distanceKm.toFixed(2)}</Text>
-                <Text style={styles.hudKmUnit}>KM</Text>
-              </View>
-            </View>
-
-            <View style={styles.mapTopRightHUD}>
-              <Ionicons name="navigate" size={14} color="#00b8a2" style={{ marginRight: 3 }} />
-              <Text style={styles.bearingText}>--°</Text>
-            </View>
-
-            {/* Live Telemetry Overlay Indicator (Bottom HUD) */}
-            <View style={styles.mapBottomBar}>
-              <View style={styles.bottomBarLeft}>
-                <Ionicons name="navigate-outline" size={16} color="#0d9488" style={{ marginRight: 5 }} />
-                <Text style={styles.targetDiffText}>
-                  {gpsStatus === 'locked' ? (gpsAccuracy ? `GPS ±${gpsAccuracy}M` : 'GPS LOCKED') : gpsStatus.toUpperCase()}
-                  {routePoints.length > 0 ? ` • ${routePoints.length} PTS` : ''}
-                </Text>
-              </View>
-              <View style={styles.bottomBarRight}>
-                <Text style={styles.elevLabel}>ELEV</Text>
-                <Text style={styles.elevValue}>+{elevationGainM} M</Text>
-              </View>
-            </View>
-          </View>
+          {/* 4. Kinetic Concentric Activity Rings */}
+          <SessionActivityRing
+            calories={Math.round(distanceKm * 65 + (movingSeconds / 60) * 8)}
+            calorieGoal={['ride', 'mountain_bike', 'gravel_bike', 'indoor_cycling', 'ebike'].includes(selectedSport) ? 650 : 500}
+            activeMinutes={Math.round(movingSeconds / 60)}
+            minuteGoal={45}
+            elevationM={elevationGainM}
+            elevationGoal={150}
+          />
 
           {/* 4. Primary Elapsed Session Clock */}
           <View style={styles.clockCard}>
@@ -750,7 +683,9 @@ export default function RecordScreen() {
               {/* Tile 1: Current Pace */}
               <View style={styles.bentoTile}>
                 <View style={styles.tileTop}>
-                  <Text style={styles.tileHeaderCaps}>CURRENT PACE</Text>
+                  <Text style={styles.tileHeaderCaps}>
+                    {['ride', 'mountain_bike', 'gravel_bike', 'indoor_cycling', 'ebike', 'skating'].includes(selectedSport) ? 'CURRENT SPEED' : 'CURRENT PACE'}
+                  </Text>
                   <View style={[styles.tileIconCircle, { backgroundColor: '#e6fbf7' }]}>
                     <Ionicons name="speedometer-outline" size={15} color="#00b8a2" />
                   </View>
@@ -759,7 +694,7 @@ export default function RecordScreen() {
                 <View style={styles.metricRow}>
                   <Text style={styles.metricValLarge}>{currentPaceOrSpeed}</Text>
                   <Text style={styles.metricUnitSub}>
-                    {selectedSport === 'ride' ? 'KM/H' : '/KM'}
+                    {['ride', 'mountain_bike', 'gravel_bike', 'indoor_cycling', 'ebike', 'skating'].includes(selectedSport) ? 'KM/H' : '/KM'}
                   </Text>
                 </View>
                 <View style={styles.progressTrack}>

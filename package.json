@@ -41,6 +41,7 @@
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
+    "husky": "^9.1.7",
     "typescript": "~6.0.3",
     "ui-ux-pro-max-cli": "^2.15.0"
   },
@@ -51,9 +52,14 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "node tests/auth-and-activities.test.mjs && node tests/geo-and-tracking.test.mjs && node tests/features-and-privacy.test.mjs && node tests/floor-climbing.test.mjs && node tests/signin-functional.test.mjs && node tests/smart-insights.test.mjs && node tests/verify-dynamic-insights.test.mjs",
-    "lint": "expo lint",
+    "lint": "eslint src",
+    "build": "tsc --noEmit",
     "build:apk": "powershell -ExecutionPolicy Bypass -File .\\scripts\\build-apk.ps1",
-    "serve:apk": "node scripts/serve-apk.mjs"
+    "serve:apk": "node scripts/serve-apk.mjs",
+    "prepare": "husky"
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true
+  }
 }
