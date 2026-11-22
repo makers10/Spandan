@@ -322,8 +322,7 @@ export const locationService = {
    * Start Android native background tracking with foreground service notification.
    */
   async startBackgroundTracking(
-    onLocation: (fix: GpsCoordinate) => void,
-    onError?: (err: string) => void
+    onLocation: (fix: GpsCoordinate) => void
   ): Promise<boolean> {
     if (Platform.OS === 'web') return false;
 
@@ -365,9 +364,7 @@ export const locationService = {
       });
 
       return true;
-    } catch (err: any) {
-      console.warn('Native background location updates unavailable:', err.message);
-      if (onError) onError(err.message);
+    } catch {
       return false;
     }
   },

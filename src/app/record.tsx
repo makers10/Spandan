@@ -177,6 +177,7 @@ export default function RecordScreen() {
   const handleLocationFix = useCallback(
     (fix: GpsCoordinate) => {
       setGpsStatus('locked');
+      setGpsErrorMsg(null);
       setCurrentLocation(fix);
       if (fix.accuracy !== null && fix.accuracy !== undefined) {
         setGpsAccuracy(Math.round(fix.accuracy));
@@ -220,6 +221,13 @@ export default function RecordScreen() {
   // Handle GPS errors
   const handleLocationError = useCallback((err: string) => {
     console.warn('GPS location tracking error:', err);
+    if (
+      err.toLowerCase().includes('background location') ||
+      err.toLowerCase().includes('foreground service') ||
+      err.toLowerCase().includes('startlocationupdatesasync')
+    ) {
+      return;
+    }
     if (err.toLowerCase().includes('denied')) {
       setGpsStatus('denied');
       setGpsErrorMsg('Location permission was denied. Please allow location access to continue.');
@@ -598,12 +606,13 @@ export default function RecordScreen() {
             </View>
           )}
 
-          {gpsErrorMsg && (
+          {gpsErrorMsg && gpsStatus !== 'locked' && (
             <Pressable
-              onPress={gpsStatus === 'denied' ? handleRequestPermission : undefined}
+              onPress={() => (gpsStatus === 'denied' ? handleRequestPermission() : setGpsErrorMsg(null))}
               style={[styles.toastBanner, { backgroundColor: '#fef2f2', borderColor: '#fca5a5' }]}>
               <Ionicons name="warning-outline" size={14} color="#ef4444" style={{ marginRight: 6 }} />
-              <Text style={[styles.toastText, { color: '#ef4444' }]}>{gpsErrorMsg}</Text>
+              <Text style={[styles.toastText, { color: '#ef4444', flex: 1 }]}>{gpsErrorMsg}</Text>
+              <Ionicons name="close-circle-outline" size={16} color="#ef4444" />
             </Pressable>
           )}
 
