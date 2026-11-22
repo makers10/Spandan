@@ -69,6 +69,7 @@ export default function RecordScreen() {
 
   // GPS Route Coordinates
   const [routePoints, setRoutePoints] = useState<GpsCoordinate[]>([]);
+  const [currentLocation, setCurrentLocation] = useState<GpsCoordinate | null>(null);
   const routePointsRef = useRef<GpsCoordinate[]>([]);
   const unsubscribeGpsRef = useRef<(() => void) | null>(null);
 
@@ -122,11 +123,25 @@ export default function RecordScreen() {
       if (isMounted) {
         if (perm.granted) {
           setGpsStatus('idle');
+          locationService.getCurrentPosition().then((pos) => {
+            if (isMounted && pos) {
+              setCurrentLocation(pos);
+              setGpsStatus('locked');
+              if (pos.accuracy) setGpsAccuracy(Math.round(pos.accuracy));
+            }
+          });
         } else if (perm.status === 'denied') {
           setGpsStatus('denied');
           setGpsErrorMsg('Location permission denied. Enable location in device settings.');
         } else {
           setGpsStatus('idle');
+          locationService.getCurrentPosition().then((pos) => {
+            if (isMounted && pos) {
+              setCurrentLocation(pos);
+              setGpsStatus('locked');
+              if (pos.accuracy) setGpsAccuracy(Math.round(pos.accuracy));
+            }
+          });
         }
       }
     }
@@ -162,6 +177,7 @@ export default function RecordScreen() {
   const handleLocationFix = useCallback(
     (fix: GpsCoordinate) => {
       setGpsStatus('locked');
+      setCurrentLocation(fix);
       if (fix.accuracy !== null && fix.accuracy !== undefined) {
         setGpsAccuracy(Math.round(fix.accuracy));
       }
@@ -645,6 +661,7 @@ export default function RecordScreen() {
           {/* 3. Primary Dynamic Overleap Map HUD */}
           <OverleapSessionMap
             routePoints={routePoints}
+            currentLocation={currentLocation}
             distanceKm={distanceKm}
             paceOrSpeed={currentPaceOrSpeed}
             elevationM={elevationGainM}

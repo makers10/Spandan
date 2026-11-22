@@ -80,6 +80,50 @@ export const locationService = {
   },
 
   /**
+   * Get athlete current position fix for map centering and standby telemetry.
+   */
+  async getCurrentPosition(): Promise<GpsCoordinate | null> {
+    if (Platform.OS === 'web') {
+      if (!this.isSupported()) return null;
+      return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            resolve({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              altitude: pos.coords.altitude,
+              accuracy: pos.coords.accuracy,
+              speed: pos.coords.speed,
+              timestamp: pos.timestamp,
+            });
+          },
+          () => resolve(null),
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+        );
+      });
+    }
+
+    try {
+      const perm = await this.checkPermission();
+      if (!perm.granted) {
+        const req = await this.requestPermission();
+        if (!req.granted) return null;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      return {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        altitude: loc.coords.altitude,
+        accuracy: loc.coords.accuracy,
+        speed: loc.coords.speed,
+        timestamp: loc.timestamp,
+      };
+    } catch {
+      return null;
+    }
+  },
+
+  /**
    * Check current foreground location permission status.
    */
   async checkPermission(): Promise<LocationPermissionState> {

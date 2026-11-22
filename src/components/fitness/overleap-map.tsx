@@ -1,54 +1,56 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { GpsCoordinate, generateSvgPathFromCoordinates } from '@/utils/geo';
+import { GpsCoordinate } from '@/utils/geo';
+import { locationService } from '@/services/location-service';
+import { generateMapLibreHtml, OverleapMapLayer } from './overleap-map-html';
+import { OverleapNativeMap } from './overleap-native-map';
 import { styles } from './overleap-map.styles';
 
-export type OverleapMapLayer = 'tactical' | 'satellite' | 'terrain';
+export type { OverleapMapLayer };
 
 interface OverleapSessionMapProps {
-  routePoints: GpsCoordinate[];
-  distanceKm: number;
-  paceOrSpeed: string;
-  elevationM: number;
-  bearing?: number;
-  gpsAccuracy?: number | null;
-  splitNum?: number;
+  routePoints: GpsCoordinate[]; distanceKm: number; paceOrSpeed: string;
+  elevationM: number; bearing?: number; gpsAccuracy?: number | null;
+  splitNum?: number; currentLocation?: GpsCoordinate | null;
 }
 
 export function OverleapSessionMap({
   routePoints, distanceKm, paceOrSpeed, elevationM,
-  bearing = 142, gpsAccuracy, splitNum = 1,
+  bearing = 142, gpsAccuracy, splitNum = 1, currentLocation,
 }: OverleapSessionMapProps) {
   const [mapLayer, setMapLayer] = useState<OverleapMapLayer>('tactical');
-  const hasRoute = routePoints.length >= 2;
-  const bg = mapLayer === 'satellite' ? '#090d16' : mapLayer === 'terrain' ? '#042f2e' : '#020617';
+  const [internalLoc, setInternalLoc] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    locationService.getCurrentPosition().then((pos) => {
+      if (active && pos) setInternalLoc({ lat: pos.latitude, lng: pos.longitude });
+    });
+    return () => { active = false; };
+  }, []);
+
+  const last = routePoints.length > 0 ? routePoints[routePoints.length - 1] : null;
+  const activeLat = last?.latitude ?? currentLocation?.latitude ?? internalLoc?.lat ?? 28.6139;
+  const activeLng = last?.longitude ?? currentLocation?.longitude ?? internalLoc?.lng ?? 77.209;
+  const mapHtml = generateMapLibreHtml(routePoints, mapLayer, activeLat, activeLng);
 
   return (
     <View style={styles.container}>
-      <View style={[styles.mapCanvas, { backgroundColor: bg }]}>
-        {Platform.OS === 'web' && (
-          <div
-            style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
-            dangerouslySetInnerHTML={{
-              __html: `<svg width="100%" height="100%" viewBox="0 0 380 256" preserveAspectRatio="none" style="position: absolute; inset: 0;">
-                <defs>
-                  <pattern id="overleap-grid" width="28" height="28" patternUnits="userSpaceOnUse">
-                    <path d="M 28 0 L 0 0 0 28" fill="none" stroke="${mapLayer === 'terrain' ? '#2dd4bf' : '#38bdf8'}" stroke-opacity="0.15" stroke-width="0.8" />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#overleap-grid)" />
-                ${hasRoute ? `
-                  <path d="${generateSvgPathFromCoordinates(routePoints, 380, 256, 16)}" stroke="#00b8a2" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                  <circle cx="190" cy="128" r="6" fill="#00b8a2" stroke="#ffffff" stroke-width="2" />
-                  <circle cx="190" cy="128" r="14" fill="none" stroke="#00b8a2" stroke-width="1.5" opacity="0.6" />
-                ` : `
-                  <circle cx="190" cy="128" r="7" fill="#00b8a2" stroke="#ffffff" stroke-width="2" />
-                  <circle cx="190" cy="128" r="16" fill="none" stroke="#00b8a2" stroke-width="1.5" opacity="0.6" />
-                  <text x="50%" y="72%" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="700" letter-spacing="1">OVERLEAP SATELLITE HUD • TRACKING READY</text>
-                `}
-              </svg>`,
-            }}
+      <View style={styles.mapCanvas}>
+        {Platform.OS === 'web' ? (
+          <iframe
+            key={`${mapLayer}-${activeLat.toFixed(3)}-${activeLng.toFixed(3)}-${routePoints.length}`}
+            title="Overleap Map"
+            srcDoc={mapHtml}
+            style={{ width: '100%', height: '100%', border: 'none' }}
+          />
+        ) : (
+          <OverleapNativeMap
+            lat={activeLat}
+            lng={activeLng}
+            layer={mapLayer}
+            routePoints={routePoints}
           />
         )}
       </View>
@@ -66,7 +68,7 @@ export function OverleapSessionMap({
 
       <View style={styles.topRightHUD}>
         <Ionicons name="navigate" size={12} color="#34d399" />
-        <Text style={styles.bearingText}>{bearing}° SE • {gpsAccuracy ? `±${gpsAccuracy}m` : 'RTK'}</Text>
+        <Text style={styles.bearingText}>{bearing}° • {gpsAccuracy ? `±${gpsAccuracy}m` : 'FIX'}</Text>
       </View>
 
       <View style={styles.bottomOverlayBar}>
@@ -82,7 +84,13 @@ export function OverleapSessionMap({
           <Text style={styles.metricLabelCaps}>ELEV</Text>
           <Text style={styles.metricValueBold}>+{elevationM}m</Text>
         </View>
-        <Pressable style={styles.recenterBtn}>
+        <Pressable
+          onPress={() => {
+            locationService.getCurrentPosition().then((pos) => {
+              if (pos) setInternalLoc({ lat: pos.latitude, lng: pos.longitude });
+            });
+          }}
+          style={styles.recenterBtn}>
           <Ionicons name="locate" size={15} color="#00b8a2" />
         </Pressable>
       </View>
